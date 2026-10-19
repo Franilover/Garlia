@@ -9,7 +9,6 @@ import {
   MapPin,
   Music2,
   Star,
-  Sword,
   User,
   Users,
   X,
@@ -76,9 +75,7 @@ interface PersonalProps {
 
 export default function Personal({ datos: datosProp }: PersonalProps) {
   const router = useRouter();
-  const [tab, setTab] = useState<
-    "items" | "criaturas" | "personajes" | "reinos"
-  >("personajes");
+  const [tab, setTab] = useState<"personajes" | "reinos">("personajes");
   const [modalEntidad, setModalEntidad] = useState<EntidadModal | null>(null);
 
   const [perfil, setPerfil] = useState<Perfil | null>(null);
@@ -341,18 +338,6 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
       label: "Agenda",
       icon: User,
       count: misPersonajes.length,
-    },
-    {
-      id: "criaturas",
-      label: "Bestiario",
-      icon: Cat,
-      count: misCriaturas.length,
-    },
-    {
-      id: "items",
-      label: "Inventario",
-      icon: Sword,
-      count: inventario.length + misItemsDesc.length,
     },
     { id: "reinos", label: "Mapa", icon: MapPin, count: reinos.length },
   ] as const;
@@ -1767,18 +1752,6 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                       max: 20,
                     },
                     {
-                      icon: <Cat size={10} />,
-                      label: "Criaturas",
-                      count: misCriaturas.length,
-                      max: 30,
-                    },
-                    {
-                      icon: <Sword size={10} />,
-                      label: "Objetos",
-                      count: inventario.length + misItemsDesc.length,
-                      max: 50,
-                    },
-                    {
                       icon: <MapPin size={10} />,
                       label: "Ciudades",
                       count: reinos.length + ciudades.length,
@@ -2335,277 +2308,6 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                     initial={{ opacity: 0, y: 6 }}
                     transition={{ duration: 0.16 }}
                   >
-                    {tab === "items" && (
-                      <>
-                        {inventario.map((item, i) => (
-                          <button
-                            key={`inv-${i}`}
-                            className="group relative overflow-hidden text-left transition-all duration-150"
-                            style={{
-                              background:
-                                "color-mix(in srgb, var(--primary) 3%, var(--white-custom))",
-                              border:
-                                "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
-                              borderRadius: "4px",
-                              boxShadow:
-                                "inset 0 1px 0 color-mix(in srgb, var(--primary) 6%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--primary) 10%, transparent)",
-                              aspectRatio: "1 / 1",
-                              display: "flex",
-                              flexDirection: "column",
-                              minHeight: "80px",
-                            }}
-                            onClick={() =>
-                              setModalEntidad({ tipo: "item_inv", data: item })
-                            }
-                            onMouseEnter={(e) => {
-                              (
-                                e.currentTarget as HTMLElement
-                              ).style.borderColor =
-                                "color-mix(in srgb, var(--primary) 35%, transparent)";
-                              (
-                                e.currentTarget as HTMLElement
-                              ).style.background =
-                                "color-mix(in srgb, var(--primary) 7%, var(--white-custom))";
-                              (e.currentTarget as HTMLElement).style.boxShadow =
-                                "inset 0 1px 0 color-mix(in srgb, var(--primary) 12%, transparent), 0 0 0 1px color-mix(in srgb, var(--primary) 20%, transparent)";
-                            }}
-                            onMouseLeave={(e) => {
-                              (
-                                e.currentTarget as HTMLElement
-                              ).style.borderColor =
-                                "color-mix(in srgb, var(--primary) 14%, transparent)";
-                              (
-                                e.currentTarget as HTMLElement
-                              ).style.background =
-                                "color-mix(in srgb, var(--primary) 3%, var(--white-custom))";
-                              (e.currentTarget as HTMLElement).style.boxShadow =
-                                "inset 0 1px 0 color-mix(in srgb, var(--primary) 6%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--primary) 10%, transparent)";
-                            }}
-                          >
-                            <div
-                              className="flex-1 relative overflow-hidden flex items-center justify-center p-2"
-                              style={{ minHeight: "64px", width: "100%" }}
-                            >
-                              {item.items.imagen_url ? (
-                                <img
-                                  alt={item.items.nombre}
-                                  className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-125"
-                                  src={item.items.imagen_url}
-                                  style={{ objectPosition: "center" }}
-                                />
-                              ) : (
-                                <Sword
-                                  size={22}
-                                  style={{
-                                    color:
-                                      "color-mix(in srgb, var(--primary) 14%, transparent)",
-                                  }}
-                                />
-                              )}
-                            </div>
-                            <div
-                              className="px-1.5 py-1"
-                              style={{
-                                borderTop:
-                                  "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
-                                background:
-                                  "color-mix(in srgb, var(--primary) 4%, transparent)",
-                              }}
-                            >
-                              <p
-                                className="font-serif italic text-micro leading-tight capitalize truncate text-center"
-                                style={{ color: "var(--primary)" }}
-                              >
-                                {item.items.nombre}
-                              </p>
-                            </div>
-                          </button>
-                        ))}
-                        {misItemsDesc.map((d, i) => (
-                          <button
-                            key={`desc-${i}`}
-                            className="group relative overflow-hidden text-left transition-all duration-150"
-                            style={{
-                              background:
-                                "color-mix(in srgb, var(--primary) 3%, var(--white-custom))",
-                              border:
-                                "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
-                              borderRadius: "4px",
-                              boxShadow:
-                                "inset 0 1px 0 color-mix(in srgb, var(--primary) 6%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--primary) 10%, transparent)",
-                              aspectRatio: "1 / 1",
-                              display: "flex",
-                              flexDirection: "column",
-                              minHeight: "80px",
-                            }}
-                            onClick={() =>
-                              setModalEntidad({ tipo: "item", data: d })
-                            }
-                            onMouseEnter={(e) => {
-                              (
-                                e.currentTarget as HTMLElement
-                              ).style.borderColor =
-                                "color-mix(in srgb, var(--primary) 35%, transparent)";
-                              (
-                                e.currentTarget as HTMLElement
-                              ).style.background =
-                                "color-mix(in srgb, var(--primary) 7%, var(--white-custom))";
-                              (e.currentTarget as HTMLElement).style.boxShadow =
-                                "inset 0 1px 0 color-mix(in srgb, var(--primary) 12%, transparent), 0 0 0 1px color-mix(in srgb, var(--primary) 20%, transparent)";
-                            }}
-                            onMouseLeave={(e) => {
-                              (
-                                e.currentTarget as HTMLElement
-                              ).style.borderColor =
-                                "color-mix(in srgb, var(--primary) 14%, transparent)";
-                              (
-                                e.currentTarget as HTMLElement
-                              ).style.background =
-                                "color-mix(in srgb, var(--primary) 3%, var(--white-custom))";
-                              (e.currentTarget as HTMLElement).style.boxShadow =
-                                "inset 0 1px 0 color-mix(in srgb, var(--primary) 6%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--primary) 10%, transparent)";
-                            }}
-                          >
-                            <div
-                              className="flex-1 relative overflow-hidden flex items-center justify-center p-2"
-                              style={{ minHeight: "64px", width: "100%" }}
-                            >
-                              {d.imagen_url ? (
-                                <img
-                                  alt={d.nombre}
-                                  className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-125"
-                                  src={d.imagen_url}
-                                  style={{ objectPosition: "center" }}
-                                />
-                              ) : (
-                                <Sword
-                                  size={22}
-                                  style={{
-                                    color:
-                                      "color-mix(in srgb, var(--primary) 14%, transparent)",
-                                  }}
-                                />
-                              )}
-                            </div>
-                            <div
-                              className="px-1.5 py-1"
-                              style={{
-                                borderTop:
-                                  "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
-                                background:
-                                  "color-mix(in srgb, var(--primary) 4%, transparent)",
-                              }}
-                            >
-                              <p
-                                className="font-serif italic text-micro leading-tight capitalize truncate text-center"
-                                style={{ color: "var(--primary)" }}
-                              >
-                                {d.nombre ?? "Objeto"}
-                              </p>
-                            </div>
-                          </button>
-                        ))}
-                        {inventario.length === 0 &&
-                          misItemsDesc.length === 0 && (
-                            <div className="col-span-full">
-                              <EmptyTab label="Sin items registrados aún" />
-                            </div>
-                          )}
-                      </>
-                    )}
-
-                    {tab === "criaturas" &&
-                      (misCriaturas.length > 0 ? (
-                        misCriaturas.map((d, i) => (
-                          <button
-                            key={i}
-                            className="group relative overflow-hidden text-left transition-all duration-150"
-                            style={{
-                              background:
-                                "color-mix(in srgb, var(--primary) 3%, var(--white-custom))",
-                              border:
-                                "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
-                              borderRadius: "4px",
-                              boxShadow:
-                                "inset 0 1px 0 color-mix(in srgb, var(--primary) 6%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--primary) 10%, transparent)",
-                              aspectRatio: "1 / 1",
-                              display: "flex",
-                              flexDirection: "column",
-                              minHeight: "80px",
-                            }}
-                            onClick={() =>
-                              setModalEntidad({ tipo: "criatura", data: d })
-                            }
-                            onMouseEnter={(e) => {
-                              (
-                                e.currentTarget as HTMLElement
-                              ).style.borderColor =
-                                "color-mix(in srgb, var(--primary) 35%, transparent)";
-                              (
-                                e.currentTarget as HTMLElement
-                              ).style.background =
-                                "color-mix(in srgb, var(--primary) 7%, var(--white-custom))";
-                              (e.currentTarget as HTMLElement).style.boxShadow =
-                                "inset 0 1px 0 color-mix(in srgb, var(--primary) 12%, transparent), 0 0 0 1px color-mix(in srgb, var(--primary) 20%, transparent)";
-                            }}
-                            onMouseLeave={(e) => {
-                              (
-                                e.currentTarget as HTMLElement
-                              ).style.borderColor =
-                                "color-mix(in srgb, var(--primary) 14%, transparent)";
-                              (
-                                e.currentTarget as HTMLElement
-                              ).style.background =
-                                "color-mix(in srgb, var(--primary) 3%, var(--white-custom))";
-                              (e.currentTarget as HTMLElement).style.boxShadow =
-                                "inset 0 1px 0 color-mix(in srgb, var(--primary) 6%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--primary) 10%, transparent)";
-                            }}
-                          >
-                            <div
-                              className="flex-1 relative overflow-hidden flex items-center justify-center p-2"
-                              style={{ minHeight: "64px", width: "100%" }}
-                            >
-                              {d.imagen_url ? (
-                                <img
-                                  alt={d.nombre}
-                                  className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-125"
-                                  src={d.imagen_url}
-                                  style={{ objectPosition: "center" }}
-                                />
-                              ) : (
-                                <Cat
-                                  size={22}
-                                  style={{
-                                    color:
-                                      "color-mix(in srgb, var(--primary) 14%, transparent)",
-                                  }}
-                                />
-                              )}
-                            </div>
-                            <div
-                              className="px-1.5 py-1"
-                              style={{
-                                borderTop:
-                                  "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
-                                background:
-                                  "color-mix(in srgb, var(--primary) 4%, transparent)",
-                              }}
-                            >
-                              <p
-                                className="font-serif italic text-micro leading-tight capitalize truncate text-center"
-                                style={{ color: "var(--primary)" }}
-                              >
-                                {d.nombre ?? "Criatura"}
-                              </p>
-                            </div>
-                          </button>
-                        ))
-                      ) : (
-                        <div className="col-span-full">
-                          <EmptyTab label="Sin registros en el bestiario" />
-                        </div>
-                      ))}
-
                     {tab === "personajes" &&
                       (misPersonajes.length > 0 ? (
                         misPersonajes.map((d, i) => (
@@ -2913,8 +2615,6 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                           </p>
                           <div className="flex items-center gap-2 mt-0.5">
                             {[
-                              { icon: <Sword size={6} />, n: p.items_count },
-                              { icon: <Cat size={6} />, n: p.criaturas_count },
                               {
                                 icon: <User size={6} />,
                                 n: p.personajes_count,
