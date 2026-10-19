@@ -44,6 +44,7 @@ import React, {
 } from "react";
 
 import { supabase } from "@/infra/supabase/supabase";
+import { EfectoVisualIUMs } from "./EfectoVisualIUMs";
 import {
   IumVisual,
   type GeometriaIum,
@@ -2563,6 +2564,11 @@ export default function SimuladorIUM() {
           </button>
         </div>
         <div style={{ flex: 1, overflowY: "auto", padding: "8px 10px", display: "flex", flexDirection: "column", gap: 10 }}>
+
+          <EfectoVisualIUMs
+            iumIds={componentes.map((comp) => comp.ium_id)}
+            activo={Boolean(resultado?.estado === "simulado" && (resultado.proceso_principal || resultado.conjuracion_principal))}
+          />
 
           {/* Selector de topología */}
           <div>
