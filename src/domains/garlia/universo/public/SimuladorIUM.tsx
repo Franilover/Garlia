@@ -44,13 +44,13 @@ import React, {
 } from "react";
 
 import { supabase } from "@/infra/supabase/supabase";
-import { EfectoVisualIUMs } from "./EfectoVisualIUMs";
 import {
   IumVisual,
   type GeometriaIum,
 } from "@/domains/garlia/fisica/ParticulaVisual";
 import {
   particulasDeIum,
+  PARTICULA_QUIMICA_FORMULA,
   type FilaIum,
 } from "@/domains/garlia/fisica/types";
 
@@ -723,6 +723,32 @@ function getFrontierSlots(
 // Radio de recorte: el trazo arranca/termina en el borde del visual, no en el centro
 const EDGE_OFFSET = 40; // px SVG ≈ VIS_R + un pequeño margen
 
+// ── Color TASI por IUM — ilumina cada nodo con su carácter canónico ──────────
+// T=dinámico (cian) · A=masivo (ámbar) · S=emisor (violeta) · I=receptor (verde)
+function colorTASIdeIum(iumData: IumCatalogo | undefined): string {
+  if (!iumData?.composicion?.length) return "var(--primary)";
+  let T = 0, A = 0, S = 0, I = 0, total = 0;
+  for (const c of iumData.composicion) {
+    const formula = PARTICULA_QUIMICA_FORMULA[c.particula];
+    if (!formula) continue;
+    for (const ch of formula) {
+      if (ch === "T") T += c.cantidad;
+      else if (ch === "A") A += c.cantidad;
+      else if (ch === "S") S += c.cantidad;
+      else if (ch === "I") I += c.cantidad;
+    }
+    total += formula.length * c.cantidad;
+  }
+  if (total === 0) return "var(--primary)";
+  const tN = T / total, aN = A / total, sN = S / total, iN = I / total;
+  const max = Math.max(tN, aN, sN, iN);
+  if (max < 0.35) return "var(--primary)";
+  if (tN === max) return "hsl(195,80%,65%)";  // cian — dinámica T
+  if (aN === max) return "hsl(45,70%,60%)";   // ámbar — masa A
+  if (sN === max) return "hsl(285,75%,70%)";  // violeta — emisión S
+  return "hsl(145,65%,55%)";                   // verde — recepción I
+}
+
 function ConnectionLine({
   x1, y1, x2, y2, tipo, label, onRemove, resonancia,
 }: {
@@ -803,6 +829,7 @@ function IumNodeSVG({
   scale,
   reaccion,
   funcionRevelada,
+  colorTASI,
 }: {
   reaccion?: "exito" | "inestable" | null;
   comp: ComponenteLab;
@@ -817,6 +844,7 @@ function IumNodeSVG({
   onMouseLeave: () => void;
   scale: number;
   funcionRevelada: boolean;
+  colorTASI?: string;
 }) {
   const { x, y } = comp;
   const principal = funcionRevelada ? salidas.find((s) => s.es_principal) : undefined;
@@ -860,9 +888,24 @@ function IumNodeSVG({
           fill="none"
           strokeWidth={2.5}
           style={{
-            stroke: reaccion === "exito" ? "var(--accent,var(--primary))" : "var(--warning,#f59e0b)",
+            stroke: reaccion === "exito"
+              ? (colorTASI ?? "var(--accent,var(--primary))")
+              : "var(--warning,#f59e0b)",
             animation: "destello 1.4s ease-in-out infinite",
             pointerEvents: "none",
+          }}
+        />
+      )}
+      {reaccion === "exito" && colorTASI && (
+        <circle
+          r={visR + 26}
+          fill="none"
+          strokeWidth={1}
+          style={{
+            stroke: colorTASI,
+            animation: "destello 1.8s ease-in-out infinite 0.4s",
+            pointerEvents: "none",
+            opacity: 0.4,
           }}
         />
       )}
@@ -1583,6 +1626,9 @@ export default function SimuladorIUM() {
     setSlotDropdown(null); setBusquedaSlot("");
     setDescubrimientosAbierto(false);
     setAdminPanelAbierto(false);
+    // Limpiar resultado al tocar área vacía del canvas
+    setResultado(null);
+    setErrorSim(null);
   }, []);
 
   // ── Cancelar enlace con Escape ────────────────────────────────────────────
@@ -2533,6 +2579,7 @@ export default function SimuladorIUM() {
                       : (resultado.ambiguo || (resultado.procesos_candidatos?.length ?? 0) > 0) ? "inestable"
                       : null
                     }
+                    colorTASI={colorTASIdeIum(iumMap.get(comp.ium_id))}
                     scale={currentScale}
                     onMouseDownDrag={(e) => onNodeMouseDown(comp.uid, e)}
                     onContextMenu={(e) => onNodeContextMenu(comp.uid, e)}
@@ -2545,6 +2592,102 @@ export default function SimuladorIUM() {
                   />
                 </g>
               ))}
+
+              {/* ── Overlay: partículas volando al centro + nombre de conjuración ── */}
+              {resultado?.estado === "simulado" &&
+               (resultado.proceso_principal || resultado.conjuracion_principal) &&
+               componentes.length > 0 && (() => {
+                // Centro del canvas en coordenadas SVG
+                const cx = viewBox.x + viewBox.w / 2;
+                const cy = viewBox.y + viewBox.h / 2;
+                const nombreRes = resultado.conjuracion_principal ?? resultado.proceso_principal ?? "";
+
+                return (
+                  <g style={{ pointerEvents: "none" }}>
+                    {/* Resplandor central */}
+                    <circle cx={cx} cy={cy} r={18} fill="color-mix(in srgb, var(--primary) 18%, transparent)">
+                      <animate attributeName="r" values="14;22;14" dur="2s" repeatCount="indefinite" />
+                      <animate attributeName="opacity" values="0.6;1;0.6" dur="2s" repeatCount="indefinite" />
+                    </circle>
+
+                    {/* Partículas por cada IUM: vuelan hacia el centro */}
+                    {componentes.flatMap((comp, ci) => {
+                      const color = colorTASIdeIum(iumMap.get(comp.ium_id));
+                      // 3 partículas por nodo con offsets de fase
+                      return [0, 1, 2].map((pi) => {
+                        const delay = `${(ci * 0.22 + pi * 0.38).toFixed(2)}s`;
+                        const dur   = `${1.1 + pi * 0.3}s`;
+                        // Pequeño jitter para que no todas vayan al mismo punto
+                        const jx = (pi - 1) * 4;
+                        const jy = (pi - 1) * 3;
+                        return (
+                          <circle
+                            key={`${comp.uid}-${pi}`}
+                            r={2 + pi * 0.5}
+                            fill={color}
+                          >
+                            <animate
+                              attributeName="cx"
+                              values={`${comp.x};${cx + jx}`}
+                              dur={dur}
+                              begin={delay}
+                              repeatCount="indefinite"
+                              calcMode="spline"
+                              keySplines="0.4 0 0.2 1"
+                            />
+                            <animate
+                              attributeName="cy"
+                              values={`${comp.y};${cy + jy}`}
+                              dur={dur}
+                              begin={delay}
+                              repeatCount="indefinite"
+                              calcMode="spline"
+                              keySplines="0.4 0 0.2 1"
+                            />
+                            <animate
+                              attributeName="opacity"
+                              values="0.9;0.6;0"
+                              dur={dur}
+                              begin={delay}
+                              repeatCount="indefinite"
+                            />
+                            <animate
+                              attributeName="r"
+                              values={`${2 + pi * 0.5};1.5;0.5`}
+                              dur={dur}
+                              begin={delay}
+                              repeatCount="indefinite"
+                            />
+                          </circle>
+                        );
+                      });
+                    })}
+
+                    {/* Nombre de la conjuración flotando en el centro */}
+                    <text
+                      x={cx}
+                      y={cy + 34}
+                      textAnchor="middle"
+                      dominantBaseline="hanging"
+                      fontSize={11}
+                      fontWeight={800}
+                      style={{ fill: "var(--foreground)", letterSpacing: "0.04em" }}
+                    >
+                      {nombreRes}
+                    </text>
+                    <text
+                      x={cx}
+                      y={cy + 48}
+                      textAnchor="middle"
+                      dominantBaseline="hanging"
+                      fontSize={7.5}
+                      style={{ fill: "color-mix(in srgb, var(--primary) 55%, transparent)" }}
+                    >
+                      Toca para limpiar
+                    </text>
+                  </g>
+                );
+              })()}
             </svg>
           </div>
         )}
@@ -2793,65 +2936,45 @@ export default function SimuladorIUM() {
         <Network size={18} />
       </button>
 
-      {/* ── Modal resultado ─────────────────────────────────────────────────── */}
-      {(resultado || errorSim) && (
+      {/* ── Toast de error (reemplaza el modal flotante) ─────────────────────── */}
+      {errorSim && (
         <div
-          className="sim-modal-res"
-          onClick={() => { setResultado(null); setErrorSim(null); }}
           style={{
-            position: "fixed", inset: 0, zIndex: 700,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            background: "color-mix(in srgb, var(--bg-main) 55%, transparent)",
-            padding: "20px 16px",
+            position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)",
+            zIndex: 700, display: "flex", alignItems: "center", gap: 8,
+            background: "var(--bg-main)",
+            border: "1px solid color-mix(in srgb, var(--error,#ef4444) 40%, transparent)",
+            borderRadius: 10, padding: "8px 14px",
+            animation: "aparecer 0.25s ease",
+            boxShadow: "0 4px 18px color-mix(in srgb, var(--bg-main) 30%, transparent)",
           }}
         >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              background: "var(--bg-main)",
-              border: "1px solid color-mix(in srgb, var(--primary) 22%, transparent)",
-              borderRadius: 16,
-              width: "100%", maxWidth: 360,
-              overflow: "hidden",
-              animation: "modal-aparecer 0.3s cubic-bezier(0.34,1.56,0.64,1)",
-            }}
+          <AlertTriangle size={13} style={{ color: "var(--error,#ef4444)", flexShrink: 0 }} />
+          <span style={{ fontSize: 10, maxWidth: 280 }}>{errorSim}</span>
+          <button
+            onClick={() => setErrorSim(null)}
+            style={{ background: "none", border: "none", cursor: "pointer", padding: 2, lineHeight: 1, display: "flex", marginLeft: 4 }}
           >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px 0" }}>
-              <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}>
-                Resultado
-              </span>
-              <button
-                onClick={() => { setResultado(null); setErrorSim(null); }}
-                style={{ background: "none", border: "none", cursor: "pointer", padding: 2, lineHeight: 1, display: "flex" }}
-              >
-                <X size={13} style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }} />
-              </button>
-            </div>
+            <X size={12} style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }} />
+          </button>
+        </div>
+      )}
 
-            {/* Efecto visual — solo en conjuraciones exitosas */}
-            {!errorSim && resultado?.estado === "simulado" && (resultado.proceso_principal || resultado.conjuracion_principal) && (
-              <div style={{ padding: "0 12px", marginTop: 8 }}>
-                <EfectoVisualIUMs
-                  iumIds={componentes.map((comp) => comp.ium_id)}
-                  activo={true}
-                />
-              </div>
-            )}
-
-            <div style={{ padding: "10px 16px 18px" }}>
-              {errorSim ? (
-                <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
-                  <AlertTriangle size={14} style={{ color: "var(--error,#ef4444)", flexShrink: 0, marginTop: 1 }} />
-                  <div>
-                    <p style={{ fontSize: 10, fontWeight: 700, margin: "0 0 3px", color: "var(--error,#ef4444)" }}>Error del motor</p>
-                    <p style={{ fontSize: 9, margin: 0 }}>{errorSim}</p>
-                  </div>
-                </div>
-              ) : resultado ? (
-                <ResultadoPanel resultado={resultado} nombreIum={(id) => (id ? iumMap.get(id)?.nombre ?? id : "Un IUM")} />
-              ) : null}
-            </div>
-          </div>
+      {/* ── Toast resultado no exitoso ────────────────────────────────────────── */}
+      {resultado && resultado.estado === "simulado" &&
+       !resultado.proceso_principal && !resultado.conjuracion_principal && (
+        <div
+          onClick={() => setResultado(null)}
+          style={{
+            position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)",
+            zIndex: 700, cursor: "pointer",
+            background: "var(--bg-main)",
+            border: "1px solid color-mix(in srgb, var(--primary) 18%, transparent)",
+            borderRadius: 10, padding: "8px 14px",
+            animation: "aparecer 0.25s ease",
+          }}
+        >
+          <ResultadoPanel resultado={resultado} nombreIum={(id) => (id ? iumMap.get(id)?.nombre ?? id : "Un IUM")} />
         </div>
       )}
 
@@ -2892,11 +3015,11 @@ export default function SimuladorIUM() {
           .sim-panel-der--open { transform: translateX(0); }
           .sim-btn-close-drawer { display: flex !important; }
           .sim-fab-izq, .sim-fab-der { display: flex !important; bottom: calc(var(--sim-nav) + 16px); }
-          .sim-modal-res { padding-bottom: calc(var(--sim-nav) + 20px) !important; }
+
         }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-        @keyframes aparecer { from { opacity: 0; transform: translateY(6px) scale(0.97); } to { opacity: 1; transform: none; } }
+        @keyframes aparecer { from { opacity: 0; transform: translateY(6px) scale(0.97) translateX(-50%); } to { opacity: 1; transform: translateY(0) scale(1) translateX(-50%); } }
         @keyframes latido { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.12); } }
         @keyframes destello { 0%, 100% { opacity: 0.2; } 50% { opacity: 0.95; } }
         @keyframes modal-aparecer { from { opacity: 0; transform: translateY(12px) scale(0.95); } to { opacity: 1; transform: none; } }
