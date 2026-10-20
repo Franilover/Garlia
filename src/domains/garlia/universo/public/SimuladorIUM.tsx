@@ -1314,6 +1314,25 @@ export default function SimuladorIUM() {
   const [simulando, setSimulando] = useState(false);
   const [resultado, setResultado] = useState<ResultadoSimulador | null>(null);
   const [errorSim, setErrorSim] = useState<string | null>(null);
+
+  // ── Secuencia de animación al lograr una conjuración ─────────────────────
+  // "combinando" → IUMs giran y vuelan al centro (2.2 s)
+  // "explosion"  → destello radial (0.45 s)
+  // "efecto"     → partículas continuas + nombre de conjuración
+  const [faseAnimacion, setFaseAnimacion] = useState<"combinando" | "explosion" | "efecto" | null>(null);
+  const animKey = useRef(0); // cambia con cada resultado exitoso → fuerza remount de SVG animations
+
+  useEffect(() => {
+    const exitoso = resultado?.estado === "simulado" &&
+      (resultado.proceso_principal || resultado.conjuracion_principal);
+    if (!exitoso) { setFaseAnimacion(null); return; }
+
+    animKey.current += 1;
+    setFaseAnimacion("combinando");
+    const t1 = setTimeout(() => setFaseAnimacion("explosion"), 2200);
+    const t2 = setTimeout(() => setFaseAnimacion("efecto"),    2650);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [resultado]);
   const [avisoTopo, setAvisoTopo] = useState<string | null>(null);
   // Slot resaltado mientras arrastra en modo topología
   const [dragSlotPreview, setDragSlotPreview] = useState<{ key: string; x: number; y: number } | null>(null);
@@ -2565,7 +2584,17 @@ export default function SimuladorIUM() {
 
               {/* Nodos */}
               {componentes.map((comp) => (
-                <g key={comp.uid} data-ium-node="true">
+                <g
+                  key={comp.uid}
+                  data-ium-node="true"
+                  style={{
+                    opacity: faseAnimacion === "combinando" || faseAnimacion === "explosion" ? 0
+                           : faseAnimacion === "efecto" ? 0.35
+                           : 1,
+                    transition: "opacity 0.25s ease",
+                    pointerEvents: faseAnimacion ? "none" : undefined,
+                  }}
+                >
                   <IumNodeSVG
                     comp={comp}
                     iumData={iumMap.get(comp.ium_id)}
@@ -2593,97 +2622,263 @@ export default function SimuladorIUM() {
                 </g>
               ))}
 
-              {/* ── Overlay: partículas volando al centro + nombre de conjuración ── */}
-              {resultado?.estado === "simulado" &&
-               (resultado.proceso_principal || resultado.conjuracion_principal) &&
-               componentes.length > 0 && (() => {
-                // Centro del canvas en coordenadas SVG
+              {/* ── Overlay de animación de conjuración ─────────────────────────── */}
+              {faseAnimacion && resultado && componentes.length > 0 && (() => {
                 const cx = viewBox.x + viewBox.w / 2;
                 const cy = viewBox.y + viewBox.h / 2;
                 const nombreRes = resultado.conjuracion_principal ?? resultado.proceso_principal ?? "";
+                // Duración del movimiento de cada nodo (en segundos)
+                const DUR_MOV = 1.5;
+                const STAGGER = 0.13;
 
+                // ──────────────────────────────────────────────────────────────
+                // FASE 1: "combinando" — cada IUM vuela y gira hacia el centro
+                // ──────────────────────────────────────────────────────────────
+                if (faseAnimacion === "combinando") {
+                  return (
+                    <g key={`comb-${animKey.current}`} style={{ pointerEvents: "none" }}>
+                      {componentes.map((comp, ci) => {
+                        const color  = colorTASIdeIum(iumMap.get(comp.ium_id));
+                        const delay  = `${(ci * STAGGER).toFixed(2)}s`;
+                        const nombre = comp.ium_nombre.slice(0, 2).toUpperCase();
+                        // Vector desde el nodo hasta el centro (para la estela)
+                        const dx = cx - comp.x;
+                        const dy = cy - comp.y;
+                        const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+                        // Punto intermedio arqueado (curva suave hacia el centro)
+                        const midX = comp.x + dx * 0.5 - (dy / dist) * 35;
+                        const midY = comp.y + dy * 0.5 + (dx / dist) * 35;
+
+                        return (
+                          <g key={comp.uid}>
+                            {/* Estela curva (path SVG animada por opacity) */}
+                            <path
+                              d={`M ${comp.x} ${comp.y} Q ${midX} ${midY} ${cx} ${cy}`}
+                              fill="none"
+                              stroke={color}
+                              strokeWidth={1.5}
+                              strokeDasharray="3 5"
+                            >
+                              <animate attributeName="opacity"
+                                values="0;0.4;0.6;0"
+                                keyTimes={`0;${0.1};${0.7};1`}
+                                dur={`${DUR_MOV}s`}
+                                begin={delay}
+                                fill="freeze"
+                              />
+                            </path>
+
+                            {/* Nodo animado: outer g = translate, inner g = rotate */}
+                            <g>
+                              <animateTransform
+                                attributeName="transform"
+                                type="translate"
+                                from={`${comp.x} ${comp.y}`}
+                                to={`${cx} ${cy}`}
+                                dur={`${DUR_MOV}s`}
+                                begin={delay}
+                                fill="freeze"
+                                calcMode="spline"
+                                keySplines="0.4 0 0.2 1"
+                              />
+                              <g>
+                                <animateTransform
+                                  attributeName="transform"
+                                  type="rotate"
+                                  from="0"
+                                  to="540"
+                                  dur={`${DUR_MOV}s`}
+                                  begin={delay}
+                                  fill="freeze"
+                                  calcMode="spline"
+                                  keySplines="0.2 0 0.8 1"
+                                />
+                                {/* Halo externo */}
+                                <circle r={VIS_R + 10} fill="none" strokeWidth={1.5} stroke={color}>
+                                  <animate attributeName="opacity"
+                                    values="0.5;0.5;0.2;0"
+                                    keyTimes="0;0.5;0.8;1"
+                                    dur={`${DUR_MOV}s`} begin={delay} fill="freeze" />
+                                  <animate attributeName="r"
+                                    values={`${VIS_R + 10};${VIS_R + 14};${VIS_R + 4};0`}
+                                    keyTimes="0;0.4;0.8;1"
+                                    dur={`${DUR_MOV}s`} begin={delay} fill="freeze" />
+                                </circle>
+                                {/* Círculo principal del IUM */}
+                                <circle r={VIS_R} fill={color}>
+                                  <animate attributeName="opacity"
+                                    values="0.85;0.9;0.75;0"
+                                    keyTimes="0;0.45;0.8;1"
+                                    dur={`${DUR_MOV}s`} begin={delay} fill="freeze" />
+                                  <animate attributeName="r"
+                                    values={`${VIS_R};${VIS_R * 1.1};${VIS_R * 0.5};0`}
+                                    keyTimes="0;0.45;0.8;1"
+                                    dur={`${DUR_MOV}s`} begin={delay} fill="freeze" />
+                                </circle>
+                                {/* Letras iniciales del IUM */}
+                                <text
+                                  textAnchor="middle" dominantBaseline="central"
+                                  fontSize={14} fontWeight={900}
+                                  style={{ fill: "var(--bg-main)", userSelect: "none" }}
+                                >
+                                  {nombre}
+                                  <animate attributeName="opacity"
+                                    values="1;1;0.5;0"
+                                    keyTimes="0;0.5;0.8;1"
+                                    dur={`${DUR_MOV}s`} begin={delay} fill="freeze" />
+                                </text>
+                                {/* Partículas orbitando mientras se mueve */}
+                                {[0, 1, 2].map((pi) => {
+                                  const ang = (pi / 3) * Math.PI * 2;
+                                  const orb = VIS_R + 8;
+                                  return (
+                                    <circle
+                                      key={pi}
+                                      cx={Math.cos(ang) * orb}
+                                      cy={Math.sin(ang) * orb}
+                                      r={2.5}
+                                      fill={color}
+                                    >
+                                      <animate attributeName="opacity"
+                                        values="0.9;0.7;0"
+                                        keyTimes="0;0.6;1"
+                                        dur={`${DUR_MOV}s`} begin={delay} fill="freeze" />
+                                      <animate attributeName="r"
+                                        values="2.5;3;0"
+                                        keyTimes="0;0.6;1"
+                                        dur={`${DUR_MOV}s`} begin={delay} fill="freeze" />
+                                    </circle>
+                                  );
+                                })}
+                              </g>
+                            </g>
+                          </g>
+                        );
+                      })}
+                    </g>
+                  );
+                }
+
+                // ──────────────────────────────────────────────────────────────
+                // FASE 2: "explosion" — destello radial cuando se combinan
+                // ──────────────────────────────────────────────────────────────
+                if (faseAnimacion === "explosion") {
+                  // Colores únicos de los IUMs en el canvas
+                  const coloresIums = [...new Set(componentes.map((c) => colorTASIdeIum(iumMap.get(c.ium_id))))];
+                  return (
+                    <g key={`exp-${animKey.current}`} style={{ pointerEvents: "none" }}>
+                      {/* Flash central */}
+                      <circle cx={cx} cy={cy} r={4} fill="white">
+                        <animate attributeName="r"   values="4;55;80"  dur="0.45s" fill="freeze" calcMode="spline" keySplines="0 0 0.2 1;0 0 0.5 1" />
+                        <animate attributeName="opacity" values="1;0.6;0" dur="0.45s" fill="freeze" />
+                      </circle>
+                      {/* Anillos expansivos por cada color TASI */}
+                      {coloresIums.map((color, ri) => (
+                        <circle key={ri} cx={cx} cy={cy} r={5} fill="none" stroke={color} strokeWidth={2.5}>
+                          <animate attributeName="r"
+                            values={`5;${60 + ri * 18};${90 + ri * 18}`}
+                            dur="0.45s"
+                            begin={`${ri * 0.04}s`}
+                            fill="freeze"
+                            calcMode="spline"
+                            keySplines="0 0 0.2 1;0 0 0.5 1"
+                          />
+                          <animate attributeName="opacity"
+                            values="0.9;0.5;0"
+                            dur="0.45s"
+                            begin={`${ri * 0.04}s`}
+                            fill="freeze"
+                          />
+                          <animate attributeName="stroke-width"
+                            values="2.5;1.5;0.5"
+                            dur="0.45s"
+                            begin={`${ri * 0.04}s`}
+                            fill="freeze"
+                          />
+                        </circle>
+                      ))}
+                      {/* Rayos radiales */}
+                      {Array.from({ length: 8 }, (_, i) => {
+                        const ang = (i / 8) * Math.PI * 2;
+                        const x2 = cx + Math.cos(ang) * 70;
+                        const y2 = cy + Math.sin(ang) * 70;
+                        return (
+                          <line key={i} x1={cx} y1={cy} x2={cx} y2={cy}
+                            stroke={coloresIums[i % coloresIums.length] ?? "var(--primary)"}
+                            strokeWidth={1.5}
+                          >
+                            <animate attributeName="x2" values={`${cx};${x2}`} dur="0.3s" begin={`${i * 0.015}s`} fill="freeze" />
+                            <animate attributeName="y2" values={`${cy};${y2}`} dur="0.3s" begin={`${i * 0.015}s`} fill="freeze" />
+                            <animate attributeName="opacity" values="1;0.6;0" dur="0.45s" fill="freeze" />
+                          </line>
+                        );
+                      })}
+                    </g>
+                  );
+                }
+
+                // ──────────────────────────────────────────────────────────────
+                // FASE 3: "efecto" — partículas continuas + nombre de conjuración
+                // ──────────────────────────────────────────────────────────────
                 return (
-                  <g style={{ pointerEvents: "none" }}>
-                    {/* Resplandor central */}
-                    <circle cx={cx} cy={cy} r={18} fill="color-mix(in srgb, var(--primary) 18%, transparent)">
-                      <animate attributeName="r" values="14;22;14" dur="2s" repeatCount="indefinite" />
-                      <animate attributeName="opacity" values="0.6;1;0.6" dur="2s" repeatCount="indefinite" />
+                  <g key={`efecto-${animKey.current}`} style={{ pointerEvents: "none" }}>
+                    {/* Resplandor central pulsante */}
+                    <circle cx={cx} cy={cy} r={16}>
+                      <animate attributeName="r"    values="12;20;12" dur="2.2s" repeatCount="indefinite" />
+                      <animate attributeName="opacity" values="0.5;0.85;0.5" dur="2.2s" repeatCount="indefinite" />
+                      <animate attributeName="fill"
+                        values={`${componentes.length ? colorTASIdeIum(iumMap.get(componentes[0].ium_id)) : "var(--primary)"};var(--primary);${componentes.length ? colorTASIdeIum(iumMap.get(componentes[0].ium_id)) : "var(--primary)"}`}
+                        dur="2.2s" repeatCount="indefinite"
+                      />
                     </circle>
 
-                    {/* Partículas por cada IUM: vuelan hacia el centro */}
+                    {/* Partículas volando desde cada IUM al centro */}
                     {componentes.flatMap((comp, ci) => {
                       const color = colorTASIdeIum(iumMap.get(comp.ium_id));
-                      // 3 partículas por nodo con offsets de fase
-                      return [0, 1, 2].map((pi) => {
-                        const delay = `${(ci * 0.22 + pi * 0.38).toFixed(2)}s`;
-                        const dur   = `${1.1 + pi * 0.3}s`;
-                        // Pequeño jitter para que no todas vayan al mismo punto
-                        const jx = (pi - 1) * 4;
-                        const jy = (pi - 1) * 3;
+                      return [0, 1, 2, 3].map((pi) => {
+                        const delay = `${(ci * 0.19 + pi * 0.32).toFixed(2)}s`;
+                        const dur   = `${1.0 + pi * 0.22}s`;
+                        const jx    = (pi % 2 === 0 ? 1 : -1) * (pi * 2);
+                        const jy    = (pi < 2 ? -1 : 1) * (pi * 1.5);
                         return (
-                          <circle
-                            key={`${comp.uid}-${pi}`}
-                            r={2 + pi * 0.5}
-                            fill={color}
-                          >
-                            <animate
-                              attributeName="cx"
-                              values={`${comp.x};${cx + jx}`}
-                              dur={dur}
-                              begin={delay}
-                              repeatCount="indefinite"
-                              calcMode="spline"
-                              keySplines="0.4 0 0.2 1"
-                            />
-                            <animate
-                              attributeName="cy"
-                              values={`${comp.y};${cy + jy}`}
-                              dur={dur}
-                              begin={delay}
-                              repeatCount="indefinite"
-                              calcMode="spline"
-                              keySplines="0.4 0 0.2 1"
-                            />
-                            <animate
-                              attributeName="opacity"
-                              values="0.9;0.6;0"
-                              dur={dur}
-                              begin={delay}
-                              repeatCount="indefinite"
-                            />
-                            <animate
-                              attributeName="r"
-                              values={`${2 + pi * 0.5};1.5;0.5`}
-                              dur={dur}
-                              begin={delay}
-                              repeatCount="indefinite"
-                            />
+                          <circle key={`${comp.uid}-${pi}`} r={1.8 + pi * 0.4} fill={color}>
+                            <animate attributeName="cx"
+                              values={`${comp.x};${comp.x + (cx - comp.x) * 0.5};${cx + jx}`}
+                              dur={dur} begin={delay} repeatCount="indefinite"
+                              calcMode="spline" keySplines="0.4 0 0.2 1;0.4 0 0.2 1" />
+                            <animate attributeName="cy"
+                              values={`${comp.y};${comp.y + (cy - comp.y) * 0.5};${cy + jy}`}
+                              dur={dur} begin={delay} repeatCount="indefinite"
+                              calcMode="spline" keySplines="0.4 0 0.2 1;0.4 0 0.2 1" />
+                            <animate attributeName="opacity"
+                              values="0;0.9;0.5;0" keyTimes="0;0.1;0.75;1"
+                              dur={dur} begin={delay} repeatCount="indefinite" />
+                            <animate attributeName="r"
+                              values={`${1.8 + pi * 0.4};${2.2 + pi * 0.4};0.8`}
+                              dur={dur} begin={delay} repeatCount="indefinite" />
                           </circle>
                         );
                       });
                     })}
 
-                    {/* Nombre de la conjuración flotando en el centro */}
+                    {/* Nombre de la conjuración */}
                     <text
-                      x={cx}
-                      y={cy + 34}
-                      textAnchor="middle"
-                      dominantBaseline="hanging"
-                      fontSize={11}
-                      fontWeight={800}
-                      style={{ fill: "var(--foreground)", letterSpacing: "0.04em" }}
+                      x={cx} y={cy + 32}
+                      textAnchor="middle" dominantBaseline="hanging"
+                      fontSize={13} fontWeight={800}
+                      style={{ fill: "var(--foreground)", letterSpacing: "0.05em" }}
                     >
                       {nombreRes}
+                      <animate attributeName="opacity" values="0;1" dur="0.4s" fill="freeze" />
                     </text>
                     <text
-                      x={cx}
-                      y={cy + 48}
-                      textAnchor="middle"
-                      dominantBaseline="hanging"
-                      fontSize={7.5}
-                      style={{ fill: "color-mix(in srgb, var(--primary) 55%, transparent)" }}
+                      x={cx} y={cy + 50}
+                      textAnchor="middle" dominantBaseline="hanging"
+                      fontSize={8}
+                      style={{ fill: "color-mix(in srgb, var(--primary) 50%, transparent)" }}
                     >
-                      Toca para limpiar
+                      Toca el tablero para limpiar
+                      <animate attributeName="opacity" values="0;0.8" dur="0.8s" fill="freeze" />
                     </text>
                   </g>
                 );
@@ -3023,6 +3218,7 @@ export default function SimuladorIUM() {
         @keyframes latido { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.12); } }
         @keyframes destello { 0%, 100% { opacity: 0.2; } 50% { opacity: 0.95; } }
         @keyframes modal-aparecer { from { opacity: 0; transform: translateY(12px) scale(0.95); } to { opacity: 1; transform: none; } }
+        @keyframes sim-fade-in { from { opacity: 0; } to { opacity: 1; } }
       `}</style>
     </div>
   );
