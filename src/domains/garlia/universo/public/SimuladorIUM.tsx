@@ -2806,67 +2806,21 @@ export default function SimuladorIUM() {
 
                   const ak = animKey.current;
 
-                  // ── CSS keyframes — un @keyframe por nodo, inyectado en <style> SVG ──
-                  // Se usa `animation` en el style inline del <g>, NO una clase CSS.
-                  // Así evitamos el conflicto de especificidad entre clase y inline style.
-                  // El keyframe parte desde la posición real del nodo (comp.x, comp.y)
-                  // y termina en el destino (tx, ty) — sin transform base en el <g>.
-                  const cssFrames: string[] = [];
-                  const nodeAnims: Array<{
-                    comp: typeof componentes[0];
-                    color: string;
-                    nombre: string;
-                    startTime: number;
-                    tx: number; ty: number;
-                    esFinal: boolean;
-                    durS: number;
-                    kfName: string;
-                  }> = [];
-
-                  componentes.forEach((comp) => {
-                    const { tx: tx0, ty: ty0 } = getDestino(comp.uid);
-                    const esFinal0 = comp.uid === finalUid;
-                    const rotG     = esFinal0 ? 720 : 360;
-                    const durS     = esFinal0 ? DUR_SALTO * 1.2 : DUR_SALTO;
-                    const stS      = getStartTime(comp.uid);
-                    const kfName   = `nm${ak}${comp.uid.replace(/[^a-z0-9]/gi, "")}`;
-
-                    // keyframe exterior: translate + opacity
-                    cssFrames.push(`
-@keyframes ${kfName} {
-  0%   { transform: translate(${comp.x}px,${comp.y}px); opacity: 0; }
-  4%   { opacity: 1; }
-  82%  { transform: translate(${tx0}px,${ty0}px); opacity: 1; }
-  100% { transform: translate(${tx0}px,${ty0}px); opacity: 0; }
-}
-@keyframes ${kfName}rot {
-  0%   { transform: rotate(0deg); }
-  100% { transform: rotate(${rotG}deg); }
-}`);
-
-                    nodeAnims.push({
-                      comp,
-                      color: colorTASIdeIum(iumMap.get(comp.ium_id)),
-                      nombre: comp.ium_nombre.slice(0, 2).toUpperCase(),
-                      startTime: stS,
-                      tx: tx0, ty: ty0,
-                      esFinal: esFinal0,
-                      durS,
-                      kfName,
-                    });
-                  });
-
                   return (
                     <g key={`comb-${ak}`} style={{ pointerEvents: "none" }}>
-                      <defs>
-                        <style>{cssFrames.join("\n")}</style>
-                      </defs>
 
-                      {nodeAnims.map(({ comp, color, nombre, startTime, tx, ty, esFinal, durS, kfName }) => {
+                      {componentes.map((comp) => {
+                        const { tx, ty }  = getDestino(comp.uid);
+                        const esFinal     = comp.uid === finalUid;
+                        const rotG        = esFinal ? 720 : 360;
+                        const durS        = esFinal ? DUR_SALTO * 1.2 : DUR_SALTO;
+                        const startTime   = getStartTime(comp.uid);
                         const durEfectiva = `${durS.toFixed(2)}s`;
                         const delay       = `${startTime.toFixed(2)}s`;
+                        const color       = colorTASIdeIum(iumMap.get(comp.ium_id));
+                        const nombre      = comp.ium_nombre.slice(0, 2).toUpperCase();
 
-                        // Estela curva (SMIL opacity — no conflicto porque no hay CSS animation aquí)
+                        // Estela curva
                         const dx2  = tx - comp.x;
                         const dy2  = ty - comp.y;
                         const d2   = Math.sqrt(dx2*dx2 + dy2*dy2) || 1;
@@ -2886,20 +2840,42 @@ export default function SimuladorIUM() {
                                 dur={durEfectiva} begin={delay} fill="freeze" />
                             </path>
 
-                            {/* Nodo animado — el <g> NO tiene transform atributo.
-                                La CSS animation lo posiciona desde comp.x,comp.y hasta tx,ty.
-                                style.animation tiene la misma especificidad que el keyframe → sin conflicto. */}
-                            {/* g exterior: solo translate+opacity via CSS animation */}
-                            <g style={{
-                              animation: `${kfName} ${durS.toFixed(2)}s ${startTime.toFixed(2)}s cubic-bezier(0.4,0,0.2,1) 1 both`,
-                              transformOrigin: "0px 0px",
-                            }}>
-                              {/* g interior: rotación alrededor del centro del nodo (0,0 del g) */}
-                              <g style={{
-                                animation: `${kfName}rot ${durS.toFixed(2)}s ${startTime.toFixed(2)}s linear 1 both`,
-                                transformBox: "fill-box",
-                                transformOrigin: "center",
-                              }}>
+                            {/* ── Nodo animado — 100% SMIL ──────────────────────────
+                                g exterior: animateTransform type="translate" mueve el nodo
+                                  de su posición original al destino. SIN transform atributo
+                                  en el g → el animateTransform no tiene que "sumarse" a nada.
+                                  <animate opacity> hace fade in/out del nodo completo.
+                                g interior: animateTransform type="rotate" gira sobre (0,0)
+                                  que es el centro del nodo (los círculos son cx=0 cy=0).
+                            ──────────────────────────────────────────────────────── */}
+                            <g>
+                              <animateTransform
+                                attributeName="transform"
+                                type="translate"
+                                from={`${comp.x} ${comp.y}`}
+                                to={`${tx} ${ty}`}
+                                dur={durEfectiva}
+                                begin={delay}
+                                fill="freeze"
+                                calcMode="spline"
+                                keySplines="0.4 0 0.2 1"
+                                keyTimes="0;1"
+                              />
+                              <animate attributeName="opacity"
+                                values="0;1;1;0"
+                                keyTimes="0;0.04;0.82;1"
+                                dur={durEfectiva} begin={delay} fill="freeze" />
+
+                              <g>
+                                <animateTransform
+                                  attributeName="transform"
+                                  type="rotate"
+                                  from="0 0 0"
+                                  to={`${rotG} 0 0`}
+                                  dur={durEfectiva}
+                                  begin={delay}
+                                  fill="freeze"
+                                />
                                 {/* Halo */}
                                 <circle cx={0} cy={0} r={VIS_R + 10}
                                   fill="none" strokeWidth={1.5} stroke={color} opacity={0.7}>
