@@ -2621,8 +2621,8 @@ export default function SimuladorIUM() {
                   key={comp.uid}
                   data-ium-node="true"
                   style={{
-                    display: faseAnimacion === "combinando" || faseAnimacion === "explosion" ? "none" : undefined,
-                    opacity: faseAnimacion === "efecto" ? 0.35 : 1,
+                    display: faseAnimacion ? "none" : undefined,
+                    opacity: 1,
                     transition: "opacity 0.3s ease",
                     pointerEvents: faseAnimacion ? "none" : undefined,
                   }}
