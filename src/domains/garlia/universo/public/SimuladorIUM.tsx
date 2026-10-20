@@ -1384,8 +1384,18 @@ function IumNodeSVG({
         height={VIS_SIZE}
         style={{ overflow: "visible", pointerEvents: "none" }}
       >
-        <div style={{ width: VIS_SIZE, height: VIS_SIZE }}>
-          <IumAnimCanvas iumNombre={iumData?.nombre ?? ""} size={VIS_SIZE} />
+        <div style={{ width: VIS_SIZE, height: VIS_SIZE, position: "relative" }}>
+          <IumVisual
+            particulas={particulas}
+            geometria={iumData?.geometria}
+            size={VIS_SIZE}
+            showToggle={false}
+          />
+          {reaccion && (
+            <div style={{ position: "absolute", inset: 0, borderRadius: "50%", overflow: "hidden", opacity: reaccion === "exito" ? 0.82 : 0.5 }}>
+              <IumAnimCanvas iumNombre={iumData?.nombre ?? ""} size={VIS_SIZE} />
+            </div>
+          )}
         </div>
       </foreignObject>
 
