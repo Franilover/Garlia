@@ -2776,15 +2776,25 @@ export default function SimuladorIUM() {
                         const durFinal = esFinal ? `${DUR_SALTO * 1.2}s` : dur;
                         const durEfectiva = esFinal ? durFinal : dur;
 
+                        // Número de pasos de rotación para keyTimes intermedios
+                        const rotGrados = esFinal ? 720 : 360;
+                        // Construimos valores de translate interpolados manualmente
+                        // para el único animateTransform que mueve el nodo:
+                        // usamos un <g transform="translate(sx,sy)"> inicial (visible desde t=0)
+                        // y animamos el translate desde (0,0) a (dx,dy) relativo al origen.
+                        const relDx = tx - comp.x;
+                        const relDy = ty - comp.y;
+
                         return (
                           <g key={comp.uid}>
-                            {/* Estela curva */}
+                            {/* Estela curva — aparece cuando el nodo sale */}
                             <path
                               d={`M ${comp.x} ${comp.y} Q ${midX} ${midY} ${tx} ${ty}`}
                               fill="none"
                               stroke={color}
                               strokeWidth={1.5}
                               strokeDasharray="3 5"
+                              opacity={0}
                             >
                               <animate attributeName="opacity"
                                 values="0;0.5;0.7;0"
@@ -2795,107 +2805,124 @@ export default function SimuladorIUM() {
                               />
                             </path>
 
-                            {/* Nodo animado: outer g = translate */}
-                            <g>
-                              <animateTransform
-                                attributeName="transform"
-                                type="translate"
-                                from={`${comp.x} ${comp.y}`}
-                                to={`${tx} ${ty}`}
+                            {/*
+                              Nodo animado.
+                              Estrategia: un único <g> con transform="translate(sx,sy)"
+                              y dos animateTransform con additive="sum":
+                                1. translate (0,0) → (relDx,relDy)  — mueve el nodo
+                                2. rotate 0 → N — gira alrededor del centro del propio nodo
+                              additive="sum" hace que se SUMEN al transform base, no que lo reemplacen.
+                            */}
+                            <g transform={`translate(${comp.x},${comp.y})`} opacity={0}>
+                              {/* Animación de opacidad del grupo completo */}
+                              <animate attributeName="opacity"
+                                values="0;1;1;0"
+                                keyTimes="0;0.02;0.82;1"
                                 dur={durEfectiva}
                                 begin={delay}
                                 fill="freeze"
+                              />
+                              {/* Translate relativo al origen del nodo */}
+                              <animateTransform
+                                attributeName="transform"
+                                type="translate"
+                                from="0 0"
+                                to={`${relDx} ${relDy}`}
+                                dur={durEfectiva}
+                                begin={delay}
+                                fill="freeze"
+                                additive="sum"
                                 calcMode="spline"
                                 keySplines="0.42 0 0.2 1"
                               />
-                              {/* inner g = rotate */}
-                              <g>
-                                <animateTransform
-                                  attributeName="transform"
-                                  type="rotate"
-                                  from="0"
-                                  to={esFinal ? "720" : "360"}
-                                  dur={durEfectiva}
-                                  begin={delay}
-                                  fill="freeze"
-                                  calcMode="spline"
-                                  keySplines="0.2 0 0.8 1"
-                                />
-                                {/* Halo externo */}
-                                <circle r={VIS_R + 10} fill="none" strokeWidth={1.5} stroke={color}>
-                                  <animate attributeName="opacity"
-                                    values="0.6;0.6;0.2;0"
-                                    keyTimes="0;0.5;0.85;1"
-                                    dur={durEfectiva} begin={delay} fill="freeze" />
-                                  <animate attributeName="r"
-                                    values={`${VIS_R + 10};${VIS_R + 16};${VIS_R + 5};0`}
-                                    keyTimes="0;0.4;0.85;1"
-                                    dur={durEfectiva} begin={delay} fill="freeze" />
-                                </circle>
-                                {/* Círculo principal */}
-                                <circle r={VIS_R} fill={color}>
-                                  <animate attributeName="opacity"
-                                    values="0.9;0.95;0.75;0"
-                                    keyTimes="0;0.45;0.85;1"
-                                    dur={durEfectiva} begin={delay} fill="freeze" />
-                                  <animate attributeName="r"
-                                    values={`${VIS_R};${esFinal ? VIS_R * 1.25 : VIS_R * 1.1};${VIS_R * 0.4};0`}
-                                    keyTimes="0;0.45;0.85;1"
-                                    dur={durEfectiva} begin={delay} fill="freeze" />
-                                </circle>
-                                {/* Letras */}
-                                <text
-                                  textAnchor="middle" dominantBaseline="central"
-                                  fontSize={14} fontWeight={900}
-                                  style={{ fill: "var(--bg-main)", userSelect: "none" }}
-                                >
-                                  {nombre}
-                                  <animate attributeName="opacity"
-                                    values="1;1;0.5;0"
-                                    keyTimes="0;0.5;0.85;1"
-                                    dur={durEfectiva} begin={delay} fill="freeze" />
-                                </text>
-                                {/* Partículas orbitando */}
-                                {[0, 1, 2].map((pi) => {
-                                  const ang = (pi / 3) * Math.PI * 2;
-                                  const orb = VIS_R + 8;
-                                  return (
-                                    <circle
-                                      key={pi}
-                                      cx={Math.cos(ang) * orb}
-                                      cy={Math.sin(ang) * orb}
-                                      r={2.5}
-                                      fill={color}
-                                    >
-                                      <animate attributeName="opacity"
-                                        values="0.9;0.7;0"
-                                        keyTimes="0;0.65;1"
-                                        dur={durEfectiva} begin={delay} fill="freeze" />
-                                      <animate attributeName="r"
-                                        values="2.5;3.5;0"
-                                        keyTimes="0;0.65;1"
-                                        dur={durEfectiva} begin={delay} fill="freeze" />
-                                    </circle>
-                                  );
-                                })}
-                                {/* Pulso de absorción cuando no es el final (llega a otro nodo) */}
-                                {!esFinal && (
-                                  <circle r={0} fill="none" stroke={color} strokeWidth={2}>
-                                    <animate attributeName="r"
-                                      values={`0;${VIS_R * 1.8}`}
-                                      dur="0.3s"
-                                      begin={`${(startTime + DUR_SALTO * 0.85).toFixed(2)}s`}
-                                      fill="freeze"
-                                    />
+                              {/* Rotate aditivo — gira sobre el centro local (0,0) del grupo */}
+                              <animateTransform
+                                attributeName="transform"
+                                type="rotate"
+                                from="0 0 0"
+                                to={`${rotGrados} 0 0`}
+                                dur={durEfectiva}
+                                begin={delay}
+                                fill="freeze"
+                                additive="sum"
+                                calcMode="spline"
+                                keySplines="0.2 0 0.8 1"
+                              />
+
+                              {/* Halo externo */}
+                              <circle r={VIS_R + 10} fill="none" strokeWidth={1.5} stroke={color}>
+                                <animate attributeName="opacity"
+                                  values="0.6;0.6;0.2;0"
+                                  keyTimes="0;0.5;0.85;1"
+                                  dur={durEfectiva} begin={delay} fill="freeze" />
+                                <animate attributeName="r"
+                                  values={`${VIS_R + 10};${VIS_R + 16};${VIS_R + 5};0`}
+                                  keyTimes="0;0.4;0.85;1"
+                                  dur={durEfectiva} begin={delay} fill="freeze" />
+                              </circle>
+                              {/* Círculo principal */}
+                              <circle r={VIS_R} fill={color}>
+                                <animate attributeName="opacity"
+                                  values="0.9;0.95;0.75;0"
+                                  keyTimes="0;0.45;0.85;1"
+                                  dur={durEfectiva} begin={delay} fill="freeze" />
+                                <animate attributeName="r"
+                                  values={`${VIS_R};${esFinal ? VIS_R * 1.25 : VIS_R * 1.1};${VIS_R * 0.4};0`}
+                                  keyTimes="0;0.45;0.85;1"
+                                  dur={durEfectiva} begin={delay} fill="freeze" />
+                              </circle>
+                              {/* Letras */}
+                              <text
+                                textAnchor="middle" dominantBaseline="central"
+                                fontSize={14} fontWeight={900}
+                                style={{ fill: "var(--bg-main)", userSelect: "none" }}
+                              >
+                                {nombre}
+                                <animate attributeName="opacity"
+                                  values="1;1;0.5;0"
+                                  keyTimes="0;0.5;0.85;1"
+                                  dur={durEfectiva} begin={delay} fill="freeze" />
+                              </text>
+                              {/* Partículas orbitando */}
+                              {[0, 1, 2].map((pi) => {
+                                const ang = (pi / 3) * Math.PI * 2;
+                                const orb = VIS_R + 8;
+                                return (
+                                  <circle
+                                    key={pi}
+                                    cx={Math.cos(ang) * orb}
+                                    cy={Math.sin(ang) * orb}
+                                    r={2.5}
+                                    fill={color}
+                                  >
                                     <animate attributeName="opacity"
-                                      values="0.8;0"
-                                      dur="0.3s"
-                                      begin={`${(startTime + DUR_SALTO * 0.85).toFixed(2)}s`}
-                                      fill="freeze"
-                                    />
+                                      values="0.9;0.7;0"
+                                      keyTimes="0;0.65;1"
+                                      dur={durEfectiva} begin={delay} fill="freeze" />
+                                    <animate attributeName="r"
+                                      values="2.5;3.5;0"
+                                      keyTimes="0;0.65;1"
+                                      dur={durEfectiva} begin={delay} fill="freeze" />
                                   </circle>
-                                )}
-                              </g>
+                                );
+                              })}
+                              {/* Pulso de absorción cuando llega a otro nodo (no al centro) */}
+                              {!esFinal && (
+                                <circle r={0} fill="none" stroke={color} strokeWidth={2}>
+                                  <animate attributeName="r"
+                                    values={`0;${VIS_R * 1.8}`}
+                                    dur="0.3s"
+                                    begin={`${(startTime + DUR_SALTO * 0.85).toFixed(2)}s`}
+                                    fill="freeze"
+                                  />
+                                  <animate attributeName="opacity"
+                                    values="0.8;0"
+                                    dur="0.3s"
+                                    begin={`${(startTime + DUR_SALTO * 0.85).toFixed(2)}s`}
+                                    fill="freeze"
+                                  />
+                                </circle>
+                              )}
                             </g>
                           </g>
                         );
