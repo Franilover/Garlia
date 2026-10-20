@@ -50,7 +50,7 @@ import { AlertTriangle, ChevronDown, ChevronRight, Loader2, RefreshCw } from "lu
 import React, { useEffect, useMemo, useState } from "react";
 
 import { supabase } from "@/infra/supabase/supabase";
-import { EfectoVisualIUMs } from "@/universo/public/EfectoVisualIUMs";
+import { EfectoVisualIUMs } from "../universo/public/EfectoVisualIUMs";
 
 import type { Oris } from "./types";
 
