@@ -54,6 +54,448 @@ import {
   type FilaIum,
 } from "@/domains/garlia/fisica/types";
 
+// ─── Animaciones por IUM (canvas) ────────────────────────────────────────────
+
+const PI2 = Math.PI * 2;
+const _lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+const _ease = (t: number) => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+const _rand = (a: number, b: number) => a + (b - a) * Math.random();
+
+type AnimFn = (ctx: CanvasRenderingContext2D, W: number, H: number, t: number) => void;
+
+const IUM_ANIM: Record<string, AnimFn> = {
+  pondus(ctx, W, H, t) {
+    const cx = W / 2, cy = H / 2;
+    const pulse = Math.sin(t * 0.9) * 3;
+    const r = 14 + pulse;
+    for (let i = 3; i >= 1; i--) {
+      ctx.beginPath(); ctx.arc(cx, cy, r + i * 8, 0, PI2);
+      ctx.strokeStyle = `rgba(232,168,50,${0.05 * i})`; ctx.lineWidth = 6; ctx.stroke();
+    }
+    for (let i = 0; i < 5; i++) {
+      const ang = (t * 0.3 + i * (PI2 / 5));
+      const dist = 26 + Math.sin(t * 1.2 + i) * 5;
+      const px = cx + Math.cos(ang) * dist, py = cy + Math.sin(ang) * dist;
+      const sz = 2 + Math.sin(t + i) * 1;
+      const g = ctx.createRadialGradient(px, py, 0, px, py, sz * 2);
+      g.addColorStop(0, "rgba(232,168,50,0.9)"); g.addColorStop(1, "transparent");
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(px, py, sz * 2, 0, PI2); ctx.fill();
+      ctx.fillStyle = "rgba(232,168,50,0.95)"; ctx.beginPath(); ctx.arc(px, py, sz, 0, PI2); ctx.fill();
+    }
+    const gc = ctx.createRadialGradient(cx, cy - 1, 0, cx, cy, r);
+    gc.addColorStop(0, "rgba(255,210,120,0.95)"); gc.addColorStop(0.6, "rgba(232,168,50,0.8)"); gc.addColorStop(1, "rgba(150,90,10,0.6)");
+    ctx.fillStyle = gc; ctx.beginPath(); ctx.arc(cx, cy, r, 0, PI2); ctx.fill();
+  },
+  velox(ctx, W, H, t) {
+    const cx = W / 2, cy = H / 2;
+    for (let i = 0; i < 10; i++) {
+      const ang = (t * 2.4 + i * (PI2 / 10));
+      const len = 18 + Math.sin(t * 3 + i) * 10;
+      const alpha = 0.18 + Math.sin(t * 2 + i * 0.5) * 0.12;
+      ctx.beginPath();
+      ctx.moveTo(cx + Math.cos(ang) * 5, cy + Math.sin(ang) * 5);
+      ctx.lineTo(cx + Math.cos(ang) * (len + 12), cy + Math.sin(ang) * (len + 12));
+      ctx.strokeStyle = `rgba(94,207,239,${alpha})`; ctx.lineWidth = 1.5; ctx.stroke();
+    }
+    const flicker = 0.8 + Math.sin(t * 8) * 0.2;
+    const gc = ctx.createRadialGradient(cx, cy, 0, cx, cy, 12);
+    gc.addColorStop(0, `rgba(200,240,255,${flicker})`); gc.addColorStop(0.5, "rgba(94,207,239,0.9)"); gc.addColorStop(1, "transparent");
+    ctx.fillStyle = gc; ctx.beginPath(); ctx.arc(cx, cy, 18, 0, PI2); ctx.fill();
+    ctx.fillStyle = "rgba(220,250,255,0.98)"; ctx.beginPath(); ctx.arc(cx, cy, 3, 0, PI2); ctx.fill();
+  },
+  fluxor(ctx, W, H, t) {
+    const cx = W / 2, cy = H / 2;
+    for (let wave = 0; wave < 3; wave++) {
+      const phase = t * 1.8 + wave * (PI2 / 3);
+      const alpha = 0.15 + Math.sin(t + wave) * 0.08;
+      ctx.beginPath();
+      for (let x = 0; x < W; x++) {
+        const y = cy + Math.sin((x / W) * PI2 * 1.5 + phase) * 12 * (1 - Math.abs(x - cx) / (W * 0.7));
+        if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.strokeStyle = `rgba(100,200,230,${alpha})`; ctx.lineWidth = 1.5; ctx.stroke();
+    }
+    for (let i = 0; i < 4; i++) {
+      const frac = ((t * 0.6 + i * 0.25) % 1);
+      const px = frac * W;
+      const py = cy + Math.sin(frac * PI2 * 1.5 + t * 1.8) * 12 * (1 - Math.abs(px - cx) / (W * 0.7));
+      const a = Math.sin(frac * Math.PI) * 0.85;
+      ctx.fillStyle = `rgba(94,207,239,${a})`; ctx.beginPath(); ctx.arc(px, py, 3, 0, PI2); ctx.fill();
+    }
+    const gc = ctx.createRadialGradient(cx, cy, 0, cx, cy, 10);
+    gc.addColorStop(0, "rgba(130,220,255,0.9)"); gc.addColorStop(1, "transparent");
+    ctx.fillStyle = gc; ctx.beginPath(); ctx.arc(cx, cy, 16, 0, PI2); ctx.fill();
+  },
+  fulgor(ctx, W, H, t) {
+    const cx = W / 2, cy = H / 2;
+    const flicker = Math.abs(Math.sin(t * 6)) * 0.7 + 0.3;
+    function bolt(x0: number, y0: number, x1: number, y1: number, segs: number, alpha: number) {
+      ctx.beginPath(); ctx.moveTo(x0, y0);
+      for (let s = 1; s < segs; s++) {
+        const frac = s / segs;
+        ctx.lineTo(_lerp(x0, x1, frac) + _rand(-6, 6), _lerp(y0, y1, frac) + _rand(-6, 6));
+      }
+      ctx.lineTo(x1, y1);
+      ctx.strokeStyle = `rgba(255,230,80,${alpha * flicker})`; ctx.lineWidth = 1.5; ctx.stroke();
+    }
+    for (let i = 0; i < 5; i++) {
+      const ang = i * (PI2 / 5) + t * 0.5;
+      bolt(cx, cy, cx + Math.cos(ang) * 36, cy + Math.sin(ang) * 36, 5, 0.6);
+    }
+    const gc = ctx.createRadialGradient(cx, cy, 0, cx, cy, 22);
+    gc.addColorStop(0, `rgba(255,240,100,${flicker * 0.9})`);
+    gc.addColorStop(0.5, `rgba(255,180,30,${flicker * 0.5})`);
+    gc.addColorStop(1, "transparent");
+    ctx.fillStyle = gc; ctx.beginPath(); ctx.arc(cx, cy, 28, 0, PI2); ctx.fill();
+    ctx.fillStyle = `rgba(255,250,200,${flicker})`; ctx.beginPath(); ctx.arc(cx, cy, 4, 0, PI2); ctx.fill();
+  },
+  patrix(ctx, W, H, t) {
+    const cx = W / 2, cy = H / 2;
+    const rows = 3, cols = 5;
+    const bw = W / cols, bh = H / rows;
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const bit = Math.sin(t * 2 + r * 1.3 + c * 0.9) > 0;
+        const px = c * bw + bw / 2, py = r * bh + bh / 2;
+        const dist = Math.hypot(px - cx, py - cy);
+        const alpha = bit ? (0.5 + Math.sin(t * 1.5 + dist * 0.04) * 0.4) : 0.04;
+        ctx.fillStyle = `rgba(180,160,255,${alpha})`;
+        ctx.font = `700 ${bh * 0.4}px monospace`;
+        ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.fillText(bit ? "1" : "0", px, py);
+      }
+    }
+    ctx.beginPath(); ctx.arc(cx, cy, 12, 0, PI2);
+    ctx.strokeStyle = "rgba(180,160,255,0.6)"; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.fillStyle = "rgba(200,180,255,0.15)"; ctx.fill();
+  },
+  tensia(ctx, W, H, t) {
+    const cx = W / 2, cy = H / 2;
+    const tension = 0.6 + Math.sin(t * 1.2) * 0.4;
+    for (let i = 0; i < 50; i++) {
+      const ang = (i / 50) * PI2 * 3 + t * 0.5;
+      const r = 5 + i * 0.38 * tension;
+      const px = cx + Math.cos(ang) * r, py = cy + Math.sin(ang) * r;
+      const a = 0.05 + i * 0.01;
+      ctx.fillStyle = `rgba(220,120,255,${Math.min(a, 0.7)})`;
+      ctx.beginPath(); ctx.arc(px, py, 1.2, 0, PI2); ctx.fill();
+    }
+    const pr = 7 + tension * 6;
+    const gc = ctx.createRadialGradient(cx, cy, 0, cx, cy, pr);
+    gc.addColorStop(0, "rgba(240,150,255,0.95)"); gc.addColorStop(0.6, "rgba(180,80,220,0.7)"); gc.addColorStop(1, "transparent");
+    ctx.fillStyle = gc; ctx.beginPath(); ctx.arc(cx, cy, pr + 4, 0, PI2); ctx.fill();
+  },
+  formix(ctx, W, H, t) {
+    const cx = W / 2, cy = H / 2;
+    const entropy = Math.sin(t * 0.6) * 0.3 + 0.5;
+    for (let s = 0; s < 3; s++) {
+      const sides = 3 + s * 2;
+      const r = 10 + s * 8;
+      const rot = t * 0.3 * (s % 2 === 0 ? 1 : -1);
+      ctx.beginPath();
+      for (let i = 0; i <= sides; i++) {
+        const ang = (i / sides) * PI2 + rot;
+        const jitter = s === 2 ? _rand(-entropy * 4, entropy * 4) : 0;
+        const px = cx + Math.cos(ang) * (r + jitter), py = cy + Math.sin(ang) * (r + jitter);
+        i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+      }
+      ctx.strokeStyle = `rgba(160,180,200,${0.6 - s * 0.12})`; ctx.lineWidth = 1.5 - s * 0.3; ctx.stroke();
+    }
+    ctx.fillStyle = "rgba(170,190,210,0.8)"; ctx.beginPath(); ctx.arc(cx, cy, 3, 0, PI2); ctx.fill();
+  },
+  voluntas(ctx, W, H, t) {
+    const cx = W / 2, cy = H / 2;
+    const pupil = 0.3 + Math.abs(Math.sin(t * 0.7)) * 0.4;
+    ctx.beginPath(); ctx.ellipse(cx, cy, 22, 12, 0, 0, PI2);
+    ctx.strokeStyle = "rgba(120,230,180,0.5)"; ctx.lineWidth = 1.5; ctx.stroke();
+    const gc = ctx.createRadialGradient(cx, cy, 0, cx, cy, 8 * pupil + 3);
+    gc.addColorStop(0, "rgba(20,20,40,0.98)"); gc.addColorStop(0.8, "rgba(80,200,150,0.6)"); gc.addColorStop(1, "transparent");
+    ctx.fillStyle = gc; ctx.beginPath(); ctx.ellipse(cx, cy, 8 * pupil + 3, 8 * pupil + 3, 0, 0, PI2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(cx, cy, 8 * pupil + 7, 8 * pupil + 7, 0, 0, PI2);
+    ctx.strokeStyle = `rgba(120,230,180,${0.4 + pupil * 0.5})`; ctx.lineWidth = 2; ctx.stroke();
+    for (let i = 0; i < 4; i++) {
+      const ang = t * 1.5 + i * (PI2 / 4);
+      const dist = 28 + Math.sin(t * 2 + i) * 4;
+      ctx.fillStyle = `rgba(120,230,180,${0.3 + Math.sin(t * 2 + i) * 0.2})`;
+      ctx.beginPath(); ctx.arc(cx + Math.cos(ang) * dist, cy + Math.sin(ang) * dist * 0.6, 2, 0, PI2); ctx.fill();
+    }
+  },
+  sensia(ctx, W, H, t) {
+    const cx = W / 2, cy = H / 2;
+    for (let w = 0; w < 4; w++) {
+      const phase = (t * 0.8 + w * 0.4) % 1;
+      const wr = phase * 36;
+      const a = (1 - phase) * 0.35;
+      ctx.beginPath(); ctx.arc(cx, cy, wr, 0, PI2);
+      ctx.strokeStyle = `rgba(120,230,180,${a})`; ctx.lineWidth = 1.5; ctx.stroke();
+    }
+    for (let i = 0; i < 6; i++) {
+      const ang = i * (PI2 / 6) + t * 0.2;
+      const len = 15 + Math.sin(t * 2 + i) * 5;
+      ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(ang) * len, cy + Math.sin(ang) * len);
+      ctx.strokeStyle = `rgba(120,230,180,${0.5 + Math.sin(t * 2 + i) * 0.3})`; ctx.lineWidth = 1; ctx.stroke();
+      ctx.fillStyle = "rgba(120,230,180,0.9)"; ctx.beginPath(); ctx.arc(cx + Math.cos(ang) * len, cy + Math.sin(ang) * len, 2, 0, PI2); ctx.fill();
+    }
+    ctx.fillStyle = "rgba(160,255,200,0.9)"; ctx.beginPath(); ctx.arc(cx, cy, 4, 0, PI2); ctx.fill();
+  },
+  metus(ctx, W, H, t) {
+    const cx = W / 2, cy = H / 2;
+    const phase = (t * 0.5) % 1;
+    function morphShape(sides1: number, sides2: number, frac: number, r: number, alpha: number) {
+      ctx.beginPath();
+      const steps = 60;
+      for (let i = 0; i <= steps; i++) {
+        const ang = (i / steps) * PI2;
+        const a1 = sides1 > 2 ? 1 / Math.cos(Math.PI / sides1) * Math.cos(ang % (PI2 / sides1) - Math.PI / sides1) : 1;
+        const a2 = sides2 > 2 ? 1 / Math.cos(Math.PI / sides2) * Math.cos(ang % (PI2 / sides2) - Math.PI / sides2) : 1;
+        const rr = r * (_lerp(Math.min(1, a1), Math.min(1, a2), frac));
+        const px = cx + Math.cos(ang) * rr, py = cy + Math.sin(ang) * rr;
+        i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+      }
+      ctx.strokeStyle = `rgba(200,140,80,${alpha})`; ctx.lineWidth = 2; ctx.stroke();
+      ctx.fillStyle = `rgba(200,140,80,${alpha * 0.15})`; ctx.fill();
+    }
+    const seg = (phase % 0.33) / 0.33;
+    const stage = Math.floor(phase / 0.33);
+    const shapes: [number, number, number][] = [[100, 3, 0], [3, 4, 1], [4, 100, 2]];
+    morphShape(shapes[stage % 3][0], shapes[stage % 3][1], _ease(seg), 16, 0.8);
+    for (let i = 0; i < 3; i++) {
+      const ang = t * 4 + i * (PI2 / 3);
+      ctx.fillStyle = `rgba(255,180,80,${0.4 + Math.sin(t * 5 + i) * 0.4})`;
+      ctx.beginPath(); ctx.arc(cx + Math.cos(ang) * 22, cy + Math.sin(ang) * 22, 1.5, 0, PI2); ctx.fill();
+    }
+  },
+  ruina(ctx, W, H, t) {
+    const cx = W / 2, cy = H / 2;
+    for (let i = 0; i < 14; i++) {
+      const seed = i * 137.5;
+      const cycle = ((t * 0.4 + seed * 0.01) % 1);
+      const angle = seed * 0.1;
+      const dist = 6 + cycle * 38;
+      const px = cx + Math.cos(angle) * dist + Math.sin(t * 0.3 + seed) * 5;
+      const py = cy - 12 + cycle * 40 + Math.sin(t * 0.5 + seed * 0.3) * 3;
+      const sz = 2 - cycle * 1.5;
+      const a = Math.sin(cycle * Math.PI) * 0.8;
+      if (sz > 0.2) { ctx.fillStyle = `rgba(200,80,80,${a})`; ctx.fillRect(px - sz / 2, py - sz / 2, sz, sz); }
+    }
+    ctx.beginPath(); ctx.arc(cx, cy, 10, 0, PI2);
+    ctx.strokeStyle = `rgba(200,80,80,${0.4 + Math.sin(t * 2) * 0.2})`; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.fillStyle = "rgba(200,80,80,0.1)"; ctx.fill();
+  },
+  radiatio(ctx, W, H, t) {
+    const cx = W / 2, cy = H / 2;
+    const beamAng = -Math.PI / 2 + Math.sin(t * 0.7) * 0.4;
+    for (let b = 0; b < 3; b++) {
+      const bAng = beamAng + (b - 1) * 0.15;
+      const grad = ctx.createLinearGradient(cx, cy, cx + Math.cos(bAng) * 50, cy + Math.sin(bAng) * 50);
+      grad.addColorStop(0, "rgba(255,200,50,0.95)");
+      grad.addColorStop(0.4, "rgba(255,150,30,0.6)");
+      grad.addColorStop(1, "transparent");
+      ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(bAng) * 50, cy + Math.sin(bAng) * 50);
+      ctx.strokeStyle = grad; ctx.lineWidth = 3 - b * 0.8; ctx.stroke();
+    }
+    for (let w = 0; w < 3; w++) {
+      const phase = ((t * 1.5 + w * 0.4) % 1);
+      const wr = phase * 28;
+      const a = (1 - phase) * 0.5;
+      ctx.beginPath(); ctx.arc(cx, cy, wr, beamAng - 0.5, beamAng + 0.5);
+      ctx.strokeStyle = `rgba(255,200,50,${a})`; ctx.lineWidth = 2; ctx.stroke();
+    }
+    ctx.fillStyle = "rgba(255,230,100,0.95)"; ctx.beginPath(); ctx.arc(cx, cy, 5, 0, PI2); ctx.fill();
+  },
+  receptio(ctx, W, H, t) {
+    const cx = W / 2, cy = H / 2;
+    for (let i = 0; i < 7; i++) {
+      const phase = ((t * 0.7 + i * 0.14) % 1);
+      const inv = 1 - phase;
+      const ang = i * (PI2 / 7) + t * 0.3;
+      const dist = inv * 38;
+      const a = 0.5 + phase * 0.4;
+      ctx.fillStyle = `rgba(68,200,122,${a})`; ctx.beginPath(); ctx.arc(cx + Math.cos(ang) * dist, cy + Math.sin(ang) * dist, 2.5 * inv + 0.8, 0, PI2); ctx.fill();
+    }
+    ctx.beginPath(); ctx.arc(cx, cy, 14, 0, PI2);
+    ctx.strokeStyle = "rgba(68,200,122,0.4)"; ctx.lineWidth = 1.5; ctx.stroke();
+    const gc = ctx.createRadialGradient(cx, cy, 0, cx, cy, 9);
+    gc.addColorStop(0, "rgba(100,230,150,0.9)"); gc.addColorStop(1, "rgba(40,160,80,0.3)");
+    ctx.fillStyle = gc; ctx.beginPath(); ctx.arc(cx, cy, 9, 0, PI2); ctx.fill();
+  },
+  retentio(ctx, W, H, t) {
+    const cx = W / 2, cy = H / 2;
+    const charge = 0.5 + Math.sin(t * 0.8) * 0.4;
+    const ang6 = [0, 60, 120, 180, 240, 300].map(d => d * Math.PI / 180);
+    const r = 10 + charge * 6;
+    ctx.beginPath();
+    ang6.forEach((a, i) => { const px = cx + Math.cos(a) * r, py = cy + Math.sin(a) * r; i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py); });
+    ctx.closePath();
+    ctx.fillStyle = `rgba(100,220,160,${0.15 + charge * 0.2})`; ctx.fill();
+    ctx.strokeStyle = `rgba(100,220,160,${0.7 + charge * 0.2})`; ctx.lineWidth = 1.5; ctx.stroke();
+    for (let l = 1; l <= 2; l++) {
+      const lr = r + l * 7;
+      ctx.beginPath();
+      ang6.forEach((a, i) => { const px = cx + Math.cos(a) * lr, py = cy + Math.sin(a) * lr; i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py); });
+      ctx.closePath();
+      ctx.strokeStyle = `rgba(100,220,160,${0.12 - l * 0.04})`; ctx.lineWidth = 1; ctx.stroke();
+    }
+  },
+  transmissio(ctx, W, H, t) {
+    const cx = W / 2, cy = H / 2;
+    ctx.beginPath(); ctx.moveTo(4, cy - 6); ctx.lineTo(W - 4, cy - 6);
+    ctx.strokeStyle = "rgba(80,200,255,0.2)"; ctx.lineWidth = 12; ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(4, cy - 10); ctx.lineTo(W - 4, cy - 10);
+    ctx.strokeStyle = "rgba(80,200,255,0.3)"; ctx.lineWidth = 1; ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(4, cy + 10); ctx.lineTo(W - 4, cy + 10);
+    ctx.strokeStyle = "rgba(80,200,255,0.3)"; ctx.lineWidth = 1; ctx.stroke();
+    for (let i = 0; i < 3; i++) {
+      const frac = ((t * 0.8 + i * 0.33) % 1);
+      const px = 4 + frac * (W - 8);
+      const g = ctx.createRadialGradient(px, cy, 0, px, cy, 8);
+      g.addColorStop(0, "rgba(80,200,255,0.95)"); g.addColorStop(1, "transparent");
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(px, cy, 10, 0, PI2); ctx.fill();
+      ctx.fillStyle = "rgba(200,240,255,0.98)"; ctx.beginPath(); ctx.arc(px, cy, 2.5, 0, PI2); ctx.fill();
+    }
+  },
+  resonantia(ctx, W, H, t) {
+    const cx = W / 2, cy = H / 2;
+    ctx.beginPath();
+    for (let i = 0; i <= 180; i++) {
+      const tt = (i / 180) * PI2 * 3;
+      const px = cx + Math.cos(1.0 * tt + t * 0.5) * 18;
+      const py = cy + Math.sin(1.33 * tt + t * 0.4) * 15;
+      i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+    }
+    ctx.strokeStyle = "rgba(200,100,255,0.4)"; ctx.lineWidth = 1.5; ctx.stroke();
+    const tt2 = t * 1.5;
+    const px = cx + Math.cos(1.0 * tt2) * 18;
+    const py = cy + Math.sin(1.33 * tt2) * 15;
+    const gc = ctx.createRadialGradient(px, py, 0, px, py, 8);
+    gc.addColorStop(0, "rgba(220,130,255,0.95)"); gc.addColorStop(1, "transparent");
+    ctx.fillStyle = gc; ctx.beginPath(); ctx.arc(px, py, 10, 0, PI2); ctx.fill();
+    ctx.fillStyle = "rgba(240,180,255,0.98)"; ctx.beginPath(); ctx.arc(px, py, 3, 0, PI2); ctx.fill();
+  },
+  inductio(ctx, W, H, t) {
+    const cx = W / 2, cy = H / 2;
+    for (let i = 0; i < 6; i++) {
+      const ang = i * (Math.PI / 6) + t * 0.4;
+      ctx.beginPath(); ctx.arc(cx, cy, 32, ang, ang + Math.PI * 0.25);
+      ctx.strokeStyle = `rgba(255,140,80,${0.3 + i * 0.05})`; ctx.lineWidth = 1.2; ctx.stroke();
+    }
+    const triggered = Math.floor(t * 2) % 3;
+    for (let i = 0; i < 3; i++) {
+      const px = cx + (i - 1) * 20;
+      const phase = i <= triggered ? 1 : 0;
+      const a = 0.3 + phase * 0.6;
+      const r = 4 + phase * 4;
+      ctx.fillStyle = `rgba(255,140,80,${a})`; ctx.beginPath(); ctx.arc(px, cy, r, 0, PI2); ctx.fill();
+      if (i < 2) {
+        ctx.beginPath(); ctx.moveTo(px + r, cy); ctx.lineTo(px + 20 - r, cy);
+        ctx.strokeStyle = `rgba(255,140,80,${phase * 0.8})`; ctx.lineWidth = 1.5; ctx.stroke();
+      }
+    }
+  },
+  percolatio(ctx, W, H, t) {
+    const cx = W / 2, cy = H / 2;
+    for (let l = 0; l < 3; l++) {
+      const y = cy - 14 + l * 14;
+      const pore = 2.5 - l * 0.5;
+      for (let x = 10; x < W - 10; x += 14 - l * 2) {
+        const open = Math.sin(t * 0.8 + x * 0.1 + l * 1.5) > 0.2;
+        ctx.fillStyle = open ? "rgba(130,220,150,0.3)" : "rgba(130,220,150,0.07)";
+        ctx.fillRect(x - pore, y - pore, pore * 2, pore * 2);
+        if (open) { ctx.fillStyle = "rgba(130,220,150,0.6)"; ctx.fillRect(x - 0.7, y - 0.7, 1.4, 1.4); }
+      }
+      ctx.beginPath(); ctx.moveTo(6, y + 2); ctx.lineTo(W - 6, y + 2);
+      ctx.strokeStyle = "rgba(130,220,150,0.15)"; ctx.lineWidth = 1; ctx.stroke();
+    }
+    for (let i = 0; i < 2; i++) {
+      const frac = ((t * 0.5 + i * 0.5) % 1);
+      const py = 4 + frac * (H - 8);
+      const a = 0.7 + Math.sin(frac * Math.PI) * 0.2;
+      ctx.fillStyle = `rgba(130,220,150,${a})`; ctx.beginPath(); ctx.arc(cx + (i - 0.5) * 14, py, 3, 0, PI2); ctx.fill();
+    }
+  },
+  dispersio(ctx, W, H, t) {
+    const cx = W / 2, cy = H / 2;
+    for (let i = 0; i < 20; i++) {
+      const seed = i * 137.5;
+      const phase = ((t * 0.6 + seed * 0.01) % 1);
+      const angle = seed * 0.1 + phase * 0.5;
+      const dist = Math.sin(phase * Math.PI) * 36;
+      const px = cx + Math.cos(angle) * dist;
+      const py = cy + Math.sin(angle) * dist;
+      const a = Math.sin(phase * Math.PI) * 0.7;
+      const sz = 1.2 + Math.sin(phase * Math.PI) * 1.5;
+      ctx.fillStyle = `rgba(160,210,255,${a})`; ctx.beginPath(); ctx.arc(px, py, sz, 0, PI2); ctx.fill();
+    }
+    const p = Math.sin(t * 1.2) * 0.3 + 0.7;
+    const gc = ctx.createRadialGradient(cx, cy, 0, cx, cy, 10 * p);
+    gc.addColorStop(0, "rgba(160,210,255,0.9)"); gc.addColorStop(1, "transparent");
+    ctx.fillStyle = gc; ctx.beginPath(); ctx.arc(cx, cy, 14 * p, 0, PI2); ctx.fill();
+  },
+};
+
+// Mapa nombre-del-IUM → clave en IUM_ANIM (igual que `id` en los datos del HTML original)
+const IUM_ANIM_KEY: Record<string, string> = {
+  Pondus:      "pondus",
+  Velox:       "velox",
+  Fluxus:      "fluxor",
+  Fulgor:      "fulgor",
+  Codex:       "patrix",
+  Tensio:      "tensia",
+  Forma:       "formix",
+  Voluntas:    "voluntas",
+  Sensus:      "sensia",
+  Mutatio:     "metus",
+  Ruina:       "ruina",
+  Radiatio:    "radiatio",
+  Receptio:    "receptio",
+  Retentio:    "retentio",
+  Transmissio: "transmissio",
+  Resonantia:  "resonantia",
+  Inductio:    "inductio",
+  Percolatio:  "percolatio",
+  Dispersio:   "dispersio",
+};
+
+// ─── Componente canvas animado para el panel de IUMs ─────────────────────────
+
+function IumAnimCanvas({ iumNombre, size = 36 }: { iumNombre: string; size?: number }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const rafRef = useRef<number>(0);
+  const tRef = useRef<number>(0);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = Math.round(size * dpr);
+    canvas.height = Math.round(size * dpr);
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.scale(dpr, dpr);
+
+    const key = IUM_ANIM_KEY[iumNombre];
+    const animFn = key ? IUM_ANIM[key] : null;
+
+    function tick() {
+      ctx!.clearRect(0, 0, size, size);
+      if (animFn) animFn(ctx!, size, size, tRef.current);
+      tRef.current += 0.025;
+      rafRef.current = requestAnimationFrame(tick);
+    }
+    rafRef.current = requestAnimationFrame(tick);
+
+    return () => cancelAnimationFrame(rafRef.current);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [iumNombre, size]);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      style={{ width: size, height: size, display: "block", flexShrink: 0, borderRadius: 4, background: "transparent" }}
+    />
+  );
+}
+
 // ─── Tipos ───────────────────────────────────────────────────────────────────
 
 interface IumCatalogo {
@@ -2043,8 +2485,9 @@ export default function SimuladorIUM() {
                     <div
                       key={ium.id}
                       title={ium.detalle}
-                      style={{ width: "100%", padding: "4px 10px", display: "flex", alignItems: "center", gap: 5, background: "color-mix(in srgb, var(--primary) 13%, transparent)", borderBottom: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
+                      style={{ width: "100%", padding: "4px 10px", display: "flex", alignItems: "center", gap: 6, background: "color-mix(in srgb, var(--primary) 13%, transparent)", borderBottom: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
                     >
+                      <IumAnimCanvas iumNombre={ium.nombre} size={32} />
                       <div style={{ display: "flex", flexDirection: "column", overflow: "hidden" }}>
                         <span style={{ fontSize: 10, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "var(--primary)" }}>
                           {ium.nombre}
@@ -2071,11 +2514,11 @@ export default function SimuladorIUM() {
                       key={ium.id}
                       onClick={() => agregarIum(ium)}
                       title={ium.detalle}
-                      style={{ width: "100%", textAlign: "left", border: "none", background: "none", cursor: "pointer", padding: "4px 10px", display: "flex", alignItems: "center", gap: 5 }}
+                      style={{ width: "100%", textAlign: "left", border: "none", background: "none", cursor: "pointer", padding: "4px 10px", display: "flex", alignItems: "center", gap: 6 }}
                       onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "color-mix(in srgb, var(--primary) 7%, transparent)"; }}
                       onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "none"; }}
                     >
-                      <Plus size={8} style={{ flexShrink: 0, color: "color-mix(in srgb, var(--primary) 35%, transparent)" }} />
+                      <IumAnimCanvas iumNombre={ium.nombre} size={32} />
                       <div style={{ display: "flex", flexDirection: "column", overflow: "hidden" }}>
                         <span style={{ fontSize: 10, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                           {ium.nombre}
