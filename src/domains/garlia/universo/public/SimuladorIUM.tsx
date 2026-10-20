@@ -2404,7 +2404,7 @@ export default function SimuladorIUM() {
               </defs>
 
               {/* Uniones fantasma de la topología (solo entre slots visibles) */}
-              {topoSeleccionada && (() => {
+              {topoSeleccionada && !faseAnimacion && (() => {
                 const slots = getSlotsActivos(topoSeleccionada);
                 const toUI = (k: string) => k === "nucleo" ? "N" : k.toUpperCase();
                 return topoSeleccionada.uniones
@@ -2439,7 +2439,7 @@ export default function SimuladorIUM() {
               })()}
 
               {/* Conexiones existentes */}
-              {enlaces.map((e) => {
+              {!faseAnimacion && enlaces.map((e) => {
                 const or  = componentes.find((c) => c.uid === e.origen_uid);
                 const dst = componentes.find((c) => c.uid === e.destino_uid);
                 if (!or || !dst) return null;
@@ -2472,7 +2472,7 @@ export default function SimuladorIUM() {
               })()}
 
               {/* Grid de slots de topología (solo los visibles) */}
-              {topoSeleccionada && (() => {
+              {topoSeleccionada && !faseAnimacion && (() => {
                 const allSlots = getSlotsActivos(topoSeleccionada);
                 const slots = Object.entries(allSlots).filter(
                   ([k]) => !slotsVisibles || slotsVisibles.has(k),
@@ -2545,7 +2545,7 @@ export default function SimuladorIUM() {
               })()}
 
               {/* Botones "+" en frontier slots — solo si hay configs que usen más IUMs que los visibles */}
-              {topoSeleccionada && slotsVisibles && (() => {
+              {topoSeleccionada && slotsVisibles && !faseAnimacion && (() => {
                 const layout = getSlotsActivos(topoSeleccionada);
                 // Si hay datos en Supabase, solo mostrar "+" hasta el máximo real de configs.
                 // Si no hay datos (topología sin configs), siempre permitir explorar.
@@ -2615,16 +2615,15 @@ export default function SimuladorIUM() {
                 ));
               })()}
 
-              {/* Nodos */}
+              {/* Nodos — ocultos completamente durante combinando/explosion */}
               {componentes.map((comp) => (
                 <g
                   key={comp.uid}
                   data-ium-node="true"
                   style={{
-                    opacity: faseAnimacion === "combinando" || faseAnimacion === "explosion" ? 0
-                           : faseAnimacion === "efecto" ? 0.35
-                           : 1,
-                    transition: "opacity 0.25s ease",
+                    display: faseAnimacion === "combinando" || faseAnimacion === "explosion" ? "none" : undefined,
+                    opacity: faseAnimacion === "efecto" ? 0.35 : 1,
+                    transition: "opacity 0.3s ease",
                     pointerEvents: faseAnimacion ? "none" : undefined,
                   }}
                 >
