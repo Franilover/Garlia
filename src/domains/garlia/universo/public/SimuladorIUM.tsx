@@ -2788,16 +2788,12 @@ export default function SimuladorIUM() {
                   };
 
                   // Destino de cada nodo:
-                  // - Si tiene enlace saliente → posición del nodo destino
-                  // - Si es el final (finalUid) → centro del canvas
+                  // - Todos los nodos no-finales convergen hacia finalComp (el núcleo)
+                  // - El nodo final (núcleo) vuela al centro del canvas
+                  // Esto hace que el movimiento sea visible — cada IUM cruza el canvas.
                   const getDestino = (uid: string): { tx: number; ty: number } => {
                     if (uid === finalUid) return { tx: cx, ty: cy };
-                    const dstUid = destinoDirecto.get(uid);
-                    if (dstUid) {
-                      const dstComp = uidPorPos.get(dstUid);
-                      if (dstComp) return { tx: dstComp.x, ty: dstComp.y };
-                    }
-                    return { tx: cx, ty: cy };
+                    return { tx: finalComp.x, ty: finalComp.y };
                   };
 
                   // Tiempo total de animación del nodo final (para calcular fade out)
