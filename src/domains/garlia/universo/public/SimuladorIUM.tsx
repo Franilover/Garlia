@@ -1290,10 +1290,12 @@ function IumNodeSVG({
   onMouseLeave,
   scale,
   reaccion,
+  animDelay = 0,
   funcionRevelada,
   colorTASI,
 }: {
   reaccion?: "exito" | "inestable" | null;
+  animDelay?: number; // segundos — cuándo aparece la animación canvas (según topología)
   comp: ComponenteLab;
   iumData: IumCatalogo | undefined;
   salidas: IumSalidaFuncional[];
@@ -1385,17 +1387,30 @@ function IumNodeSVG({
         style={{ overflow: "visible", pointerEvents: "none" }}
       >
         <div style={{ width: VIS_SIZE, height: VIS_SIZE, position: "relative" }}>
-          <IumVisual
-            particulas={particulas}
-            geometria={iumData?.geometria}
-            size={VIS_SIZE}
-            showToggle={false}
-          />
-          {reaccion && (
-            <div style={{ position: "absolute", inset: 0, borderRadius: "50%", overflow: "hidden", opacity: reaccion === "exito" ? 0.82 : 0.5 }}>
-              <IumAnimCanvas iumNombre={iumData?.nombre ?? ""} size={VIS_SIZE} />
-            </div>
-          )}
+          {/* Gráfico TASI — se oculta cuando hay reacción activa */}
+          <div style={{
+            position: "absolute", inset: 0,
+            opacity: reaccion ? 0 : 1,
+            transition: `opacity 0.35s ease ${animDelay}s`,
+            pointerEvents: "none",
+          }}>
+            <IumVisual
+              particulas={particulas}
+              geometria={iumData?.geometria}
+              size={VIS_SIZE}
+              showToggle={false}
+            />
+          </div>
+          {/* Animación canvas — aparece cuando hay reacción activa */}
+          <div style={{
+            position: "absolute", inset: 0,
+            borderRadius: "50%", overflow: "hidden",
+            opacity: reaccion ? 1 : 0,
+            transition: `opacity 0.35s ease ${animDelay}s`,
+            pointerEvents: "none",
+          }}>
+            <IumAnimCanvas iumNombre={iumData?.nombre ?? ""} size={VIS_SIZE} />
+          </div>
         </div>
       </foreignObject>
 
@@ -3113,43 +3128,87 @@ export default function SimuladorIUM() {
 
               {/* Nodos — visibles en combinando (la copia animada los reemplaza progresivamente),
                           ocultos en explosion/efecto */}
-              {componentes.map((comp) => (
-                <g
-                  key={comp.uid}
-                  data-ium-node="true"
-                  style={{
-                    display: (faseAnimacion === "explosion" || faseAnimacion === "efecto") ? "none" : undefined,
-                    opacity: 1,
-                    transition: "opacity 0.3s ease",
-                    pointerEvents: faseAnimacion ? "none" : undefined,
-                  }}
-                >
-                  <IumNodeSVG
-                    comp={comp}
-                    iumData={iumMap.get(comp.ium_id)}
-                    salidas={salidas.filter((s) => s.ium_id === comp.ium_id)}
-                    selected={false}
-                    linking={linkingFrom === comp.uid}
-                    funcionRevelada={conocimiento.get(comp.ium_id)?.funcion_revelada ?? false}
-                    reaccion={
-                      !resultado || resultado.estado !== "simulado" ? null
-                      : (resultado.proceso_principal || resultado.conjuracion_principal) ? "exito"
-                      : (resultado.ambiguo || (resultado.procesos_candidatos?.length ?? 0) > 0) ? "inestable"
-                      : null
+              {(() => {
+                // ── Calcular animDelay por nodo según topología (BFS desde nodo final) ──
+                // Los nodos más lejanos del núcleo se activan primero (delay menor).
+                const reaccionActual = !resultado || resultado.estado !== "simulado" ? null
+                  : (resultado.proceso_principal || resultado.conjuracion_principal) ? "exito"
+                  : (resultado.ambiguo || (resultado.procesos_candidatos?.length ?? 0) > 0) ? "inestable"
+                  : null;
+
+                const animDelayPorUid = new Map<string, number>();
+                if (reaccionActual && componentes.length > 0) {
+                  // Calcular in-degree para encontrar el núcleo
+                  const inDegAnim = new Map<string, number>();
+                  for (const c of componentes) inDegAnim.set(c.uid, 0);
+                  for (const e of enlaces) inDegAnim.set(e.destino_uid, (inDegAnim.get(e.destino_uid) ?? 0) + 1);
+                  let finalUidAnim = componentes[0].uid;
+                  let maxInAnim = -1;
+                  for (const c of componentes) {
+                    const deg = inDegAnim.get(c.uid) ?? 0;
+                    if (deg > maxInAnim || (deg === maxInAnim && c.posicion === "N")) { maxInAnim = deg; finalUidAnim = c.uid; }
+                  }
+                  // BFS inverso desde el núcleo → distancia de cada nodo al núcleo
+                  const invAdjAnim = new Map<string, string[]>();
+                  for (const e of enlaces) {
+                    const arr = invAdjAnim.get(e.destino_uid) ?? [];
+                    arr.push(e.origen_uid);
+                    invAdjAnim.set(e.destino_uid, arr);
+                  }
+                  const distAnim = new Map<string, number>();
+                  const qAnim = [finalUidAnim];
+                  distAnim.set(finalUidAnim, 0);
+                  while (qAnim.length) {
+                    const cur = qAnim.shift()!;
+                    const d = distAnim.get(cur)!;
+                    for (const src of (invAdjAnim.get(cur) ?? [])) {
+                      if (!distAnim.has(src)) { distAnim.set(src, d + 1); qAnim.push(src); }
                     }
-                    colorTASI={colorTASIdeIum(iumMap.get(comp.ium_id))}
-                    scale={currentScale}
-                    onMouseDownDrag={(e) => onNodeMouseDown(comp.uid, e)}
-                    onContextMenu={(e) => onNodeContextMenu(comp.uid, e)}
-                    onRemove={() => {
-                      setComponentes((prev) => prev.filter((c) => c.uid !== comp.uid));
-                      setEnlaces((prev) => prev.filter((e) => e.origen_uid !== comp.uid && e.destino_uid !== comp.uid));
+                  }
+                  const maxDistAnim = Math.max(...Array.from(distAnim.values()), 0);
+                  // Nodo más lejano del núcleo → delay 0 (se activa primero)
+                  // Nodo núcleo → delay mayor (se activa último)
+                  const DELAY_STEP = 0.22; // segundos entre niveles
+                  for (const c of componentes) {
+                    const dist = distAnim.get(c.uid) ?? 0;
+                    animDelayPorUid.set(c.uid, (maxDistAnim - dist) * DELAY_STEP);
+                  }
+                }
+
+                return componentes.map((comp) => (
+                  <g
+                    key={comp.uid}
+                    data-ium-node="true"
+                    style={{
+                      display: (faseAnimacion === "explosion" || faseAnimacion === "efecto") ? "none" : undefined,
+                      opacity: 1,
+                      transition: "opacity 0.3s ease",
+                      pointerEvents: faseAnimacion ? "none" : undefined,
                     }}
-                    onMouseEnter={() => setLinkingOver(comp.uid)}
-                    onMouseLeave={() => setLinkingOver(null)}
-                  />
-                </g>
-              ))}
+                  >
+                    <IumNodeSVG
+                      comp={comp}
+                      iumData={iumMap.get(comp.ium_id)}
+                      salidas={salidas.filter((s) => s.ium_id === comp.ium_id)}
+                      selected={false}
+                      linking={linkingFrom === comp.uid}
+                      funcionRevelada={conocimiento.get(comp.ium_id)?.funcion_revelada ?? false}
+                      reaccion={reaccionActual}
+                      animDelay={animDelayPorUid.get(comp.uid) ?? 0}
+                      colorTASI={colorTASIdeIum(iumMap.get(comp.ium_id))}
+                      scale={currentScale}
+                      onMouseDownDrag={(e) => onNodeMouseDown(comp.uid, e)}
+                      onContextMenu={(e) => onNodeContextMenu(comp.uid, e)}
+                      onRemove={() => {
+                        setComponentes((prev) => prev.filter((c) => c.uid !== comp.uid));
+                        setEnlaces((prev) => prev.filter((e) => e.origen_uid !== comp.uid && e.destino_uid !== comp.uid));
+                      }}
+                      onMouseEnter={() => setLinkingOver(comp.uid)}
+                      onMouseLeave={() => setLinkingOver(null)}
+                    />
+                  </g>
+                ));
+              })()}
 
               {/* ── Overlay de animación de conjuración ─────────────────────────── */}
               {faseAnimacion && resultado && componentes.length > 0 && (() => {
