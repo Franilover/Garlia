@@ -2804,47 +2804,69 @@ export default function SimuladorIUM() {
                   const finalStartTime = getStartTime(finalUid);
                   const TOTAL_DUR = finalStartTime + DUR_SALTO + 0.15;
 
-                  // ── CSS keyframes para cada nodo ────────────────────────────
-                  // translate + rotate en un solo transform CSS — 100% fiable cross-browser.
-                  // Cada nodo tiene su propia @keyframe con nombre único por animKey.
                   const ak = animKey.current;
-                  const cssLines: string[] = [];
+
+                  // ── CSS keyframes — un @keyframe por nodo, inyectado en <style> SVG ──
+                  // Se usa `animation` en el style inline del <g>, NO una clase CSS.
+                  // Así evitamos el conflicto de especificidad entre clase y inline style.
+                  // El keyframe parte desde la posición real del nodo (comp.x, comp.y)
+                  // y termina en el destino (tx, ty) — sin transform base en el <g>.
+                  const cssFrames: string[] = [];
+                  const nodeAnims: Array<{
+                    comp: typeof componentes[0];
+                    color: string;
+                    nombre: string;
+                    startTime: number;
+                    tx: number; ty: number;
+                    esFinal: boolean;
+                    durS: number;
+                    kfName: string;
+                  }> = [];
+
                   componentes.forEach((comp) => {
                     const { tx: tx0, ty: ty0 } = getDestino(comp.uid);
                     const esFinal0 = comp.uid === finalUid;
                     const rotG     = esFinal0 ? 720 : 360;
                     const durS     = esFinal0 ? DUR_SALTO * 1.2 : DUR_SALTO;
                     const stS      = getStartTime(comp.uid);
-                    const uid      = comp.uid.replace(/-/g, "");
-                    cssLines.push(`
-@keyframes nm_${ak}_${uid} {
-  0%   { transform: translate(${comp.x}px,${comp.y}px) rotate(0deg);     opacity: 0; }
-  3%   { opacity: 1; }
-  85%  { transform: translate(${tx0}px,${ty0}px)       rotate(${rotG * 0.85}deg); opacity: 0.9; }
-  100% { transform: translate(${tx0}px,${ty0}px)       rotate(${rotG}deg); opacity: 0; }
+                    const kfName   = `nm${ak}${comp.uid.replace(/[^a-z0-9]/gi, "")}`;
+
+                    // keyframe exterior: translate + opacity
+                    cssFrames.push(`
+@keyframes ${kfName} {
+  0%   { transform: translate(${comp.x}px,${comp.y}px); opacity: 0; }
+  4%   { opacity: 1; }
+  82%  { transform: translate(${tx0}px,${ty0}px); opacity: 1; }
+  100% { transform: translate(${tx0}px,${ty0}px); opacity: 0; }
 }
-.nm_${ak}_${uid} {
-  animation: nm_${ak}_${uid} ${durS.toFixed(2)}s ${stS.toFixed(2)}s cubic-bezier(0.4,0,0.2,1) 1 both;
-  transform-box: fill-box;
-  transform-origin: center;
+@keyframes ${kfName}rot {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(${rotG}deg); }
 }`);
+
+                    nodeAnims.push({
+                      comp,
+                      color: colorTASIdeIum(iumMap.get(comp.ium_id)),
+                      nombre: comp.ium_nombre.slice(0, 2).toUpperCase(),
+                      startTime: stS,
+                      tx: tx0, ty: ty0,
+                      esFinal: esFinal0,
+                      durS,
+                      kfName,
+                    });
                   });
 
                   return (
                     <g key={`comb-${ak}`} style={{ pointerEvents: "none" }}>
-                      <defs><style>{cssLines.join("\n")}</style></defs>
+                      <defs>
+                        <style>{cssFrames.join("\n")}</style>
+                      </defs>
 
-                      {componentes.map((comp) => {
-                        const color    = colorTASIdeIum(iumMap.get(comp.ium_id));
-                        const nombre   = comp.ium_nombre.slice(0, 2).toUpperCase();
-                        const startTime = getStartTime(comp.uid);
-                        const { tx, ty } = getDestino(comp.uid);
-                        const esFinal  = comp.uid === finalUid;
-                        const durEfectiva = `${(esFinal ? DUR_SALTO * 1.2 : DUR_SALTO).toFixed(2)}s`;
-                        const delay    = `${startTime.toFixed(2)}s`;
-                        const uid      = comp.uid.replace(/-/g, "");
+                      {nodeAnims.map(({ comp, color, nombre, startTime, tx, ty, esFinal, durS, kfName }) => {
+                        const durEfectiva = `${durS.toFixed(2)}s`;
+                        const delay       = `${startTime.toFixed(2)}s`;
 
-                        // Estela curva
+                        // Estela curva (SMIL opacity — no conflicto porque no hay CSS animation aquí)
                         const dx2  = tx - comp.x;
                         const dy2  = ty - comp.y;
                         const d2   = Math.sqrt(dx2*dx2 + dy2*dy2) || 1;
@@ -2864,65 +2886,79 @@ export default function SimuladorIUM() {
                                 dur={durEfectiva} begin={delay} fill="freeze" />
                             </path>
 
-                            {/* Nodo animado — posicionado en (0,0), CSS lo mueve */}
-                            <g className={`nm_${ak}_${uid}`}
-                              style={{ opacity: 0 }}>
-                              {/* Halo */}
-                              <circle cx={0} cy={0} r={VIS_R + 10}
-                                fill="none" strokeWidth={1.5} stroke={color}>
-                                <animate attributeName="opacity"
-                                  values="0.7;0.3;0" keyTimes="0;0.7;1"
-                                  dur={durEfectiva} begin={delay} fill="freeze" />
-                                <animate attributeName="r"
-                                  values={`${VIS_R+10};${VIS_R+20};0`}
-                                  keyTimes="0;0.7;1"
-                                  dur={durEfectiva} begin={delay} fill="freeze" />
-                              </circle>
-                              {/* Círculo */}
-                              <circle cx={0} cy={0} r={VIS_R} fill={color}>
-                                <animate attributeName="opacity"
-                                  values="1;1;0" keyTimes="0;0.82;1"
-                                  dur={durEfectiva} begin={delay} fill="freeze" />
-                                <animate attributeName="r"
-                                  values={`${VIS_R};${esFinal ? VIS_R*1.3 : VIS_R*1.1};0`}
-                                  keyTimes="0;0.82;1"
-                                  dur={durEfectiva} begin={delay} fill="freeze" />
-                              </circle>
-                              {/* Texto */}
-                              <text x={0} y={0}
-                                textAnchor="middle" dominantBaseline="central"
-                                fontSize={14} fontWeight={900}
-                                style={{ fill: "var(--bg-main)", userSelect: "none" }}>
-                                {nombre}
-                                <animate attributeName="opacity"
-                                  values="1;1;0" keyTimes="0;0.75;1"
-                                  dur={durEfectiva} begin={delay} fill="freeze" />
-                              </text>
-                              {/* Partículas orbitales */}
-                              {[0,1,2].map((pi) => (
-                                <circle key={pi}
-                                  cx={Math.cos((pi/3)*Math.PI*2)*(VIS_R+8)}
-                                  cy={Math.sin((pi/3)*Math.PI*2)*(VIS_R+8)}
-                                  r={2.5} fill={color}>
+                            {/* Nodo animado — el <g> NO tiene transform atributo.
+                                La CSS animation lo posiciona desde comp.x,comp.y hasta tx,ty.
+                                style.animation tiene la misma especificidad que el keyframe → sin conflicto. */}
+                            {/* g exterior: solo translate+opacity via CSS animation */}
+                            <g style={{
+                              animation: `${kfName} ${durS.toFixed(2)}s ${startTime.toFixed(2)}s cubic-bezier(0.4,0,0.2,1) 1 both`,
+                              transformOrigin: "0px 0px",
+                            }}>
+                              {/* g interior: rotación alrededor del centro del nodo (0,0 del g) */}
+                              <g style={{
+                                animation: `${kfName}rot ${durS.toFixed(2)}s ${startTime.toFixed(2)}s linear 1 both`,
+                                transformBox: "fill-box",
+                                transformOrigin: "center",
+                              }}>
+                                {/* Halo */}
+                                <circle cx={0} cy={0} r={VIS_R + 10}
+                                  fill="none" strokeWidth={1.5} stroke={color} opacity={0.7}>
+                                  <animate attributeName="r"
+                                    values={`${VIS_R+10};${VIS_R+20};0`}
+                                    keyTimes="0;0.7;1"
+                                    dur={durEfectiva} begin={delay} fill="freeze" />
                                   <animate attributeName="opacity"
-                                    values="1;0.5;0" keyTimes="0;0.7;1"
+                                    values="0.7;0.3;0"
+                                    keyTimes="0;0.7;1"
                                     dur={durEfectiva} begin={delay} fill="freeze" />
                                 </circle>
-                              ))}
-                              {/* Pulso de absorción al llegar */}
-                              {!esFinal && (
-                                <circle cx={0} cy={0} r={0}
-                                  fill="none" stroke={color} strokeWidth={2}>
+                                {/* Círculo */}
+                                <circle cx={0} cy={0} r={VIS_R} fill={color}>
                                   <animate attributeName="r"
-                                    values={`0;${VIS_R*1.8}`} dur="0.3s"
-                                    begin={`${(startTime + DUR_SALTO * 0.85).toFixed(2)}s`}
-                                    fill="freeze" />
+                                    values={`${VIS_R};${esFinal ? VIS_R*1.3 : VIS_R*1.1};0`}
+                                    keyTimes="0;0.82;1"
+                                    dur={durEfectiva} begin={delay} fill="freeze" />
                                   <animate attributeName="opacity"
-                                    values="0.8;0" dur="0.3s"
-                                    begin={`${(startTime + DUR_SALTO * 0.85).toFixed(2)}s`}
-                                    fill="freeze" />
+                                    values="1;1;0"
+                                    keyTimes="0;0.82;1"
+                                    dur={durEfectiva} begin={delay} fill="freeze" />
                                 </circle>
-                              )}
+                                {/* Texto */}
+                                <text x={0} y={0}
+                                  textAnchor="middle" dominantBaseline="central"
+                                  fontSize={14} fontWeight={900}
+                                  fill="var(--bg-main)">
+                                  {nombre}
+                                  <animate attributeName="opacity"
+                                    values="1;1;0" keyTimes="0;0.75;1"
+                                    dur={durEfectiva} begin={delay} fill="freeze" />
+                                </text>
+                                {/* Partículas orbitales */}
+                                {[0,1,2].map((pi) => (
+                                  <circle key={pi}
+                                    cx={Math.cos((pi/3)*Math.PI*2)*(VIS_R+8)}
+                                    cy={Math.sin((pi/3)*Math.PI*2)*(VIS_R+8)}
+                                    r={2.5} fill={color}>
+                                    <animate attributeName="opacity"
+                                      values="1;0.5;0" keyTimes="0;0.7;1"
+                                      dur={durEfectiva} begin={delay} fill="freeze" />
+                                  </circle>
+                                ))}
+                                {/* Pulso de absorción al llegar */}
+                                {!esFinal && (
+                                  <circle cx={0} cy={0} r={0}
+                                    fill="none" stroke={color} strokeWidth={2} opacity={0}>
+                                    <animate attributeName="r"
+                                      values={`0;${VIS_R*1.8}`} dur="0.3s"
+                                      begin={`${(startTime + DUR_SALTO * 0.85).toFixed(2)}s`}
+                                      fill="freeze" />
+                                    <animate attributeName="opacity"
+                                      values="0.8;0" dur="0.3s"
+                                      begin={`${(startTime + DUR_SALTO * 0.85).toFixed(2)}s`}
+                                      fill="freeze" />
+                                  </circle>
+                                )}
+                              </g>
                             </g>
                           </g>
                         );
