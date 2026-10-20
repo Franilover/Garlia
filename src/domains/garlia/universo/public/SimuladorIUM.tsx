@@ -1385,12 +1385,7 @@ function IumNodeSVG({
         style={{ overflow: "visible", pointerEvents: "none" }}
       >
         <div style={{ width: VIS_SIZE, height: VIS_SIZE }}>
-          <IumVisual
-            particulas={particulas}
-            geometria={iumData?.geometria}
-            size={VIS_SIZE}
-            showToggle={false}
-          />
+          <IumAnimCanvas iumNombre={iumData?.nombre ?? ""} size={VIS_SIZE} />
         </div>
       </foreignObject>
 
@@ -2485,9 +2480,8 @@ export default function SimuladorIUM() {
                     <div
                       key={ium.id}
                       title={ium.detalle}
-                      style={{ width: "100%", padding: "4px 10px", display: "flex", alignItems: "center", gap: 6, background: "color-mix(in srgb, var(--primary) 13%, transparent)", borderBottom: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
+                      style={{ width: "100%", padding: "4px 10px", display: "flex", alignItems: "center", gap: 5, background: "color-mix(in srgb, var(--primary) 13%, transparent)", borderBottom: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
                     >
-                      <IumAnimCanvas iumNombre={ium.nombre} size={32} />
                       <div style={{ display: "flex", flexDirection: "column", overflow: "hidden" }}>
                         <span style={{ fontSize: 10, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "var(--primary)" }}>
                           {ium.nombre}
@@ -2514,11 +2508,11 @@ export default function SimuladorIUM() {
                       key={ium.id}
                       onClick={() => agregarIum(ium)}
                       title={ium.detalle}
-                      style={{ width: "100%", textAlign: "left", border: "none", background: "none", cursor: "pointer", padding: "4px 10px", display: "flex", alignItems: "center", gap: 6 }}
+                      style={{ width: "100%", textAlign: "left", border: "none", background: "none", cursor: "pointer", padding: "4px 10px", display: "flex", alignItems: "center", gap: 5 }}
                       onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "color-mix(in srgb, var(--primary) 7%, transparent)"; }}
                       onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "none"; }}
                     >
-                      <IumAnimCanvas iumNombre={ium.nombre} size={32} />
+                      <Plus size={8} style={{ flexShrink: 0, color: "color-mix(in srgb, var(--primary) 35%, transparent)" }} />
                       <div style={{ display: "flex", flexDirection: "column", overflow: "hidden" }}>
                         <span style={{ fontSize: 10, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                           {ium.nombre}
