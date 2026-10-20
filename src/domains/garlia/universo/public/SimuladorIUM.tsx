@@ -2664,13 +2664,14 @@ export default function SimuladorIUM() {
                 ));
               })()}
 
-              {/* Nodos — ocultos completamente durante combinando/explosion */}
+              {/* Nodos — visibles en combinando (la copia animada los reemplaza progresivamente),
+                          ocultos en explosion/efecto */}
               {componentes.map((comp) => (
                 <g
                   key={comp.uid}
                   data-ium-node="true"
                   style={{
-                    display: faseAnimacion ? "none" : undefined,
+                    display: (faseAnimacion === "explosion" || faseAnimacion === "efecto") ? "none" : undefined,
                     opacity: 1,
                     transition: "opacity 0.3s ease",
                     pointerEvents: faseAnimacion ? "none" : undefined,
@@ -2834,9 +2835,32 @@ export default function SimuladorIUM() {
                         const relDx = tx - comp.x;
                         const relDy = ty - comp.y;
 
+                        // El nodo estático debe desvanecerse justo cuando su copia animada arranca.
+                        // Usamos un <animate> en el grupo estático del nodo via un id único que
+                        // referenciamos desde el overlay — pero como no podemos tocar el nodo estático
+                        // desde aquí, ponemos un rectángulo "borrador" transparente encima del nodo
+                        // original que se opacifica para tapar al original, justo antes de que la copia salga.
+                        // Rect borrador — cubre el nodo original con el color de fondo mientras la copia vuela
                         return (
                           <g key={comp.uid}>
-                            {/* Estela curva — aparece cuando el nodo sale */}
+                            {/* Cobertura gradual del nodo estático: un disco del color del bg
+                                que va de opacity 0 → 1 justo cuando la copia arranca a moverse */}
+                            <circle
+                              cx={comp.x} cy={comp.y} r={28}
+                              fill="var(--bg-main)"
+                              opacity={0}
+                            >
+                              <animate
+                                attributeName="opacity"
+                                values="0;0;1"
+                                keyTimes={`0;${Math.max(0, startTime / (TOTAL_DUR + 0.3)).toFixed(3)};${Math.min(1, (startTime + 0.18) / (TOTAL_DUR + 0.3)).toFixed(3)}`}
+                                dur={`${(TOTAL_DUR + 0.3).toFixed(2)}s`}
+                                begin="0s"
+                                fill="freeze"
+                              />
+                            </circle>
+
+                            {/* Estela curva — aparece cuando la copia sale */}
                             <path
                               d={`M ${comp.x} ${comp.y} Q ${midX} ${midY} ${tx} ${ty}`}
                               fill="none"
@@ -2855,12 +2879,13 @@ export default function SimuladorIUM() {
                             </path>
 
                             {/*
-                              Nodo animado.
-                              Estrategia: un único <g> con transform="translate(sx,sy)"
-                              y dos animateTransform con additive="sum":
-                                1. translate (0,0) → (relDx,relDy)  — mueve el nodo
-                                2. rotate 0 → N — gira alrededor del centro del propio nodo
-                              additive="sum" hace que se SUMEN al transform base, no que lo reemplacen.
+                              Copia animada del nodo.
+                              Un único <g> con transform="translate(sx,sy)" base
+                              + dos animateTransform additive="sum":
+                                1. translate (0,0) → (relDx,relDy) — mueve
+                                2. rotate 0 → N              — gira sobre su propio centro
+                              La copia empieza invisible y aparece justo al arrancar,
+                              reemplazando visualmente al nodo estático que se está cubriendo.
                             */}
                             <g transform={`translate(${comp.x},${comp.y})`} opacity={0}>
                               {/* Animación de opacidad del grupo completo */}
