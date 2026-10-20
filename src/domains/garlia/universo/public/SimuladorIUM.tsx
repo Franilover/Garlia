@@ -1316,7 +1316,7 @@ export default function SimuladorIUM() {
   const [errorSim, setErrorSim] = useState<string | null>(null);
 
   // ── Secuencia de animación al lograr una conjuración ─────────────────────
-  // "combinando" → IUMs giran y vuelan al centro (2.2 s)
+  // "combinando" → IUMs siguen las flechas y se empujan hacia el núcleo, luego al centro
   // "explosion"  → destello radial (0.45 s)
   // "efecto"     → partículas continuas + nombre de conjuración
   const [faseAnimacion, setFaseAnimacion] = useState<"combinando" | "explosion" | "efecto" | null>(null);
@@ -1327,12 +1327,45 @@ export default function SimuladorIUM() {
       (resultado.proceso_principal || resultado.conjuracion_principal);
     if (!exitoso) { setFaseAnimacion(null); return; }
 
+    // Calcular duración de la fase "combinando" dinámicamente según la profundidad del grafo
+    // (misma lógica que en el render — debe mantenerse sincronizada)
+    const DUR_SALTO = 0.85;
+    const STAGGER_SALTO = 0.15;
+    const inDeg = new Map<string, number>();
+    for (const comp of componentes) inDeg.set(comp.uid, 0);
+    for (const e of enlaces) inDeg.set(e.destino_uid, (inDeg.get(e.destino_uid) ?? 0) + 1);
+    let finalUid2 = componentes[0]?.uid ?? "";
+    let maxIn2 = -1;
+    for (const comp of componentes) {
+      const deg = inDeg.get(comp.uid) ?? 0;
+      if (deg > maxIn2 || (deg === maxIn2 && comp.posicion === "N")) { maxIn2 = deg; finalUid2 = comp.uid; }
+    }
+    const invAdj2 = new Map<string, string[]>();
+    for (const e of enlaces) {
+      const arr = invAdj2.get(e.destino_uid) ?? [];
+      arr.push(e.origen_uid);
+      invAdj2.set(e.destino_uid, arr);
+    }
+    const dist2 = new Map<string, number>();
+    const q2 = [finalUid2];
+    dist2.set(finalUid2, 0);
+    while (q2.length) {
+      const cur = q2.shift()!;
+      const d = dist2.get(cur)!;
+      for (const src of (invAdj2.get(cur) ?? [])) {
+        if (!dist2.has(src)) { dist2.set(src, d + 1); q2.push(src); }
+      }
+    }
+    const maxDist2 = Math.max(...Array.from(dist2.values()), 0);
+    const finalStart = maxDist2 * (DUR_SALTO * 0.7 + STAGGER_SALTO);
+    const combDurMs = Math.round((finalStart + DUR_SALTO * 1.2 + 0.15) * 1000) + 100;
+
     animKey.current += 1;
     setFaseAnimacion("combinando");
-    const t1 = setTimeout(() => setFaseAnimacion("explosion"), 2200);
-    const t2 = setTimeout(() => setFaseAnimacion("efecto"),    2650);
+    const t1 = setTimeout(() => setFaseAnimacion("explosion"), combDurMs);
+    const t2 = setTimeout(() => setFaseAnimacion("efecto"),    combDurMs + 450);
     return () => { clearTimeout(t1); clearTimeout(t2); };
-  }, [resultado]);
+  }, [resultado, componentes, enlaces]);
   const [avisoTopo, setAvisoTopo] = useState<string | null>(null);
   // Slot resaltado mientras arrastra en modo topología
   const [dragSlotPreview, setDragSlotPreview] = useState<{ key: string; x: number; y: number } | null>(null);
@@ -2627,67 +2660,163 @@ export default function SimuladorIUM() {
                 const cx = viewBox.x + viewBox.w / 2;
                 const cy = viewBox.y + viewBox.h / 2;
                 const nombreRes = resultado.conjuracion_principal ?? resultado.proceso_principal ?? "";
-                // Duración del movimiento de cada nodo (en segundos)
-                const DUR_MOV = 1.5;
-                const STAGGER = 0.13;
+                // Duración base por "salto" en la cadena
+                const DUR_SALTO = 0.85;
+                const STAGGER_SALTO = 0.15;
 
                 // ──────────────────────────────────────────────────────────────
-                // FASE 1: "combinando" — cada IUM vuela y gira hacia el centro
+                // FASE 1: "combinando" — IUMs siguen las flechas, se empujan
+                //   hacia el nodo destino en orden topológico, luego el último
+                //   (el que tiene in-degree = 0 como destino final / núcleo)
+                //   vuela al centro.
                 // ──────────────────────────────────────────────────────────────
                 if (faseAnimacion === "combinando") {
+                  // ── Calcular orden de animación siguiendo los enlaces ───────
+                  // uid → uid destino directo según los enlaces
+                  const uidPorPos = new Map(componentes.map((c) => [c.uid, c]));
+                  // Para cada nodo: cuál es su destino inmediato según los enlaces
+                  // (primer enlace saliente; si hay varios se toma el primero)
+                  const destinoDirecto = new Map<string, string>(); // uid → uid destino
+                  for (const e of enlaces) {
+                    if (!destinoDirecto.has(e.origen_uid)) {
+                      destinoDirecto.set(e.origen_uid, e.destino_uid);
+                    }
+                  }
+                  // In-degree como destino: nodos a los que apuntan muchos
+                  const inDegree = new Map<string, number>();
+                  for (const comp of componentes) inDegree.set(comp.uid, 0);
+                  for (const e of enlaces) inDegree.set(e.destino_uid, (inDegree.get(e.destino_uid) ?? 0) + 1);
+
+                  // El nodo "acumulador final" es el que tiene mayor in-degree
+                  // (todos los demás apuntan a él, directo o indirecto).
+                  // Si hay empate, se prefiere el que se llame "N" (núcleo).
+                  let finalUid = componentes[0].uid;
+                  let maxIn = -1;
+                  for (const comp of componentes) {
+                    const deg = inDegree.get(comp.uid) ?? 0;
+                    if (deg > maxIn || (deg === maxIn && comp.posicion === "N")) {
+                      maxIn = deg;
+                      finalUid = comp.uid;
+                    }
+                  }
+                  const finalComp = uidPorPos.get(finalUid)!;
+
+                  // Asignar wave (cuándo sale cada nodo) siguiendo cadena:
+                  // Los nodos que apuntan al final van en wave 0.
+                  // Los que apuntan a esos van en wave -1 (antes), etc.
+                  // Usamos distancia desde cada nodo hasta finalUid.
+                  const distHastaFinal = new Map<string, number>();
+                  // BFS inverso desde finalUid
+                  const invAdj = new Map<string, string[]>(); // uid → [uids que apuntan a él]
+                  for (const e of enlaces) {
+                    const arr = invAdj.get(e.destino_uid) ?? [];
+                    arr.push(e.origen_uid);
+                    invAdj.set(e.destino_uid, arr);
+                  }
+                  const queue = [finalUid];
+                  distHastaFinal.set(finalUid, 0);
+                  while (queue.length) {
+                    const cur = queue.shift()!;
+                    const d = distHastaFinal.get(cur)!;
+                    for (const src of (invAdj.get(cur) ?? [])) {
+                      if (!distHastaFinal.has(src)) {
+                        distHastaFinal.set(src, d + 1);
+                        queue.push(src);
+                      }
+                    }
+                  }
+                  // Nodos sin conexión (no llegan al final) — darles distancia máx+1
+                  const maxDist = Math.max(...Array.from(distHastaFinal.values()), 0);
+                  for (const comp of componentes) {
+                    if (!distHastaFinal.has(comp.uid)) distHastaFinal.set(comp.uid, maxDist + 1);
+                  }
+
+                  // Tiempo de inicio de cada nodo: los más lejanos del final van primero
+                  // wave = maxDist - dist (más lejano = wave 0)
+                  const getStartTime = (uid: string) => {
+                    const dist = distHastaFinal.get(uid) ?? 0;
+                    return (maxDist - dist) * (DUR_SALTO * 0.7 + STAGGER_SALTO);
+                  };
+
+                  // Destino de cada nodo:
+                  // - Si tiene enlace saliente → posición del nodo destino
+                  // - Si es el final (finalUid) → centro del canvas
+                  const getDestino = (uid: string): { tx: number; ty: number } => {
+                    if (uid === finalUid) return { tx: cx, ty: cy };
+                    const dstUid = destinoDirecto.get(uid);
+                    if (dstUid) {
+                      const dstComp = uidPorPos.get(dstUid);
+                      if (dstComp) return { tx: dstComp.x, ty: dstComp.y };
+                    }
+                    return { tx: cx, ty: cy };
+                  };
+
+                  // Tiempo total de animación del nodo final (para calcular fade out)
+                  const finalStartTime = getStartTime(finalUid);
+                  const TOTAL_DUR = finalStartTime + DUR_SALTO + 0.15;
+
                   return (
                     <g key={`comb-${animKey.current}`} style={{ pointerEvents: "none" }}>
-                      {componentes.map((comp, ci) => {
+                      {componentes.map((comp) => {
                         const color  = colorTASIdeIum(iumMap.get(comp.ium_id));
-                        const delay  = `${(ci * STAGGER).toFixed(2)}s`;
                         const nombre = comp.ium_nombre.slice(0, 2).toUpperCase();
-                        // Vector desde el nodo hasta el centro (para la estela)
-                        const dx = cx - comp.x;
-                        const dy = cy - comp.y;
+                        const startTime = getStartTime(comp.uid);
+                        const delay = `${startTime.toFixed(2)}s`;
+                        const { tx, ty } = getDestino(comp.uid);
+                        const dur = `${DUR_SALTO}s`;
+
+                        // Estela hacia el destino
+                        const dx = tx - comp.x;
+                        const dy = ty - comp.y;
                         const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-                        // Punto intermedio arqueado (curva suave hacia el centro)
-                        const midX = comp.x + dx * 0.5 - (dy / dist) * 35;
-                        const midY = comp.y + dy * 0.5 + (dx / dist) * 35;
+                        const midX = comp.x + dx * 0.5 - (dy / dist) * 28;
+                        const midY = comp.y + dy * 0.5 + (dx / dist) * 28;
+
+                        // El nodo final dura más (viaja al centro desde la pos del acumulador)
+                        const esFinal = comp.uid === finalUid;
+                        const durFinal = esFinal ? `${DUR_SALTO * 1.2}s` : dur;
+                        const durEfectiva = esFinal ? durFinal : dur;
 
                         return (
                           <g key={comp.uid}>
-                            {/* Estela curva (path SVG animada por opacity) */}
+                            {/* Estela curva */}
                             <path
-                              d={`M ${comp.x} ${comp.y} Q ${midX} ${midY} ${cx} ${cy}`}
+                              d={`M ${comp.x} ${comp.y} Q ${midX} ${midY} ${tx} ${ty}`}
                               fill="none"
                               stroke={color}
                               strokeWidth={1.5}
                               strokeDasharray="3 5"
                             >
                               <animate attributeName="opacity"
-                                values="0;0.4;0.6;0"
-                                keyTimes={`0;${0.1};${0.7};1`}
-                                dur={`${DUR_MOV}s`}
+                                values="0;0.5;0.7;0"
+                                keyTimes="0;0.1;0.65;1"
+                                dur={durEfectiva}
                                 begin={delay}
                                 fill="freeze"
                               />
                             </path>
 
-                            {/* Nodo animado: outer g = translate, inner g = rotate */}
+                            {/* Nodo animado: outer g = translate */}
                             <g>
                               <animateTransform
                                 attributeName="transform"
                                 type="translate"
                                 from={`${comp.x} ${comp.y}`}
-                                to={`${cx} ${cy}`}
-                                dur={`${DUR_MOV}s`}
+                                to={`${tx} ${ty}`}
+                                dur={durEfectiva}
                                 begin={delay}
                                 fill="freeze"
                                 calcMode="spline"
-                                keySplines="0.4 0 0.2 1"
+                                keySplines="0.42 0 0.2 1"
                               />
+                              {/* inner g = rotate */}
                               <g>
                                 <animateTransform
                                   attributeName="transform"
                                   type="rotate"
                                   from="0"
-                                  to="540"
-                                  dur={`${DUR_MOV}s`}
+                                  to={esFinal ? "720" : "360"}
+                                  dur={durEfectiva}
                                   begin={delay}
                                   fill="freeze"
                                   calcMode="spline"
@@ -2696,26 +2825,26 @@ export default function SimuladorIUM() {
                                 {/* Halo externo */}
                                 <circle r={VIS_R + 10} fill="none" strokeWidth={1.5} stroke={color}>
                                   <animate attributeName="opacity"
-                                    values="0.5;0.5;0.2;0"
-                                    keyTimes="0;0.5;0.8;1"
-                                    dur={`${DUR_MOV}s`} begin={delay} fill="freeze" />
+                                    values="0.6;0.6;0.2;0"
+                                    keyTimes="0;0.5;0.85;1"
+                                    dur={durEfectiva} begin={delay} fill="freeze" />
                                   <animate attributeName="r"
-                                    values={`${VIS_R + 10};${VIS_R + 14};${VIS_R + 4};0`}
-                                    keyTimes="0;0.4;0.8;1"
-                                    dur={`${DUR_MOV}s`} begin={delay} fill="freeze" />
+                                    values={`${VIS_R + 10};${VIS_R + 16};${VIS_R + 5};0`}
+                                    keyTimes="0;0.4;0.85;1"
+                                    dur={durEfectiva} begin={delay} fill="freeze" />
                                 </circle>
-                                {/* Círculo principal del IUM */}
+                                {/* Círculo principal */}
                                 <circle r={VIS_R} fill={color}>
                                   <animate attributeName="opacity"
-                                    values="0.85;0.9;0.75;0"
-                                    keyTimes="0;0.45;0.8;1"
-                                    dur={`${DUR_MOV}s`} begin={delay} fill="freeze" />
+                                    values="0.9;0.95;0.75;0"
+                                    keyTimes="0;0.45;0.85;1"
+                                    dur={durEfectiva} begin={delay} fill="freeze" />
                                   <animate attributeName="r"
-                                    values={`${VIS_R};${VIS_R * 1.1};${VIS_R * 0.5};0`}
-                                    keyTimes="0;0.45;0.8;1"
-                                    dur={`${DUR_MOV}s`} begin={delay} fill="freeze" />
+                                    values={`${VIS_R};${esFinal ? VIS_R * 1.25 : VIS_R * 1.1};${VIS_R * 0.4};0`}
+                                    keyTimes="0;0.45;0.85;1"
+                                    dur={durEfectiva} begin={delay} fill="freeze" />
                                 </circle>
-                                {/* Letras iniciales del IUM */}
+                                {/* Letras */}
                                 <text
                                   textAnchor="middle" dominantBaseline="central"
                                   fontSize={14} fontWeight={900}
@@ -2724,10 +2853,10 @@ export default function SimuladorIUM() {
                                   {nombre}
                                   <animate attributeName="opacity"
                                     values="1;1;0.5;0"
-                                    keyTimes="0;0.5;0.8;1"
-                                    dur={`${DUR_MOV}s`} begin={delay} fill="freeze" />
+                                    keyTimes="0;0.5;0.85;1"
+                                    dur={durEfectiva} begin={delay} fill="freeze" />
                                 </text>
-                                {/* Partículas orbitando mientras se mueve */}
+                                {/* Partículas orbitando */}
                                 {[0, 1, 2].map((pi) => {
                                   const ang = (pi / 3) * Math.PI * 2;
                                   const orb = VIS_R + 8;
@@ -2741,20 +2870,64 @@ export default function SimuladorIUM() {
                                     >
                                       <animate attributeName="opacity"
                                         values="0.9;0.7;0"
-                                        keyTimes="0;0.6;1"
-                                        dur={`${DUR_MOV}s`} begin={delay} fill="freeze" />
+                                        keyTimes="0;0.65;1"
+                                        dur={durEfectiva} begin={delay} fill="freeze" />
                                       <animate attributeName="r"
-                                        values="2.5;3;0"
-                                        keyTimes="0;0.6;1"
-                                        dur={`${DUR_MOV}s`} begin={delay} fill="freeze" />
+                                        values="2.5;3.5;0"
+                                        keyTimes="0;0.65;1"
+                                        dur={durEfectiva} begin={delay} fill="freeze" />
                                     </circle>
                                   );
                                 })}
+                                {/* Pulso de absorción cuando no es el final (llega a otro nodo) */}
+                                {!esFinal && (
+                                  <circle r={0} fill="none" stroke={color} strokeWidth={2}>
+                                    <animate attributeName="r"
+                                      values={`0;${VIS_R * 1.8}`}
+                                      dur="0.3s"
+                                      begin={`${(startTime + DUR_SALTO * 0.85).toFixed(2)}s`}
+                                      fill="freeze"
+                                    />
+                                    <animate attributeName="opacity"
+                                      values="0.8;0"
+                                      dur="0.3s"
+                                      begin={`${(startTime + DUR_SALTO * 0.85).toFixed(2)}s`}
+                                      fill="freeze"
+                                    />
+                                  </circle>
+                                )}
                               </g>
                             </g>
                           </g>
                         );
                       })}
+                      {/* Indicador "cargando" en el acumulador mientras recibe */}
+                      {maxDist > 0 && (() => {
+                        const absorbStart = getStartTime(componentes.find((c) =>
+                          (distHastaFinal.get(c.uid) ?? 0) === 1
+                        )?.uid ?? "");
+                        const absorbEnd = finalStartTime;
+                        const absorbDur = Math.max(0.2, absorbEnd - absorbStart);
+                        return (
+                          <circle cx={finalComp.x} cy={finalComp.y} r={VIS_R + 6}
+                            fill="none" stroke={colorTASIdeIum(iumMap.get(finalComp.ium_id))}
+                            strokeWidth={2} opacity={0}
+                          >
+                            <animate attributeName="opacity"
+                              values="0;0.6;0.9;0.6;0"
+                              dur={`${absorbDur}s`}
+                              begin={`${absorbStart.toFixed(2)}s`}
+                              fill="freeze"
+                            />
+                            <animate attributeName="r"
+                              values={`${VIS_R + 4};${VIS_R + 10};${VIS_R + 14};${VIS_R + 10};${VIS_R + 4}`}
+                              dur={`${absorbDur}s`}
+                              begin={`${absorbStart.toFixed(2)}s`}
+                              fill="freeze"
+                            />
+                          </circle>
+                        );
+                      })()}
                     </g>
                   );
                 }
