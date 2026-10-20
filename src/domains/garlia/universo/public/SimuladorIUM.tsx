@@ -147,6 +147,26 @@ interface ResultadoSimulador {
 }
 
 
+// Efecto visual por Oris — viene de oris_efecto_visual en Supabase
+interface OrisEfectoVisual {
+  oris_id: string;
+  nombre_efecto: string;
+  particula_forma: "circulo" | "rombo" | "triangulo" | "anillo" | "estrella" | "cruz";
+  particula_color_hex: string | null;
+  particula_color_secundario: string | null;
+  particula_cantidad: number;
+  particula_radio: number;
+  movimiento: "convergente" | "divergente" | "orbital" | "oscilante" | "zigzag" | "espiral";
+  velocidad_base: number;
+  radio_orbita: number | null;
+  glow_radio: number;
+  glow_pulsa: boolean;
+  glow_color_hex: string | null;
+  tiene_estela: boolean;
+  tiene_rayos: boolean;
+  tiene_anillo_expansivo: boolean;
+}
+
 interface TopologiaOris {
   id: string;
   nombre: string;
@@ -1315,15 +1335,9 @@ export default function SimuladorIUM() {
   const [resultado, setResultado] = useState<ResultadoSimulador | null>(null);
   const [errorSim, setErrorSim] = useState<string | null>(null);
 
-  // ── Partículas reales del Oris de la conjuración activa ───────────────────
-  // Se cargan desde Supabase cuando hay resultado exitoso.
-  // Cada entrada: { nombre, formula (3 letras T/A/S/I), color TASI }
-  interface ParticulaEfecto {
-    nombre: string;
-    formula: string;
-    color: string;
-  }
-  const [particulasEfecto, setParticulasEfecto] = useState<ParticulaEfecto[]>([]);
+  // ── Efecto visual del Oris de la conjuración activa ──────────────────────
+  // Se carga desde oris_efecto_visual en Supabase cuando hay resultado exitoso.
+  const [orisEfecto, setOrisEfecto] = useState<OrisEfectoVisual | null>(null);
 
   // ── Secuencia de animación al lograr una conjuración ─────────────────────
   // "combinando" → IUMs siguen las flechas y se empujan hacia el núcleo, luego al centro
@@ -1335,19 +1349,15 @@ export default function SimuladorIUM() {
   useEffect(() => {
     const exitoso = resultado?.estado === "simulado" &&
       (resultado.proceso_principal || resultado.conjuracion_principal);
-    if (!exitoso) { setFaseAnimacion(null); setParticulasEfecto([]); return; }
+    if (!exitoso) { setFaseAnimacion(null); setOrisEfecto(null); return; }
 
-    // ── Cargar partículas reales del Oris de la conjuración ─────────────────
-    // Cadena: conjuracion_id → conjuraciones.oris_id → oris_iums → iums →
-    //         iums_particulas → particulas.formula → color TASI
+    // ── Cargar OrisEfectoVisual desde Supabase ───────────────────────────────
     (async () => {
-      // El conjuracion_id viene en los procesos_candidatos
       const candidatos = resultado.procesos_candidatos ?? [];
       const principal = candidatos.find((p) => p.es_principal) ?? candidatos[0];
       const conjuracionId = principal?.conjuracion_id;
       if (!conjuracionId) return;
 
-      // 1. Obtener oris_id de la conjuración
       const { data: conjRow } = await supabase
         .from("conjuraciones")
         .select("oris_id")
@@ -1356,68 +1366,13 @@ export default function SimuladorIUM() {
       const orisId = (conjRow as { oris_id: string | null } | null)?.oris_id;
       if (!orisId) return;
 
-      // 2. Obtener iums del oris con sus cantidades
-      const { data: orisIums } = await supabase
-        .from("oris_iums")
-        .select("ium_id, cantidad")
-        .eq("oris_id", orisId);
-      if (!orisIums?.length) return;
+      const { data: efecto } = await supabase
+        .from("oris_efecto_visual")
+        .select("*")
+        .eq("oris_id", orisId)
+        .maybeSingle();
 
-      const iumIds = orisIums.map((r: { ium_id: string; cantidad: number }) => r.ium_id);
-      const cantPorIum = new Map<string, number>(
-        orisIums.map((r: { ium_id: string; cantidad: number }) => [r.ium_id, r.cantidad])
-      );
-
-      // 3. Obtener composición de esos iums (particulas + cantidades)
-      const { data: iPartRows } = await supabase
-        .from("iums_particulas")
-        .select("ium_id, particula_id, cantidad")
-        .in("ium_id", iumIds);
-
-      // 4. Obtener nombres+fórmulas de las partículas involucradas
-      const partIds = [...new Set((iPartRows ?? []).map((r: { particula_id: string }) => r.particula_id))];
-      const { data: partRows } = await supabase
-        .from("particulas")
-        .select("id, nombre, formula")
-        .in("id", partIds);
-      const partPorId = new Map(
-        (partRows ?? []).map((p: { id: string; nombre: string; formula: string }) => [p.id, p])
-      );
-
-      // 5. Armar lista expandida de partículas (una entrada por unidad individual)
-      //    respetando: oris → cant_ium × ium → cant_part × partícula
-      const colorDeFormula = (formula: string): string => {
-        let T = 0, A = 0, S = 0, I = 0;
-        for (const ch of formula) {
-          if (ch === "T") T++;
-          else if (ch === "A") A++;
-          else if (ch === "S") S++;
-          else if (ch === "I") I++;
-        }
-        const max = Math.max(T, A, S, I);
-        if (max === 0) return "var(--primary)";
-        if (T === max) return "hsl(195,80%,65%)";  // cian — T
-        if (A === max) return "hsl(45,70%,60%)";   // ámbar — A
-        if (S === max) return "hsl(285,75%,70%)";  // violeta — S
-        return "hsl(145,65%,55%)";                  // verde — I
-      };
-
-      const lista: ParticulaEfecto[] = [];
-      for (const iRow of iPartRows ?? []) {
-        const iumCant = cantPorIum.get(iRow.ium_id) ?? 1;
-        const part = partPorId.get(iRow.particula_id);
-        if (!part) continue;
-        const totalUnits = (iRow.cantidad as number) * iumCant;
-        for (let i = 0; i < totalUnits; i++) {
-          lista.push({
-            nombre: part.nombre,
-            formula: part.formula,
-            color: colorDeFormula(part.formula),
-          });
-        }
-      }
-
-      setParticulasEfecto(lista);
+      if (efecto) setOrisEfecto(efecto as OrisEfectoVisual);
     })();
 
 
@@ -3111,146 +3066,312 @@ export default function SimuladorIUM() {
                 }
 
                 // ──────────────────────────────────────────────────────────────
-                // FASE 3: "efecto" — partículas reales del Oris convergiendo
-                //   al centro. Cada partícula tiene su forma y color TASI:
-                //   T=cian/círculo  A=ámbar/rombo  S=violeta/triángulo  I=verde/anillo
+                // FASE 3: "efecto" — animación única por Oris desde oris_efecto_visual
                 // ──────────────────────────────────────────────────────────────
 
-                // Si aún no cargaron las partículas del Oris, caer de vuelta
-                // en los colores por IUM del canvas (no debe verse vacío)
-                const partsFallback: Array<{ nombre: string; formula: string; color: string; srcX: number; srcY: number }> =
-                  componentes.flatMap((comp) => {
-                    const color = colorTASIdeIum(iumMap.get(comp.ium_id));
-                    return [0,1,2,3].map(() => ({ nombre: comp.ium_nombre, formula: "TTT", color, srcX: comp.x, srcY: comp.y }));
+                // Fallback si Supabase aún no respondió
+                const ef: OrisEfectoVisual = orisEfecto ?? {
+                  oris_id: "",
+                  nombre_efecto: "",
+                  particula_forma: "circulo",
+                  particula_color_hex: colorTASIdeIum(iumMap.get(componentes[0]?.ium_id)),
+                  particula_color_secundario: null,
+                  particula_cantidad: 12,
+                  particula_radio: 3,
+                  movimiento: "convergente",
+                  velocidad_base: 1.0,
+                  radio_orbita: 90,
+                  glow_radio: 20,
+                  glow_pulsa: true,
+                  glow_color_hex: null,
+                  tiene_estela: false,
+                  tiene_rayos: false,
+                  tiene_anillo_expansivo: false,
+                };
+
+                const color1 = ef.particula_color_hex ?? colorTASIdeIum(iumMap.get(componentes[0]?.ium_id));
+                const color2 = ef.particula_color_secundario ?? color1;
+                const glowColor = ef.glow_color_hex ?? color1;
+                const N = ef.particula_cantidad;
+                const R = ef.particula_radio;
+                const orbR = ef.radio_orbita ?? 90;
+                const velMul = ef.velocidad_base;
+                const glowR = ef.glow_radio;
+                const glowDur = `${(2.4 / velMul).toFixed(2)}s`;
+
+                // Genera el SVG de una partícula según su forma
+                const renderParticula = (
+                  idx: number,
+                  px: number, py: number,          // posición de inicio
+                  destX: number, destY: number,    // destino
+                  midX: number, midY: number,      // punto de control de curva (para zigzag/espiral)
+                  durS: number,
+                  delayS: number,
+                  pColor: string,
+                ) => {
+                  const dur   = `${durS.toFixed(2)}s`;
+                  const delay = `${delayS.toFixed(2)}s`;
+                  const rc    = R + (idx % 3) * 0.5;
+
+                  const animCxCy = (
+                    <>
+                      <animate attributeName="cx"
+                        values={`${px};${midX};${destX}`}
+                        keyTimes="0;0.5;1"
+                        dur={dur} begin={delay} repeatCount="indefinite"
+                        calcMode="spline" keySplines="0.4 0 0.2 1;0.4 0 0.6 1" />
+                      <animate attributeName="cy"
+                        values={`${py};${midY};${destY}`}
+                        keyTimes="0;0.5;1"
+                        dur={dur} begin={delay} repeatCount="indefinite"
+                        calcMode="spline" keySplines="0.4 0 0.2 1;0.4 0 0.6 1" />
+                    </>
+                  );
+                  const animOp = (
+                    <animate attributeName="opacity"
+                      values="0;1;0.8;0" keyTimes="0;0.08;0.75;1"
+                      dur={dur} begin={delay} repeatCount="indefinite" />
+                  );
+
+                  switch (ef.particula_forma) {
+                    case "rombo": {
+                      return (
+                        <polygon key={idx}
+                          points={`${px},${py - rc} ${px + rc},${py} ${px},${py + rc} ${px - rc},${py}`}
+                          fill={pColor}
+                        >
+                          <animate attributeName="points"
+                            values={`${px},${py-rc} ${px+rc},${py} ${px},${py+rc} ${px-rc},${py};${midX},${midY-rc} ${midX+rc},${midY} ${midX},${midY+rc} ${midX-rc},${midY};${destX},${destY-rc} ${destX+rc},${destY} ${destX},${destY+rc} ${destX-rc},${destY}`}
+                            keyTimes="0;0.5;1"
+                            dur={dur} begin={delay} repeatCount="indefinite"
+                            calcMode="spline" keySplines="0.4 0 0.2 1;0.4 0 0.6 1" />
+                          {animOp}
+                        </polygon>
+                      );
+                    }
+                    case "triangulo": {
+                      const h = rc * 1.3;
+                      return (
+                        <polygon key={idx}
+                          points={`${px},${py-h} ${px+h*0.9},${py+h*0.6} ${px-h*0.9},${py+h*0.6}`}
+                          fill={pColor}
+                        >
+                          <animate attributeName="points"
+                            values={`${px},${py-h} ${px+h*0.9},${py+h*0.6} ${px-h*0.9},${py+h*0.6};${midX},${midY-h} ${midX+h*0.9},${midY+h*0.6} ${midX-h*0.9},${midY+h*0.6};${destX},${destY-h} ${destX+h*0.9},${destY+h*0.6} ${destX-h*0.9},${destY+h*0.6}`}
+                            keyTimes="0;0.5;1"
+                            dur={dur} begin={delay} repeatCount="indefinite"
+                            calcMode="spline" keySplines="0.4 0 0.2 1;0.4 0 0.6 1" />
+                          {animOp}
+                        </polygon>
+                      );
+                    }
+                    case "anillo": {
+                      return (
+                        <circle key={idx} r={rc} fill="none" stroke={pColor} strokeWidth={1.6}>
+                          {animCxCy}{animOp}
+                          <animate attributeName="r" values={`${rc};${rc*1.5};${rc*0.8}`}
+                            dur={dur} begin={delay} repeatCount="indefinite" />
+                        </circle>
+                      );
+                    }
+                    case "estrella": {
+                      // Cruz de 4 líneas que simula estrella
+                      return (
+                        <g key={idx}>
+                          <line x1={0} y1={0} x2={0} y2={0}
+                            stroke={pColor} strokeWidth={2} strokeLinecap="round">
+                            <animate attributeName="x1" values={`${px-rc};${midX-rc};${destX-rc}`} keyTimes="0;0.5;1" dur={dur} begin={delay} repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.2 1;0.4 0 0.6 1"/>
+                            <animate attributeName="y1" values={`${py};${midY};${destY}`} keyTimes="0;0.5;1" dur={dur} begin={delay} repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.2 1;0.4 0 0.6 1"/>
+                            <animate attributeName="x2" values={`${px+rc};${midX+rc};${destX+rc}`} keyTimes="0;0.5;1" dur={dur} begin={delay} repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.2 1;0.4 0 0.6 1"/>
+                            <animate attributeName="y2" values={`${py};${midY};${destY}`} keyTimes="0;0.5;1" dur={dur} begin={delay} repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.2 1;0.4 0 0.6 1"/>
+                            {animOp}
+                          </line>
+                          <line x1={0} y1={0} x2={0} y2={0}
+                            stroke={pColor} strokeWidth={2} strokeLinecap="round">
+                            <animate attributeName="x1" values={`${px};${midX};${destX}`} keyTimes="0;0.5;1" dur={dur} begin={delay} repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.2 1;0.4 0 0.6 1"/>
+                            <animate attributeName="y1" values={`${py-rc};${midY-rc};${destY-rc}`} keyTimes="0;0.5;1" dur={dur} begin={delay} repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.2 1;0.4 0 0.6 1"/>
+                            <animate attributeName="x2" values={`${px};${midX};${destX}`} keyTimes="0;0.5;1" dur={dur} begin={delay} repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.2 1;0.4 0 0.6 1"/>
+                            <animate attributeName="y2" values={`${py+rc};${midY+rc};${destY+rc}`} keyTimes="0;0.5;1" dur={dur} begin={delay} repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.2 1;0.4 0 0.6 1"/>
+                            {animOp}
+                          </line>
+                        </g>
+                      );
+                    }
+                    case "cruz": {
+                      return (
+                        <g key={idx}>
+                          <line stroke={pColor} strokeWidth={1.5} strokeLinecap="round">
+                            <animate attributeName="x1" values={`${px-rc*0.8};${midX-rc*0.8};${destX-rc*0.8}`} keyTimes="0;0.5;1" dur={dur} begin={delay} repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.2 1;0.4 0 0.6 1"/>
+                            <animate attributeName="y1" values={`${py};${midY};${destY}`} keyTimes="0;0.5;1" dur={dur} begin={delay} repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.2 1;0.4 0 0.6 1"/>
+                            <animate attributeName="x2" values={`${px+rc*0.8};${midX+rc*0.8};${destX+rc*0.8}`} keyTimes="0;0.5;1" dur={dur} begin={delay} repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.2 1;0.4 0 0.6 1"/>
+                            <animate attributeName="y2" values={`${py};${midY};${destY}`} keyTimes="0;0.5;1" dur={dur} begin={delay} repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.2 1;0.4 0 0.6 1"/>
+                            {animOp}
+                          </line>
+                          <line stroke={pColor} strokeWidth={1.5} strokeLinecap="round">
+                            <animate attributeName="x1" values={`${px};${midX};${destX}`} keyTimes="0;0.5;1" dur={dur} begin={delay} repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.2 1;0.4 0 0.6 1"/>
+                            <animate attributeName="y1" values={`${py-rc*0.8};${midY-rc*0.8};${destY-rc*0.8}`} keyTimes="0;0.5;1" dur={dur} begin={delay} repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.2 1;0.4 0 0.6 1"/>
+                            <animate attributeName="x2" values={`${px};${midX};${destX}`} keyTimes="0;0.5;1" dur={dur} begin={delay} repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.2 1;0.4 0 0.6 1"/>
+                            <animate attributeName="y2" values={`${py+rc*0.8};${midY+rc*0.8};${destY+rc*0.8}`} keyTimes="0;0.5;1" dur={dur} begin={delay} repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.2 1;0.4 0 0.6 1"/>
+                            {animOp}
+                          </line>
+                        </g>
+                      );
+                    }
+                    default: { // circulo
+                      return (
+                        <circle key={idx} r={rc} fill={pColor}>
+                          {animCxCy}{animOp}
+                          <animate attributeName="r" values={`${rc};${rc*1.5};${rc*0.6}`}
+                            dur={dur} begin={delay} repeatCount="indefinite" />
+                        </circle>
+                      );
+                    }
+                  }
+                };
+
+                // Calcula origen/destino/mid según el movimiento del Oris
+                const buildParticulas = () => {
+                  return Array.from({ length: N }, (_, idx) => {
+                    const ang = (idx / N) * Math.PI * 2;
+                    const compIdx = idx % componentes.length;
+                    const srcX = componentes[compIdx]?.x ?? cx;
+                    const srcY = componentes[compIdx]?.y ?? cy;
+                    const pColor = idx % 2 === 0 ? color1 : color2;
+                    const durS = (1.2 + (idx % 5) * 0.17) / velMul;
+                    const delayS = (idx * 0.11) % 1.6;
+
+                    switch (ef.movimiento) {
+                      case "divergente": {
+                        // Centro → afuera en espiral
+                        const tx = cx + Math.cos(ang) * orbR;
+                        const ty = cy + Math.sin(ang) * orbR;
+                        const mx = cx + Math.cos(ang + 0.5) * (orbR * 0.5);
+                        const my = cy + Math.sin(ang + 0.5) * (orbR * 0.5);
+                        return renderParticula(idx, cx, cy, tx, ty, mx, my, durS, delayS, pColor);
+                      }
+                      case "orbital": {
+                        // Órbita circular alrededor del centro
+                        const startAng = ang;
+                        const midAng   = startAng + Math.PI;
+                        const endAng   = startAng + Math.PI * 2;
+                        const ox  = cx + Math.cos(startAng) * orbR;
+                        const oy  = cy + Math.sin(startAng) * orbR;
+                        const mx2 = cx + Math.cos(midAng) * orbR;
+                        const my2 = cy + Math.sin(midAng) * orbR;
+                        const ex  = cx + Math.cos(endAng) * orbR;
+                        const ey  = cy + Math.sin(endAng) * orbR;
+                        return renderParticula(idx, ox, oy, ex, ey, mx2, my2, durS * 2, delayS, pColor);
+                      }
+                      case "oscilante": {
+                        // Se acercan y alejan entre orbR y orbR*0.3
+                        const tx2  = cx + Math.cos(ang) * (orbR * 0.25);
+                        const ty2  = cy + Math.sin(ang) * (orbR * 0.25);
+                        const ox2  = cx + Math.cos(ang) * orbR;
+                        const oy2  = cy + Math.sin(ang) * orbR;
+                        // mid = punto medio con desvío perpendicular
+                        const perpAng = ang + Math.PI / 2;
+                        const mx3 = (ox2 + tx2) / 2 + Math.cos(perpAng) * 20;
+                        const my3 = (oy2 + ty2) / 2 + Math.sin(perpAng) * 20;
+                        return renderParticula(idx, ox2, oy2, tx2, ty2, mx3, my3, durS, delayS, pColor);
+                      }
+                      case "zigzag": {
+                        // Origen → punto zigzag lateral → centro
+                        const lateral = (idx % 2 === 0 ? 1 : -1);
+                        const perpAng2 = Math.atan2(cy - srcY, cx - srcX) + Math.PI / 2;
+                        const mx4 = (srcX + cx) / 2 + Math.cos(perpAng2) * lateral * 35;
+                        const my4 = (srcY + cy) / 2 + Math.sin(perpAng2) * lateral * 35;
+                        const jx  = Math.cos(ang) * 4;
+                        const jy  = Math.sin(ang) * 4;
+                        return renderParticula(idx, srcX, srcY, cx + jx, cy + jy, mx4, my4, durS, delayS, pColor);
+                      }
+                      case "espiral": {
+                        // Convergente pero con punto de control girado ~90° desde el origen
+                        const baseAng  = Math.atan2(srcY - cy, srcX - cx);
+                        const spiralAng = baseAng + (idx % 2 === 0 ? 1 : -1) * (Math.PI * 0.6);
+                        const spiralR   = Math.hypot(srcX - cx, srcY - cy) * 0.55;
+                        const mx5 = cx + Math.cos(spiralAng) * spiralR;
+                        const my5 = cy + Math.sin(spiralAng) * spiralR;
+                        const jx2 = Math.cos(ang) * 4;
+                        const jy2 = Math.sin(ang) * 4;
+                        return renderParticula(idx, srcX, srcY, cx + jx2, cy + jy2, mx5, my5, durS, delayS, pColor);
+                      }
+                      default: { // convergente
+                        const midFrac  = 0.5;
+                        const mx6 = srcX + (cx - srcX) * midFrac;
+                        const my6 = srcY + (cy - srcY) * midFrac;
+                        const jx3 = Math.cos(ang) * 5;
+                        const jy3 = Math.sin(ang) * 5;
+                        return renderParticula(idx, srcX, srcY, cx + jx3, cy + jy3, mx6, my6, durS, delayS, pColor);
+                      }
+                    }
                   });
-
-                // Partículas reales del Oris, distribuidas entre los nodos del canvas como origen
-                const partsSrc = particulasEfecto.length
-                  ? particulasEfecto.map((p, i) => ({
-                      ...p,
-                      srcX: componentes[i % componentes.length]?.x ?? cx,
-                      srcY: componentes[i % componentes.length]?.y ?? cy,
-                    }))
-                  : partsFallback;
-
-                // Color dominante del Oris (el que más aparece) para el glow central
-                const colorCentral = (() => {
-                  if (!particulasEfecto.length) return colorTASIdeIum(iumMap.get(componentes[0]?.ium_id));
-                  const freq = new Map<string, number>();
-                  for (const p of particulasEfecto) freq.set(p.color, (freq.get(p.color) ?? 0) + 1);
-                  return [...freq.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "var(--primary)";
-                })();
-
+                };
 
                 return (
                   <g key={`efecto-${animKey.current}`} style={{ pointerEvents: "none" }}>
-                    {/* Resplandor central pulsante con color del Oris */}
-                    <circle cx={cx} cy={cy} r={16} fill={colorCentral} opacity={0.6}>
-                      <animate attributeName="r"       values="10;22;10"   dur="2.4s" repeatCount="indefinite" />
-                      <animate attributeName="opacity" values="0.4;0.9;0.4" dur="2.4s" repeatCount="indefinite" />
+
+                    {/* Glow central */}
+                    <circle cx={cx} cy={cy} r={glowR * 0.6} fill={glowColor} opacity={0.55}>
+                      {ef.glow_pulsa && <>
+                        <animate attributeName="r"
+                          values={`${glowR*0.5};${glowR};${glowR*0.5}`}
+                          dur={glowDur} repeatCount="indefinite" />
+                        <animate attributeName="opacity"
+                          values="0.35;0.85;0.35"
+                          dur={glowDur} repeatCount="indefinite" />
+                      </>}
                     </circle>
-                    {/* Anillo exterior pulsante */}
-                    <circle cx={cx} cy={cy} r={28} fill="none" stroke={colorCentral} strokeWidth={1.5} opacity={0.3}>
-                      <animate attributeName="r"       values="22;36;22"   dur="2.4s" repeatCount="indefinite" />
-                      <animate attributeName="opacity" values="0.5;0.1;0.5" dur="2.4s" repeatCount="indefinite" />
-                    </circle>
 
-                    {/* Partículas reales del Oris volando al centro */}
-                    {partsSrc.map((p, idx) => {
-                      const dur   = `${1.1 + (idx % 5) * 0.18}s`;
-                      const delay = `${((idx * 0.13) % 1.5).toFixed(2)}s`;
-                      // Ligero jitter en el destino para que no todas lleguen al mismo píxel
-                      const jx = Math.cos((idx / partsSrc.length) * Math.PI * 2) * 6;
-                      const jy = Math.sin((idx / partsSrc.length) * Math.PI * 2) * 6;
-                      const r  = 2.2 + (idx % 3) * 0.5;
+                    {/* Anillo expansivo (si lo tiene) */}
+                    {ef.tiene_anillo_expansivo && (
+                      <circle cx={cx} cy={cy} r={0} fill="none" stroke={glowColor} strokeWidth={1.2} opacity={0.6}>
+                        <animate attributeName="r"
+                          values={`0;${orbR * 0.9};0`}
+                          dur={`${(3.5 / velMul).toFixed(2)}s`} repeatCount="indefinite" />
+                        <animate attributeName="opacity"
+                          values="0.8;0.2;0"
+                          dur={`${(3.5 / velMul).toFixed(2)}s`} repeatCount="indefinite" />
+                      </circle>
+                    )}
 
-                      // Determinar forma según fórmula TASI
-                      let T = 0, A = 0, S = 0, I = 0;
-                      for (const ch of p.formula) {
-                        if (ch === "T") T++; else if (ch === "A") A++; else if (ch === "S") S++; else if (ch === "I") I++;
-                      }
-                      const max = Math.max(T, A, S, I);
-                      const esRombo    = A === max && max > 0;
-                      const esTriang   = S === max && max > 0 && A !== max;
-                      const esAnillo   = I === max && max > 0 && A !== max && S !== max;
-                      // default: círculo (T o empate)
-
+                    {/* Rayos de energía al centro (si los tiene) */}
+                    {ef.tiene_rayos && Array.from({ length: 6 }, (_, i) => {
+                      const rayAng = (i / 6) * Math.PI * 2;
+                      const rx = cx + Math.cos(rayAng) * orbR * 0.8;
+                      const ry = cy + Math.sin(rayAng) * orbR * 0.8;
                       return (
-                        <g key={`part-${idx}`}>
-                          {esRombo ? (
-                            <polygon
-                              points={`0,${-r} ${r},0 0,${r} ${-r},0`}
-                              fill={p.color}
-                            >
-                              <animate attributeName="points"
-                                values={`${p.srcX},${p.srcY - r} ${p.srcX + r},${p.srcY} ${p.srcX},${p.srcY + r} ${p.srcX - r},${p.srcY};${cx},${cy - r} ${cx + r},${cy} ${cx},${cy + r} ${cx - r},${cy};${cx + jx},${cy + jy - r} ${cx + jx + r},${cy + jy} ${cx + jx},${cy + jy + r} ${cx + jx - r},${cy + jy}`}
-                                dur={dur} begin={delay} repeatCount="indefinite"
-                                calcMode="spline" keySplines="0.4 0 0.2 1;0.4 0 0.6 1" />
-                              <animate attributeName="opacity"
-                                values="0;0.95;0.6;0" keyTimes="0;0.08;0.78;1"
-                                dur={dur} begin={delay} repeatCount="indefinite" />
-                            </polygon>
-                          ) : esAnillo ? (
-                            <circle r={r} fill="none" stroke={p.color} strokeWidth={1.5}>
-                              <animate attributeName="cx"
-                                values={`${p.srcX};${p.srcX + (cx - p.srcX) * 0.55};${cx + jx}`}
-                                dur={dur} begin={delay} repeatCount="indefinite"
-                                calcMode="spline" keySplines="0.4 0 0.2 1;0.4 0 0.6 1" />
-                              <animate attributeName="cy"
-                                values={`${p.srcY};${p.srcY + (cy - p.srcY) * 0.55};${cy + jy}`}
-                                dur={dur} begin={delay} repeatCount="indefinite"
-                                calcMode="spline" keySplines="0.4 0 0.2 1;0.4 0 0.6 1" />
-                              <animate attributeName="opacity"
-                                values="0;0.9;0.5;0" keyTimes="0;0.08;0.78;1"
-                                dur={dur} begin={delay} repeatCount="indefinite" />
-                              <animate attributeName="r"
-                                values={`${r};${r * 1.4};${r * 0.7}`}
-                                dur={dur} begin={delay} repeatCount="indefinite" />
-                            </circle>
-                          ) : esTriang ? (
-                            (() => {
-                              const h = r * 1.2;
-                              return (
-                                <polygon
-                                  points={`${p.srcX},${p.srcY - h} ${p.srcX + h * 0.9},${p.srcY + h * 0.6} ${p.srcX - h * 0.9},${p.srcY + h * 0.6}`}
-                                  fill={p.color}
-                                >
-                                  <animate attributeName="points"
-                                    values={`${p.srcX},${p.srcY - h} ${p.srcX + h * 0.9},${p.srcY + h * 0.6} ${p.srcX - h * 0.9},${p.srcY + h * 0.6};${cx},${cy - h} ${cx + h * 0.9},${cy + h * 0.6} ${cx - h * 0.9},${cy + h * 0.6};${cx + jx},${cy + jy - h} ${cx + jx + h * 0.9},${cy + jy + h * 0.6} ${cx + jx - h * 0.9},${cy + jy + h * 0.6}`}
-                                    dur={dur} begin={delay} repeatCount="indefinite"
-                                    calcMode="spline" keySplines="0.4 0 0.2 1;0.4 0 0.6 1" />
-                                  <animate attributeName="opacity"
-                                    values="0;0.95;0.6;0" keyTimes="0;0.08;0.78;1"
-                                    dur={dur} begin={delay} repeatCount="indefinite" />
-                                </polygon>
-                              );
-                            })()
-                          ) : (
-                            // Círculo (T o default)
-                            <circle r={r} fill={p.color}>
-                              <animate attributeName="cx"
-                                values={`${p.srcX};${p.srcX + (cx - p.srcX) * 0.55};${cx + jx}`}
-                                dur={dur} begin={delay} repeatCount="indefinite"
-                                calcMode="spline" keySplines="0.4 0 0.2 1;0.4 0 0.6 1" />
-                              <animate attributeName="cy"
-                                values={`${p.srcY};${p.srcY + (cy - p.srcY) * 0.55};${cy + jy}`}
-                                dur={dur} begin={delay} repeatCount="indefinite"
-                                calcMode="spline" keySplines="0.4 0 0.2 1;0.4 0 0.6 1" />
-                              <animate attributeName="opacity"
-                                values="0;0.95;0.6;0" keyTimes="0;0.08;0.78;1"
-                                dur={dur} begin={delay} repeatCount="indefinite" />
-                              <animate attributeName="r"
-                                values={`${r};${r * 1.5};${r * 0.6}`}
-                                dur={dur} begin={delay} repeatCount="indefinite" />
-                            </circle>
-                          )}
-                        </g>
+                        <line key={i}
+                          x1={cx} y1={cy} x2={rx} y2={ry}
+                          stroke={i % 2 === 0 ? color1 : color2}
+                          strokeWidth={1}
+                          strokeDasharray="3 5"
+                          opacity={0.4}
+                        >
+                          <animate attributeName="opacity"
+                            values="0;0.6;0" keyTimes="0;0.5;1"
+                            dur={`${(1.8 / velMul + i * 0.12).toFixed(2)}s`}
+                            begin={`${(i * 0.18).toFixed(2)}s`}
+                            repeatCount="indefinite" />
+                          <animate attributeName="x2"
+                            values={`${cx};${rx};${cx}`}
+                            dur={`${(1.8 / velMul + i * 0.12).toFixed(2)}s`}
+                            begin={`${(i * 0.18).toFixed(2)}s`}
+                            repeatCount="indefinite" />
+                          <animate attributeName="y2"
+                            values={`${cy};${ry};${cy}`}
+                            dur={`${(1.8 / velMul + i * 0.12).toFixed(2)}s`}
+                            begin={`${(i * 0.18).toFixed(2)}s`}
+                            repeatCount="indefinite" />
+                        </line>
                       );
                     })}
 
+                    {/* Partículas */}
+                    {buildParticulas()}
+
                     {/* Nombre de la conjuración */}
                     <text
-                      x={cx} y={cy + 36}
+                      x={cx} y={cy + glowR + 16}
                       textAnchor="middle" dominantBaseline="hanging"
                       fontSize={13} fontWeight={800}
                       style={{ fill: "var(--foreground)", letterSpacing: "0.05em" }}
@@ -3259,7 +3380,7 @@ export default function SimuladorIUM() {
                       <animate attributeName="opacity" values="0;1" dur="0.4s" fill="freeze" />
                     </text>
                     <text
-                      x={cx} y={cy + 54}
+                      x={cx} y={cy + glowR + 34}
                       textAnchor="middle" dominantBaseline="hanging"
                       fontSize={8}
                       style={{ fill: "color-mix(in srgb, var(--primary) 50%, transparent)" }}
