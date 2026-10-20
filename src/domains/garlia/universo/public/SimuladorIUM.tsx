@@ -2565,11 +2565,6 @@ export default function SimuladorIUM() {
         </div>
         <div style={{ flex: 1, overflowY: "auto", padding: "8px 10px", display: "flex", flexDirection: "column", gap: 10 }}>
 
-          <EfectoVisualIUMs
-            iumIds={componentes.map((comp) => comp.ium_id)}
-            activo={Boolean(resultado?.estado === "simulado" && (resultado.proceso_principal || resultado.conjuracion_principal))}
-          />
-
           {/* Selector de topología */}
           <div>
             <button
@@ -2832,6 +2827,16 @@ export default function SimuladorIUM() {
                 <X size={13} style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }} />
               </button>
             </div>
+
+            {/* Efecto visual — solo en conjuraciones exitosas */}
+            {!errorSim && resultado?.estado === "simulado" && (resultado.proceso_principal || resultado.conjuracion_principal) && (
+              <div style={{ padding: "0 12px", marginTop: 8 }}>
+                <EfectoVisualIUMs
+                  iumIds={componentes.map((comp) => comp.ium_id)}
+                  activo={true}
+                />
+              </div>
+            )}
 
             <div style={{ padding: "10px 16px 18px" }}>
               {errorSim ? (
