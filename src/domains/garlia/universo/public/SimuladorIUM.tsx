@@ -2804,197 +2804,123 @@ export default function SimuladorIUM() {
                   const finalStartTime = getStartTime(finalUid);
                   const TOTAL_DUR = finalStartTime + DUR_SALTO + 0.15;
 
+                  // ── CSS keyframes para cada nodo ────────────────────────────
+                  // translate + rotate en un solo transform CSS — 100% fiable cross-browser.
+                  // Cada nodo tiene su propia @keyframe con nombre único por animKey.
+                  const ak = animKey.current;
+                  const cssLines: string[] = [];
+                  componentes.forEach((comp) => {
+                    const { tx: tx0, ty: ty0 } = getDestino(comp.uid);
+                    const esFinal0 = comp.uid === finalUid;
+                    const rotG     = esFinal0 ? 720 : 360;
+                    const durS     = esFinal0 ? DUR_SALTO * 1.2 : DUR_SALTO;
+                    const stS      = getStartTime(comp.uid);
+                    const uid      = comp.uid.replace(/-/g, "");
+                    cssLines.push(`
+@keyframes nm_${ak}_${uid} {
+  0%   { transform: translate(${comp.x}px,${comp.y}px) rotate(0deg);     opacity: 0; }
+  3%   { opacity: 1; }
+  85%  { transform: translate(${tx0}px,${ty0}px)       rotate(${rotG * 0.85}deg); opacity: 0.9; }
+  100% { transform: translate(${tx0}px,${ty0}px)       rotate(${rotG}deg); opacity: 0; }
+}
+.nm_${ak}_${uid} {
+  animation: nm_${ak}_${uid} ${durS.toFixed(2)}s ${stS.toFixed(2)}s cubic-bezier(0.4,0,0.2,1) 1 both;
+  transform-box: fill-box;
+  transform-origin: center;
+}`);
+                  });
+
                   return (
-                    <g key={`comb-${animKey.current}`} style={{ pointerEvents: "none" }}>
+                    <g key={`comb-${ak}`} style={{ pointerEvents: "none" }}>
+                      <defs><style>{cssLines.join("\n")}</style></defs>
+
                       {componentes.map((comp) => {
-                        const color  = colorTASIdeIum(iumMap.get(comp.ium_id));
-                        const nombre = comp.ium_nombre.slice(0, 2).toUpperCase();
+                        const color    = colorTASIdeIum(iumMap.get(comp.ium_id));
+                        const nombre   = comp.ium_nombre.slice(0, 2).toUpperCase();
                         const startTime = getStartTime(comp.uid);
-                        const delay = `${startTime.toFixed(2)}s`;
                         const { tx, ty } = getDestino(comp.uid);
-                        const dur = `${DUR_SALTO}s`;
+                        const esFinal  = comp.uid === finalUid;
+                        const durEfectiva = `${(esFinal ? DUR_SALTO * 1.2 : DUR_SALTO).toFixed(2)}s`;
+                        const delay    = `${startTime.toFixed(2)}s`;
+                        const uid      = comp.uid.replace(/-/g, "");
 
-                        // Estela hacia el destino
-                        const dx = tx - comp.x;
-                        const dy = ty - comp.y;
-                        const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-                        const midX = comp.x + dx * 0.5 - (dy / dist) * 28;
-                        const midY = comp.y + dy * 0.5 + (dx / dist) * 28;
+                        // Estela curva
+                        const dx2  = tx - comp.x;
+                        const dy2  = ty - comp.y;
+                        const d2   = Math.sqrt(dx2*dx2 + dy2*dy2) || 1;
+                        const midX = comp.x + dx2*0.5 - (dy2/d2)*28;
+                        const midY = comp.y + dy2*0.5 + (dx2/d2)*28;
 
-                        // El nodo final dura más (viaja al centro desde la pos del acumulador)
-                        const esFinal = comp.uid === finalUid;
-                        const durFinal = esFinal ? `${DUR_SALTO * 1.2}s` : dur;
-                        const durEfectiva = esFinal ? durFinal : dur;
-
-                        // Número de pasos de rotación para keyTimes intermedios
-                        const rotGrados = esFinal ? 720 : 360;
-                        // Construimos valores de translate interpolados manualmente
-                        // para el único animateTransform que mueve el nodo:
-                        // usamos un <g transform="translate(sx,sy)"> inicial (visible desde t=0)
-                        // y animamos el translate desde (0,0) a (dx,dy) relativo al origen.
-                        const relDx = tx - comp.x;
-                        const relDy = ty - comp.y;
-
-                        // El nodo estático debe desvanecerse justo cuando su copia animada arranca.
-                        // Usamos un <animate> en el grupo estático del nodo via un id único que
-                        // referenciamos desde el overlay — pero como no podemos tocar el nodo estático
-                        // desde aquí, ponemos un rectángulo "borrador" transparente encima del nodo
-                        // original que se opacifica para tapar al original, justo antes de que la copia salga.
-                        // Rect borrador — cubre el nodo original con el color de fondo mientras la copia vuela
                         return (
                           <g key={comp.uid}>
-                            {/* Cobertura gradual del nodo estático: un disco del color del bg
-                                que va de opacity 0 → 1 justo cuando la copia arranca a moverse */}
-                            <circle
-                              cx={comp.x} cy={comp.y} r={28}
-                              fill="var(--bg-main)"
-                              opacity={0}
-                            >
-                              <animate
-                                attributeName="opacity"
-                                values="0;0;1"
-                                keyTimes={`0;${Math.max(0, startTime / (TOTAL_DUR + 0.3)).toFixed(3)};${Math.min(1, (startTime + 0.18) / (TOTAL_DUR + 0.3)).toFixed(3)}`}
-                                dur={`${(TOTAL_DUR + 0.3).toFixed(2)}s`}
-                                begin="0s"
-                                fill="freeze"
-                              />
-                            </circle>
-
-                            {/* Estela curva — aparece cuando la copia sale */}
+                            {/* Estela */}
                             <path
                               d={`M ${comp.x} ${comp.y} Q ${midX} ${midY} ${tx} ${ty}`}
-                              fill="none"
-                              stroke={color}
-                              strokeWidth={1.5}
-                              strokeDasharray="3 5"
-                              opacity={0}
+                              fill="none" stroke={color}
+                              strokeWidth={1.5} strokeDasharray="3 5" opacity={0}
                             >
                               <animate attributeName="opacity"
-                                values="0;0.5;0.7;0"
-                                keyTimes="0;0.1;0.65;1"
-                                dur={durEfectiva}
-                                begin={delay}
-                                fill="freeze"
-                              />
+                                values="0;0.6;0.8;0" keyTimes="0;0.08;0.6;1"
+                                dur={durEfectiva} begin={delay} fill="freeze" />
                             </path>
 
-                            {/*
-                              Copia animada del nodo.
-                              Un único <g> con transform="translate(sx,sy)" base
-                              + dos animateTransform additive="sum":
-                                1. translate (0,0) → (relDx,relDy) — mueve
-                                2. rotate 0 → N              — gira sobre su propio centro
-                              La copia empieza invisible y aparece justo al arrancar,
-                              reemplazando visualmente al nodo estático que se está cubriendo.
-                            */}
-                            <g transform={`translate(${comp.x},${comp.y})`} opacity={0}>
-                              {/* Animación de opacidad del grupo completo */}
-                              <animate attributeName="opacity"
-                                values="0;1;1;0"
-                                keyTimes="0;0.02;0.82;1"
-                                dur={durEfectiva}
-                                begin={delay}
-                                fill="freeze"
-                              />
-                              {/* Translate relativo al origen del nodo */}
-                              <animateTransform
-                                attributeName="transform"
-                                type="translate"
-                                from="0 0"
-                                to={`${relDx} ${relDy}`}
-                                dur={durEfectiva}
-                                begin={delay}
-                                fill="freeze"
-                                additive="sum"
-                                calcMode="spline"
-                                keySplines="0.42 0 0.2 1"
-                              />
-                              {/* Rotate aditivo — gira sobre el centro local (0,0) del grupo */}
-                              <animateTransform
-                                attributeName="transform"
-                                type="rotate"
-                                from="0 0 0"
-                                to={`${rotGrados} 0 0`}
-                                dur={durEfectiva}
-                                begin={delay}
-                                fill="freeze"
-                                additive="sum"
-                                calcMode="spline"
-                                keySplines="0.2 0 0.8 1"
-                              />
-
-                              {/* Halo externo */}
-                              <circle r={VIS_R + 10} fill="none" strokeWidth={1.5} stroke={color}>
+                            {/* Nodo animado — posicionado en (0,0), CSS lo mueve */}
+                            <g className={`nm_${ak}_${uid}`}
+                              style={{ opacity: 0 }}>
+                              {/* Halo */}
+                              <circle cx={0} cy={0} r={VIS_R + 10}
+                                fill="none" strokeWidth={1.5} stroke={color}>
                                 <animate attributeName="opacity"
-                                  values="0.6;0.6;0.2;0"
-                                  keyTimes="0;0.5;0.85;1"
+                                  values="0.7;0.3;0" keyTimes="0;0.7;1"
                                   dur={durEfectiva} begin={delay} fill="freeze" />
                                 <animate attributeName="r"
-                                  values={`${VIS_R + 10};${VIS_R + 16};${VIS_R + 5};0`}
-                                  keyTimes="0;0.4;0.85;1"
+                                  values={`${VIS_R+10};${VIS_R+20};0`}
+                                  keyTimes="0;0.7;1"
                                   dur={durEfectiva} begin={delay} fill="freeze" />
                               </circle>
-                              {/* Círculo principal */}
-                              <circle r={VIS_R} fill={color}>
+                              {/* Círculo */}
+                              <circle cx={0} cy={0} r={VIS_R} fill={color}>
                                 <animate attributeName="opacity"
-                                  values="0.9;0.95;0.75;0"
-                                  keyTimes="0;0.45;0.85;1"
+                                  values="1;1;0" keyTimes="0;0.82;1"
                                   dur={durEfectiva} begin={delay} fill="freeze" />
                                 <animate attributeName="r"
-                                  values={`${VIS_R};${esFinal ? VIS_R * 1.25 : VIS_R * 1.1};${VIS_R * 0.4};0`}
-                                  keyTimes="0;0.45;0.85;1"
+                                  values={`${VIS_R};${esFinal ? VIS_R*1.3 : VIS_R*1.1};0`}
+                                  keyTimes="0;0.82;1"
                                   dur={durEfectiva} begin={delay} fill="freeze" />
                               </circle>
-                              {/* Letras */}
-                              <text
+                              {/* Texto */}
+                              <text x={0} y={0}
                                 textAnchor="middle" dominantBaseline="central"
                                 fontSize={14} fontWeight={900}
-                                style={{ fill: "var(--bg-main)", userSelect: "none" }}
-                              >
+                                style={{ fill: "var(--bg-main)", userSelect: "none" }}>
                                 {nombre}
                                 <animate attributeName="opacity"
-                                  values="1;1;0.5;0"
-                                  keyTimes="0;0.5;0.85;1"
+                                  values="1;1;0" keyTimes="0;0.75;1"
                                   dur={durEfectiva} begin={delay} fill="freeze" />
                               </text>
-                              {/* Partículas orbitando */}
-                              {[0, 1, 2].map((pi) => {
-                                const ang = (pi / 3) * Math.PI * 2;
-                                const orb = VIS_R + 8;
-                                return (
-                                  <circle
-                                    key={pi}
-                                    cx={Math.cos(ang) * orb}
-                                    cy={Math.sin(ang) * orb}
-                                    r={2.5}
-                                    fill={color}
-                                  >
-                                    <animate attributeName="opacity"
-                                      values="0.9;0.7;0"
-                                      keyTimes="0;0.65;1"
-                                      dur={durEfectiva} begin={delay} fill="freeze" />
-                                    <animate attributeName="r"
-                                      values="2.5;3.5;0"
-                                      keyTimes="0;0.65;1"
-                                      dur={durEfectiva} begin={delay} fill="freeze" />
-                                  </circle>
-                                );
-                              })}
-                              {/* Pulso de absorción cuando llega a otro nodo (no al centro) */}
-                              {!esFinal && (
-                                <circle r={0} fill="none" stroke={color} strokeWidth={2}>
-                                  <animate attributeName="r"
-                                    values={`0;${VIS_R * 1.8}`}
-                                    dur="0.3s"
-                                    begin={`${(startTime + DUR_SALTO * 0.85).toFixed(2)}s`}
-                                    fill="freeze"
-                                  />
+                              {/* Partículas orbitales */}
+                              {[0,1,2].map((pi) => (
+                                <circle key={pi}
+                                  cx={Math.cos((pi/3)*Math.PI*2)*(VIS_R+8)}
+                                  cy={Math.sin((pi/3)*Math.PI*2)*(VIS_R+8)}
+                                  r={2.5} fill={color}>
                                   <animate attributeName="opacity"
-                                    values="0.8;0"
-                                    dur="0.3s"
+                                    values="1;0.5;0" keyTimes="0;0.7;1"
+                                    dur={durEfectiva} begin={delay} fill="freeze" />
+                                </circle>
+                              ))}
+                              {/* Pulso de absorción al llegar */}
+                              {!esFinal && (
+                                <circle cx={0} cy={0} r={0}
+                                  fill="none" stroke={color} strokeWidth={2}>
+                                  <animate attributeName="r"
+                                    values={`0;${VIS_R*1.8}`} dur="0.3s"
                                     begin={`${(startTime + DUR_SALTO * 0.85).toFixed(2)}s`}
-                                    fill="freeze"
-                                  />
+                                    fill="freeze" />
+                                  <animate attributeName="opacity"
+                                    values="0.8;0" dur="0.3s"
+                                    begin={`${(startTime + DUR_SALTO * 0.85).toFixed(2)}s`}
+                                    fill="freeze" />
                                 </circle>
                               )}
                             </g>
