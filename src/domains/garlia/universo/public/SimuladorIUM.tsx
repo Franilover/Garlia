@@ -546,53 +546,27 @@ function IumMergedCanvas({
       const fStart = finalStartRef.current;
 
       // ── FASE FINAL: todas las animFn superpuestas en el centro ───────────────
-      if (fStart !== null) {
+      if (fStart !== null && now >= fStart) {
         const ftS = (now - fStart) / 1000;
 
-        // Destellos radiales (primer segundo)
-        if (ftS < 1.2) {
-          nodes.forEach((node) => {
-            const r = 60 + ftS * 80;
-            const col = node.color.startsWith("rgb(")
-              ? node.color.replace("rgb(", "rgba(").replace(")", `,${0.25 * (1 - ftS / 1.2)})`)
-              : node.color;
-            const g = ctx!.createRadialGradient(destX, destY, 0, destX, destY, r);
-            g.addColorStop(0, col);
-            g.addColorStop(1, "transparent");
-            ctx!.fillStyle = g;
-            ctx!.beginPath(); ctx!.arc(destX, destY, r, 0, Math.PI * 2); ctx!.fill();
-          });
-        }
+        // Solo las animFn de los IUMs superpuestas, creciendo desde el centro
+        const scale    = _easeInOut(Math.min(1, ftS / 1.2));
+        const sc       = Math.max(0.001, scale);
+        const S        = 320;
+        const perAlpha = Math.min(1, (1 / nodes.length) * 2.2) * Math.min(1, ftS * 2);
 
-        // Todas las animFn apiladas en el centro — mezcla real, crecen desde el punto de convergencia
-        const GROW_DUR = 1.4; // segundos hasta tamaño máximo
-        const scaleRaw = Math.min(1, ftS / GROW_DUR);
-        const scale    = _easeInOut(scaleRaw);       // 0→1 con easing
-        const S_MIN    = 80;
-        const S_MAX    = 320;
-        const S        = S_MIN + (S_MAX - S_MIN) * scale;
-        const alpha    = Math.min(1, ftS * 1.5);
         nodes.forEach((node) => {
           const key    = IUM_ANIM_KEY[node.nombre];
           const animFn = key ? IUM_ANIM[key] : null;
           if (!animFn) return;
           ctx!.save();
-          ctx!.globalAlpha = alpha;
-          // Escalar centrado en destX/destY
+          ctx!.globalAlpha = perAlpha;
           ctx!.translate(destX, destY);
-          ctx!.scale(scale < 0.001 ? 0.001 : scale, scale < 0.001 ? 0.001 : scale);
-          ctx!.translate(-S_MAX / 2, -S_MAX / 2);
-          animFn(ctx!, S_MAX, S_MAX, ftS);
+          ctx!.scale(sc, sc);
+          ctx!.translate(-S / 2, -S / 2);
+          animFn(ctx!, S, S, ftS);
           ctx!.restore();
         });
-
-        // Anillo pulsante exterior
-        const pulse = Math.sin(ftS * 3) * 10;
-        ctx!.beginPath();
-        ctx!.arc(destX, destY, 60 + pulse, 0, Math.PI * 2);
-        ctx!.strokeStyle = `rgba(255,255,255,${0.06 + Math.abs(Math.sin(ftS * 2)) * 0.06})`;
-        ctx!.lineWidth = 1.5;
-        ctx!.stroke();
 
         rafRef.current = requestAnimationFrame(frame);
         return;
