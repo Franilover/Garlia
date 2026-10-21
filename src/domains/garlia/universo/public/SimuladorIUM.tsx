@@ -79,6 +79,161 @@ interface AnimTrait {
   cantidad?: number;     // cantidad de esta partícula en el IUM (de iums_particulas)
 }
 
+// Reacción visual entre un par de partículas
+interface ReaccionVisual {
+  particula_a: string;
+  particula_b: string;
+  nombre_reaccion: string;
+  efecto: {
+    tipo: string;
+    color: string;
+    amplitud: number;
+    densidad: number;
+    velocidad: number;
+    peso_visual: number;
+  };
+  modificadores?: {
+    suprimir_caos?: boolean;
+    escala_velocidad?: number;
+  } | null;
+}
+
+// Dado un array de reacciones activas, renderiza sus efectos en el canvas (capa encima de traits base)
+function renderReacciones(
+  ctx: CanvasRenderingContext2D,
+  W: number,
+  H: number,
+  t: number,
+  reacciones: ReaccionVisual[],
+  intensidad: number = 1,
+): void {
+  const cx = W / 2, cy = H / 2;
+  const R = Math.min(W, H) * 0.4;
+
+  for (const r of reacciones) {
+    const ef = r.efecto;
+    const alpha = Math.min(0.9, ef.peso_visual * 0.55 * intensidad);
+    const spd = ef.velocidad;
+    const amp = ef.amplitud;
+    const dens = Math.max(1, Math.round(ef.densidad));
+    const col = ef.color;
+
+    ctx.save();
+    ctx.globalAlpha = alpha;
+
+    switch (ef.tipo) {
+      case "vortice": {
+        // Espiral que aspira hacia el centro
+        for (let i = 0; i < dens; i++) {
+          const ang = t * spd * 1.4 + (i / dens) * Math.PI * 2;
+          const frac = (i / dens + t * spd * 0.15) % 1;
+          const rr = R * amp * 0.7 * frac;
+          const px = cx + Math.cos(ang) * rr;
+          const py = cy + Math.sin(ang) * rr;
+          ctx.beginPath(); ctx.arc(px, py, 2 + frac * 2, 0, Math.PI * 2);
+          ctx.fillStyle = col; ctx.fill();
+        }
+        break;
+      }
+      case "simetria": {
+        // Anillo perfecto, lento, muy limpio
+        for (let i = 0; i < dens; i++) {
+          const ang = (i / dens) * Math.PI * 2 + t * spd * 0.2;
+          const rr = R * amp * 0.65;
+          ctx.beginPath();
+          ctx.arc(cx + Math.cos(ang) * rr, cy + Math.sin(ang) * rr, 2.5, 0, Math.PI * 2);
+          ctx.fillStyle = col; ctx.fill();
+        }
+        ctx.beginPath(); ctx.arc(cx, cy, R * amp * 0.65, 0, Math.PI * 2);
+        ctx.strokeStyle = col + "44"; ctx.lineWidth = 1.5; ctx.stroke();
+        break;
+      }
+      case "scan": {
+        // Línea que barre en arco
+        const scanAng = (t * spd * 0.7) % (Math.PI * 2);
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.arc(cx, cy, R * amp * 0.8, scanAng, scanAng + 0.4);
+        ctx.closePath();
+        ctx.fillStyle = col + "33"; ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(cx + Math.cos(scanAng) * R * amp * 0.8, cy + Math.sin(scanAng) * R * amp * 0.8);
+        ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.stroke();
+        break;
+      }
+      case "pulso": {
+        // Ondas concéntricas que salen del centro
+        for (let i = 0; i < dens; i++) {
+          const phase = ((t * spd * 0.5 + i / dens) % 1);
+          const rr = phase * R * amp;
+          const a2 = (1 - phase) * 0.6;
+          ctx.beginPath(); ctx.arc(cx, cy, rr, 0, Math.PI * 2);
+          ctx.strokeStyle = col + Math.round(a2 * 255).toString(16).padStart(2, "0");
+          ctx.lineWidth = 2; ctx.stroke();
+        }
+        break;
+      }
+      case "malla": {
+        // Grid fino superpuesto al área central
+        const paso = R * amp * 0.28;
+        const xMin = cx - R * amp, xMax = cx + R * amp;
+        const yMin = cy - R * amp, yMax = cy + R * amp;
+        ctx.strokeStyle = col + "55"; ctx.lineWidth = 0.8;
+        for (let x = xMin; x <= xMax; x += paso) {
+          ctx.beginPath(); ctx.moveTo(x, yMin); ctx.lineTo(x, yMax); ctx.stroke();
+        }
+        for (let y = yMin; y <= yMax; y += paso) {
+          ctx.beginPath(); ctx.moveTo(xMin, y); ctx.lineTo(xMax, y); ctx.stroke();
+        }
+        break;
+      }
+      case "orbital": {
+        // Dos puntos orbitando a velocidad distinta (reacción de movimiento)
+        for (let i = 0; i < Math.min(dens, 8); i++) {
+          const ang = t * spd * (1 + i * 0.15) + (i / dens) * Math.PI * 2;
+          const rr = R * amp * (0.3 + (i % 3) * 0.2);
+          ctx.beginPath();
+          ctx.arc(cx + Math.cos(ang) * rr, cy + Math.sin(ang) * rr, 2 + i % 2, 0, Math.PI * 2);
+          ctx.fillStyle = col; ctx.fill();
+        }
+        break;
+      }
+      case "explosion":
+      case "chispa": {
+        // Partículas que salen disparadas desde el centro
+        for (let i = 0; i < dens; i++) {
+          const baseAng = (i / dens) * Math.PI * 2;
+          const frac = ((t * spd * 0.6 + i * 0.13) % 1);
+          const rr = frac * R * amp;
+          ctx.beginPath();
+          ctx.arc(cx + Math.cos(baseAng) * rr, cy + Math.sin(baseAng) * rr, 1.5 + (1 - frac) * 2, 0, Math.PI * 2);
+          ctx.fillStyle = col; ctx.fill();
+        }
+        break;
+      }
+      case "onda": {
+        // Onda expansiva suave
+        const fase = (t * spd * 0.4) % 1;
+        ctx.beginPath(); ctx.arc(cx, cy, fase * R * amp * 1.1, 0, Math.PI * 2);
+        ctx.strokeStyle = col + Math.round((1 - fase) * 180).toString(16).padStart(2, "0");
+        ctx.lineWidth = 2 + (1 - fase) * 3; ctx.stroke();
+        break;
+      }
+      default: {
+        // Fallback: puntos aleatorios fijos en radio
+        for (let i = 0; i < dens; i++) {
+          const ang = (i / dens) * Math.PI * 2 + t * spd * 0.3;
+          const rr = R * amp * 0.5;
+          ctx.beginPath(); ctx.arc(cx + Math.cos(ang) * rr, cy + Math.sin(ang) * rr, 2, 0, Math.PI * 2);
+          ctx.fillStyle = col; ctx.fill();
+        }
+      }
+    }
+    ctx.restore();
+  }
+}
+
 // Dado un array de traits (todas las partículas de todos los IUMs), genera una AnimFn compuesta
 function buildTraitAnimFn(traits: AnimTrait[]): AnimFn {
   // Calcular agitación global como suma clampada de todas las agitaciones
@@ -87,14 +242,22 @@ function buildTraitAnimFn(traits: AnimTrait[]): AnimFn {
   );
   const caosBase = Math.max(0, agitacionGlobal);
 
+  // Tipos que no deben acelerarse por caos externo — son estables por naturaleza
+  const TIPOS_INMUNES_CAOS = new Set(["simetria", "nucleo", "convergencia", "malla", "scan"]);
+
   return function traitAnimFn(ctx, W, H, t) {
     const cx = W / 2, cy = H / 2;
     const R = Math.min(W, H) * 0.4; // radio base del área de animación
 
     for (const tr of traits) {
       const q    = tr.cantidad ?? 1;
-      const spd  = tr.velocidad * (1 + caosBase * 0.3);
-      const amp  = tr.amplitud;
+      // cantidad amplifica velocidad (sqrt) y amplitud (lineal suave)
+      const spdQ = q > 1 ? Math.sqrt(q) : 1;
+      const ampQ = 1 + (q - 1) * 0.3;
+      // caosBase solo afecta tipos cinéticos/caóticos — los tipos estables son inmunes
+      const caosEfectivo = TIPOS_INMUNES_CAOS.has(tr.tipo) ? 0 : caosBase;
+      const spd  = tr.velocidad * spdQ * (1 + caosEfectivo * 0.3);
+      const amp  = tr.amplitud * ampQ;
       const dens = Math.round(tr.densidad * q);
       const col  = tr.color;
       const alpha = Math.min(0.95, (tr.peso_visual / Math.max(1, traits.length * 0.4)) * 1.8);
@@ -828,6 +991,7 @@ interface IumNodeAnim {
   delay: number;    // segundos hasta activarse (orden topológico)
   color: string;    // color TASI del nodo
   animTraits: AnimTrait[]; // traits procedurales de las partículas de este IUM
+  composicion: { particula: string; cantidad: number }[]; // para calcular reacciones activas
 }
 
 const _easeInOut = (t: number) => t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2;
@@ -837,11 +1001,13 @@ function IumMergedCanvas({
   width,
   height,
   fase,
+  reaccionesDisponibles,
 }: {
   nodes: IumNodeAnim[];
   width: number;
   height: number;
   fase: "idle" | "combinando" | "explosion" | "efecto" | null;
+  reaccionesDisponibles: ReaccionVisual[];
 }) {
   const canvasRef     = useRef<HTMLCanvasElement>(null);
   const rafRef        = useRef<number>(0);
@@ -911,13 +1077,40 @@ function IumMergedCanvas({
         // Recolectar todos los traits de todos los IUMs (con su cantidad)
         const allTraits: AnimTrait[] = nodes.flatMap(n => n.animTraits ?? []);
 
+        // Calcular reacciones activas: pares de partículas presentes en cualquier nodo seleccionado
+        const nombresParticulas = new Set<string>(
+          nodes.flatMap(n => n.composicion.map(c => c.particula))
+        );
+        const reaccionesActivas = reaccionesDisponibles.filter(r =>
+          nombresParticulas.has(r.particula_a) && nombresParticulas.has(r.particula_b)
+        );
+        // Filtrar por modificadores: suprimir_caos ya no aplica aquí, pero escala_velocidad sí
+        const reaccionesRender = reaccionesActivas.map(r => {
+          if (r.modificadores?.escala_velocidad) {
+            return {
+              ...r,
+              efecto: { ...r.efecto, velocidad: r.efecto.velocidad * r.modificadores.escala_velocidad },
+            };
+          }
+          return r;
+        });
+
         if (allTraits.length > 0) {
           const S = 560;
           const animFn = buildTraitAnimFn(allTraits);
           ctx!.save();
           ctx!.globalAlpha = fadeIn;
           ctx!.translate(destX - S / 2, destY - S / 2);
+          // Base: traits individuales
           animFn(ctx!, S, S, ftS);
+          // Reacciones: capa encima, con fade-in más tardío para que se vean aparecer
+          if (reaccionesRender.length > 0) {
+            const reacFade = Math.min(1, Math.max(0, (ftS - 0.5) / 0.6));
+            if (reacFade > 0) {
+              ctx!.globalAlpha = fadeIn * reacFade;
+              renderReacciones(ctx!, S, S, ftS, reaccionesRender, reacFade);
+            }
+          }
           ctx!.restore();
         }
 
@@ -1176,6 +1369,7 @@ const genUID = () => `lab_${++uidCounter}_${Date.now()}`;
 
 function useIumsCatalogo() {
   const [iums, setIums] = useState<IumCatalogo[]>([]);
+  const [reacciones, setReacciones] = useState<ReaccionVisual[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -1197,6 +1391,10 @@ function useIumsCatalogo() {
       const { data: geoData } = await supabase
         .from("v_iums_geometria_canonica_v1")
         .select("ium_id, geometria");
+
+      const { data: reacData } = await supabase
+        .from("reacciones_visuales_particulas")
+        .select("particula_a, particula_b, nombre_reaccion, efecto, modificadores");
 
       if (!vivo) return;
 
@@ -1244,13 +1442,14 @@ function useIumsCatalogo() {
       }));
 
       setIums(result);
+      setReacciones((reacData ?? []) as ReaccionVisual[]);
       setLoading(false);
     }
     cargar();
     return () => { vivo = false; };
   }, []);
 
-  return { iums, loading };
+  return { iums, reacciones, loading };
 }
 
 
@@ -2230,7 +2429,7 @@ function ResultadoPanel({ resultado, nombreIum }: { resultado: ResultadoSimulado
 // ─── Componente principal ─────────────────────────────────────────────────────
 
 export default function SimuladorIUM() {
-  const { iums, loading: loadingIums } = useIumsCatalogo();
+  const { iums, reacciones, loading: loadingIums } = useIumsCatalogo();
   const { topologias } = useTopologias();
   const [busqueda, setBusqueda] = useState("");
   const [componentes, setComponentes] = useState<ComponenteLab[]>([]);
@@ -4416,6 +4615,7 @@ export default function SimuladorIUM() {
                   delay:      (maxDistOv - distVal) * 0.22,
                   color:      colorTASIdeIum(iumData),
                   animTraits: iumData?.animTraits ?? [],
+                  composicion: iumData?.composicion ?? [],
                 };
               });
 
@@ -4426,6 +4626,7 @@ export default function SimuladorIUM() {
                     width={divRect.width}
                     height={divRect.height}
                     fase={faseAnimacion ?? "idle"}
+                    reaccionesDisponibles={reacciones}
                   />
                 </div>
               );
