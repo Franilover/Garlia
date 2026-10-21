@@ -458,40 +458,74 @@ const IUM_ANIM_KEY: Record<string, string> = {
 
 // ─── Componente canvas animado para el panel de IUMs ─────────────────────────
 
-function IumAnimCanvas({ iumNombre, size = 36 }: { iumNombre: string; size?: number }) {
+// Canvas de animación libre — se posiciona en coordenadas de pantalla sobre el overlay
+// El canvas es AURA_SIZE × AURA_SIZE centrado en (cx, cy), sin ningún clip.
+const AURA_SIZE = 220; // px en pantalla — espacio libre alrededor del nodo
+
+function IumAnimCanvas({
+  iumNombre,
+  cx,
+  cy,
+  visible,
+  delay = 0,
+}: {
+  iumNombre: string;
+  cx: number;  // coordenada X de pantalla (centro del nodo)
+  cy: number;  // coordenada Y de pantalla (centro del nodo)
+  visible: boolean;
+  delay?: number; // segundos antes de aparecer
+}) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const rafRef = useRef<number>(0);
-  const tRef = useRef<number>(0);
+  const rafRef    = useRef<number>(0);
+  const tRef      = useRef<number>(0);
+  const [opacity, setOpacity] = useState(0);
+
+  // Aparece con delay cuando visible=true, desaparece inmediatamente
+  useEffect(() => {
+    if (!visible) { setOpacity(0); return; }
+    const id = setTimeout(() => setOpacity(1), delay * 1000);
+    return () => clearTimeout(id);
+  }, [visible, delay]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    canvas.width = Math.round(size * dpr);
-    canvas.height = Math.round(size * dpr);
+    const S = AURA_SIZE;
+    canvas.width  = Math.round(S * dpr);
+    canvas.height = Math.round(S * dpr);
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     ctx.scale(dpr, dpr);
 
-    const key = IUM_ANIM_KEY[iumNombre];
+    const key    = IUM_ANIM_KEY[iumNombre];
     const animFn = key ? IUM_ANIM[key] : null;
 
     function tick() {
-      ctx!.clearRect(0, 0, size, size);
-      if (animFn) animFn(ctx!, size, size, tRef.current);
+      ctx!.clearRect(0, 0, S, S);
+      if (animFn) animFn(ctx!, S, S, tRef.current);
       tRef.current += 0.025;
       rafRef.current = requestAnimationFrame(tick);
     }
     rafRef.current = requestAnimationFrame(tick);
-
     return () => cancelAnimationFrame(rafRef.current);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [iumNombre, size]);
+  }, [iumNombre]);
 
+  const half = AURA_SIZE / 2;
   return (
     <canvas
       ref={canvasRef}
-      style={{ width: size, height: size, display: "block", flexShrink: 0, borderRadius: 4, background: "transparent" }}
+      style={{
+        position: "absolute",
+        left: cx - half,
+        top:  cy - half,
+        width:  AURA_SIZE,
+        height: AURA_SIZE,
+        opacity,
+        transition: `opacity 0.35s ease`,
+        pointerEvents: "none",
+      }}
     />
   );
 }
@@ -1386,31 +1420,17 @@ function IumNodeSVG({
         height={VIS_SIZE}
         style={{ overflow: "visible", pointerEvents: "none" }}
       >
-        <div style={{ width: VIS_SIZE, height: VIS_SIZE, position: "relative" }}>
-          {/* Gráfico TASI — se oculta cuando hay reacción activa */}
-          <div style={{
-            position: "absolute", inset: 0,
-            opacity: reaccion ? 0 : 1,
-            transition: `opacity 0.35s ease ${animDelay}s`,
-            pointerEvents: "none",
-          }}>
-            <IumVisual
-              particulas={particulas}
-              geometria={iumData?.geometria}
-              size={VIS_SIZE}
-              showToggle={false}
-            />
-          </div>
-          {/* Animación canvas — aparece cuando hay reacción activa */}
-          <div style={{
-            position: "absolute", inset: 0,
-            borderRadius: "50%", overflow: "hidden",
-            opacity: reaccion ? 1 : 0,
-            transition: `opacity 0.35s ease ${animDelay}s`,
-            pointerEvents: "none",
-          }}>
-            <IumAnimCanvas iumNombre={iumData?.nombre ?? ""} size={VIS_SIZE} />
-          </div>
+        <div style={{
+          width: VIS_SIZE, height: VIS_SIZE,
+          opacity: reaccion ? 0 : 1,
+          transition: `opacity 0.35s ease ${animDelay}s`,
+        }}>
+          <IumVisual
+            particulas={particulas}
+            geometria={iumData?.geometria}
+            size={VIS_SIZE}
+            showToggle={false}
+          />
         </div>
       </foreignObject>
 
@@ -3857,6 +3877,80 @@ export default function SimuladorIUM() {
                 );
               })()}
             </svg>
+
+            {/* ── Overlay de animaciones libres (fuera del SVG, sin clip) ──────── */}
+            {(() => {
+              const reaccionActual = !resultado || resultado.estado !== "simulado" ? null
+                : (resultado.proceso_principal || resultado.conjuracion_principal) ? "exito"
+                : (resultado.ambiguo || (resultado.procesos_candidatos?.length ?? 0) > 0) ? "inestable"
+                : null;
+
+              if (!reaccionActual || !svgRef.current || faseAnimacion === "explosion" || faseAnimacion === "efecto") return null;
+
+              // Convertir coordenadas SVG → pantalla relativa al div padre (position:relative)
+              const svgEl   = svgRef.current;
+              const ctm     = svgEl.getScreenCTM();
+              const divRect = svgEl.parentElement!.getBoundingClientRect();
+
+              if (!ctm) return null;
+
+              // Calcular animDelay por topología (mismo BFS que en los nodos)
+              const inDegOv = new Map<string, number>();
+              for (const c of componentes) inDegOv.set(c.uid, 0);
+              for (const e of enlaces) inDegOv.set(e.destino_uid, (inDegOv.get(e.destino_uid) ?? 0) + 1);
+              let finalUidOv = componentes[0]?.uid ?? "";
+              let maxInOv = -1;
+              for (const c of componentes) {
+                const deg = inDegOv.get(c.uid) ?? 0;
+                if (deg > maxInOv || (deg === maxInOv && c.posicion === "N")) { maxInOv = deg; finalUidOv = c.uid; }
+              }
+              const invAdjOv = new Map<string, string[]>();
+              for (const e of enlaces) {
+                const arr = invAdjOv.get(e.destino_uid) ?? [];
+                arr.push(e.origen_uid);
+                invAdjOv.set(e.destino_uid, arr);
+              }
+              const distOv = new Map<string, number>();
+              const qOv = [finalUidOv];
+              distOv.set(finalUidOv, 0);
+              while (qOv.length) {
+                const cur = qOv.shift()!;
+                const d = distOv.get(cur)!;
+                for (const src of (invAdjOv.get(cur) ?? [])) {
+                  if (!distOv.has(src)) { distOv.set(src, d + 1); qOv.push(src); }
+                }
+              }
+              const maxDistOv = Math.max(...Array.from(distOv.values()), 0);
+              const DELAY_STEP_OV = 0.22;
+
+              return (
+                <div style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 15, overflow: "visible" }}>
+                  {componentes.map((comp) => {
+                    // Punto SVG → pantalla absoluta → relativa al div padre
+                    const svgPt = svgEl.createSVGPoint();
+                    svgPt.x = comp.x;
+                    svgPt.y = comp.y;
+                    const screenPt = svgPt.matrixTransform(ctm);
+                    const relX = screenPt.x - divRect.left;
+                    const relY = screenPt.y - divRect.top;
+
+                    const distVal = distOv.get(comp.uid) ?? 0;
+                    const delay   = (maxDistOv - distVal) * DELAY_STEP_OV;
+
+                    return (
+                      <IumAnimCanvas
+                        key={comp.uid}
+                        iumNombre={iumMap.get(comp.ium_id)?.nombre ?? ""}
+                        cx={relX}
+                        cy={relY}
+                        visible={true}
+                        delay={delay}
+                      />
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </div>
         )}
       </div>
