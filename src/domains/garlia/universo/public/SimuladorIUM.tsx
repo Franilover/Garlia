@@ -2009,9 +2009,7 @@ export default function SimuladorIUM() {
 
     animKey.current += 1;
     setFaseAnimacion("combinando");
-    const t1 = setTimeout(() => setFaseAnimacion("explosion"), combDurMs);
-    const t2 = setTimeout(() => setFaseAnimacion("efecto"),    combDurMs + 450);
-    return () => { clearTimeout(t1); clearTimeout(t2); };
+    // explosion y efecto eliminados — el canvas IumMergedCanvas maneja el resultado final
   }, [resultado, componentes, enlaces]);
   const [avisoTopo, setAvisoTopo] = useState<string | null>(null);
   // Slot resaltado mientras arrastra en modo topología
@@ -3607,10 +3605,10 @@ export default function SimuladorIUM() {
                   );
                 }
 
-                // ──────────────────────────────────────────────────────────────
-                // FASE 2: "explosion" — destello radial cuando se combinan
-                // ──────────────────────────────────────────────────────────────
-                if (faseAnimacion === "explosion") {
+                // FASES 2 y 3 eliminadas — el canvas IumMergedCanvas maneja todo lo posterior
+                if (faseAnimacion === "explosion" || faseAnimacion === "efecto") return null;
+
+                if (false && faseAnimacion === "explosion") {
                   // Colores únicos de los IUMs en el canvas
                   const coloresIums = [...new Set(componentes.map((c) => colorTASIdeIum(iumMap.get(c.ium_id))))];
                   return (
@@ -3666,10 +3664,12 @@ export default function SimuladorIUM() {
                 }
 
                 // ──────────────────────────────────────────────────────────────
-                // FASE 3: "efecto" — animación única por Oris desde oris_efecto_visual
+                // FASE 3: "efecto" — el canvas IumMergedCanvas ya muestra las
+                // animFn superpuestas en el centro; no se pinta nada en SVG aquí.
                 // ──────────────────────────────────────────────────────────────
+                if (faseAnimacion === "efecto") return null;
 
-                // Fallback si Supabase aún no respondió
+                // (código de respaldo, ya no se alcanza)
                 const ef: OrisEfectoVisual = orisEfecto ?? {
                   oris_id: "",
                   nombre_efecto: "",
