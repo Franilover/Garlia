@@ -1,0 +1,492 @@
+"use client";
+
+/**
+ * PanelBioma.tsx
+ * ───────────────────────────────────────────────────────────────────────────
+ * Panel de detalle de un Bioma: nombre, afinidad con Oris/elementos,
+ * descripción, reinos vinculados (M:N) y la lista de sus ecosistemas
+ * (subzonas concretas dentro de este bioma).
+ */
+
+import { ArrowLeft, Compass, Leaf, Plus, SlidersHorizontal, Trash2, X } from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
+
+import { useMobileAsidePanel, useRegisterMobileAside } from "@/hooks/ui/useMobileAsidePanel";
+import { RichEditor } from "@/editor/lexical";
+import { SeccionEntidad } from "@/ui/SeccionEntidad";
+import { type SaveStatus } from "@/ui/saveStatus";
+
+import {
+  usePublishHeaderControls,
+  type OnHeaderControlsChange,
+} from "@/domains/garlia/_shared/useEditorHeaderControls";
+import { useReinosMin } from "@/domains/garlia/reinos/useReinosMin";
+
+import { SelectorReinosMulti } from "./SelectorReinosMulti";
+import { BIOMA_ICON, type Bioma, type Ecosistema } from "./types";
+import { useEcosistemas } from "./useBiologia";
+import { BreadcrumbJerarquia } from "./BreadcrumbJerarquia";
+import { useBiomaJerarquia } from "./useBiomaJerarquia";
+import { usePanelFlotante } from "@/domains/garlia/_shared/usePanelFlotanteStore";
+
+/** Registra el aside de este panel en el store global (para que aparezca el
+ *  botón "Entidades" en la barra del panel flotante) mientras esté montado.
+ *  Va en un componente aparte para poder montarlo condicionalmente sin
+ *  llamar un hook dentro de un `if`. */
+function RegistroAsideMovil() {
+  useRegisterMobileAside();
+  return null;
+}
+
+export function PanelBioma({
+  bioma,
+  reinoIds,
+  onChangeReinos,
+  ecosistemas,
+  onSave,
+  onDelete,
+  onVolver,
+  onSelectReino,
+  onSelectEcosistema,
+  onCrearEcosistema,
+  creandoEcosistema,
+  modoPopover = false,
+  onHeaderControlsChange,
+}: {
+  bioma: Bioma;
+  /** Reinos (por id) con territorio en este bioma — vive en la tabla
+   *  puente bioma_reinos (M:N), ya no en Bioma. */
+  reinoIds: string[];
+  onChangeReinos: (ids: string[]) => void;
+  /** Ecosistemas cuyo bioma_id apunta a este bioma. */
+  ecosistemas: Ecosistema[];
+  onSave: (updates: Partial<Bioma>) => void;
+  onDelete: () => void;
+  onVolver: () => void;
+  onSelectReino?: (id: string) => void;
+  onSelectEcosistema?: (id: string) => void;
+  onCrearEcosistema?: () => void;
+  creandoEcosistema?: boolean;
+  /** true cuando se renderiza dentro de un popover flotante: el botón
+   *  izquierdo pasa de "volver" (flecha) a "cerrar" (X), ya que no hay
+   *  navegación de por medio — el popover se cierra con click afuera,
+   *  Escape, o este botón. */
+  modoPopover?: boolean;
+  /** Si se pasa, el panel NO dibuja su propia cabecera (volver/nombre/
+   *  eliminar/guardar): publica esos controles al contenedor — típicamente
+   *  PanelFlotanteGlobal — igual que Flora/Mineral/Criatura/Reino. El
+   *  layout interno (contenido + barra lateral de Reinos/Ecosistemas)
+   *  queda idéntico. Implica el layout de dos columnas (como modoPopover). */
+  onHeaderControlsChange?: OnHeaderControlsChange;
+}) {
+  const [nombre, setNombre] = useState(bioma.nombre);
+  const [status, setStatus] = useState<SaveStatus>("idle");
+  // Con header publicado el panel siempre usa el layout de dos columnas
+  // (contenido + aside), que es el diseño del popover original.
+  const layoutDosColumnas = modoPopover || !!onHeaderControlsChange;
+  const [afinidad, setAfinidad] = useState(bioma.afinidad ?? "");
+  const [descripcion, setDescripcion] = useState(bioma.descripcion ?? "");
+  // Barra lateral de Reinos/Ecosistemas: en celular arranca oculta (mismo
+  // comportamiento que EditorCriatura/EditorReino) y se abre con el botón
+  // "Entidades" de la barra de título; en desktop (sm+) sigue fija al lado.
+  const [mobileSidebarLocal, setMobileSidebarLocal] = useState(false);
+  // Con header publicado el botón "Entidades" vive en la barra superior del
+  // panel flotante global y se comunica vía useMobileAsidePanel — igual que
+  // EditorCriatura/EditorReino. Sin header publicado se usa el estado local.
+  const usaAsideGlobal = !!onHeaderControlsChange;
+  const asideGlobalAbierto = useMobileAsidePanel((st) => st.open);
+  const cerrarAsideGlobal = useMobileAsidePanel((st) => st.close);
+  const mobileSidebarOpen = usaAsideGlobal ? asideGlobalAbierto : mobileSidebarLocal;
+  const setMobileSidebarOpen = (v: boolean) =>
+    usaAsideGlobal ? (v ? undefined : cerrarAsideGlobal()) : setMobileSidebarLocal(v);
+
+  useEffect(() => {
+    setNombre(bioma.nombre);
+    setAfinidad(bioma.afinidad ?? "");
+    setDescripcion(bioma.descripcion ?? "");
+  }, [bioma.id]);
+
+
+  const abrirPanel = usePanelFlotante((s) => s.abrir);
+  const jerarquia  = useBiomaJerarquia(bioma.id);
+
+  const guardar = () => {
+    setStatus("saving");
+    try {
+      onSave({ nombre: nombre.trim() || bioma.nombre, afinidad, descripcion });
+      setStatus("saved");
+      setTimeout(() => setStatus("idle"), 2000);
+    } catch {
+      setStatus("error");
+    }
+  };
+
+  // Controles de la barra superior compartida (ver useEditorHeaderControls).
+  // Sin receptor (pantalla completa), no hace nada y se dibuja la cabecera
+  // propia de más abajo.
+  usePublishHeaderControls(
+    {
+      IconoFallback: BIOMA_ICON,
+      nombre,
+      placeholderNombre: "Nombre del bioma…",
+      onChangeNombre: setNombre,
+      onBlurNombre: guardar,
+      status,
+      onGuardar: guardar,
+      onEliminar: onDelete,
+    },
+    onHeaderControlsChange,
+  );
+
+  // ── Reinos (M:N vía bioma_reinos) — sección de barra lateral, mismo
+  // patrón que Personajes/Criaturas/Ítems en LoreTab (reinos/EditorReino). ──
+  const catalogoReinos = useReinosMin();
+  const allReinosEntidad = useMemo(
+    () => catalogoReinos.map((r) => ({ id: r.id, nombre: r.nombre })),
+    [catalogoReinos],
+  );
+  const handleToggleReino = (id: string, add: boolean) => {
+    const next = add
+      ? [...reinoIds, id]
+      : reinoIds.filter((x) => x !== id);
+    onChangeReinos(next);
+  };
+
+  // ── Ecosistemas (1:N vía ecosistema.bioma_id) — misma sección Entidad,
+  // pero el "toggle" acá vincula/desvincula el ecosistema a ESTE bioma
+  // (add=true → bioma_id = bioma.id, add=false → bioma_id = null). ──
+  const { ecosistemas: catalogoEcosistemas, loading: loadingEcosistemas, actualizar: actualizarEcosistema } =
+    useEcosistemas();
+  const ecosistemaIds = useMemo(
+    () => catalogoEcosistemas.filter((e) => e.bioma_id === bioma.id).map((e) => e.id),
+    [catalogoEcosistemas, bioma.id],
+  );
+  const allEcosistemasEntidad = useMemo(
+    () => catalogoEcosistemas.map((e) => ({ id: e.id, nombre: e.nombre })),
+    [catalogoEcosistemas],
+  );
+  const handleToggleEcosistema = (id: string, add: boolean) => {
+    void actualizarEcosistema(id, { bioma_id: add ? bioma.id : null });
+  };
+
+  const sidebar = (
+    <>
+      <SeccionEntidad
+        allEntities={allReinosEntidad}
+        emptyLabel="Sin reinos"
+        fallbackIcon={<Compass size={14} strokeWidth={1} />}
+        fill={false}
+        icon={<Compass size={9} />}
+        label="Reinos"
+        loading={false}
+        saving={false}
+        selectedIds={reinoIds}
+        onEntityClick={onSelectReino}
+        onToggle={handleToggleReino}
+      />
+      <div
+        style={{
+          borderTop:
+            "1px solid color-mix(in srgb, var(--primary) 7%, transparent)",
+        }}
+      />
+      <SeccionEntidad
+        allEntities={allEcosistemasEntidad}
+        emptyLabel="Sin ecosistemas"
+        fallbackIcon={<Leaf size={14} strokeWidth={1} />}
+        fill={false}
+        icon={<Leaf size={9} />}
+        label="Ecosistemas"
+        loading={loadingEcosistemas}
+        saving={false}
+        selectedIds={ecosistemaIds}
+        onEntityClick={onSelectEcosistema}
+        onToggle={handleToggleEcosistema}
+      />
+      {onCrearEcosistema && (
+        <div className="shrink-0 px-2 pb-1.5">
+          <button
+            type="button"
+            disabled={creandoEcosistema}
+            onClick={onCrearEcosistema}
+            className="flex items-center gap-1 text-micro font-black uppercase tracking-widest text-primary/40 hover:text-primary transition-colors disabled:opacity-40"
+          >
+            <Plus size={10} /> Nuevo ecosistema
+          </button>
+        </div>
+      )}
+    </>
+  );
+
+  return (
+    <div className={layoutDosColumnas ? "flex flex-1 h-full min-h-0" : undefined}>
+      {usaAsideGlobal && <RegistroAsideMovil />}
+
+      {/* ── Breadcrumb jerarquía completa ──────────────────────────────────── */}
+      <div className="px-4 pt-3 pb-0">
+        <BreadcrumbJerarquia
+          niveles={[
+            {
+              label: "Planeta",
+              activo: false,
+              items: jerarquia.planetas,
+              loading: jerarquia.loading,
+              onNavegar: (id) => abrirPanel("planeta", id),
+            },
+            { label: "Bioma", activo: true },
+            {
+              label: "Ecosistema",
+              activo: false,
+              items: jerarquia.ecosistemas,
+              loading: jerarquia.loading,
+              onNavegar: (id) => abrirPanel("ecosistema", id),
+            },
+            {
+              label: "Hábitat",
+              activo: false,
+              items: jerarquia.habitats,
+              loading: jerarquia.loading,
+              onNavegar: (id) => abrirPanel("habitat", id),
+            },
+            {
+              label: "Criatura",
+              activo: false,
+              items: jerarquia.criaturas,
+              loading: jerarquia.loading,
+              onNavegar: (id) => abrirPanel("criatura", id),
+            },
+          ]}
+        />
+      </div>
+
+      <div
+        className={
+          layoutDosColumnas
+            ? `flex-1 min-w-0 flex flex-col min-h-0 ${usaAsideGlobal ? "p-4" : ""}`
+            : undefined
+        }
+      >
+      {/* Cabecera propia: solo cuando nadie publica los controles (pantalla
+          completa / popover legado). Con onHeaderControlsChange la dibuja
+          el contenedor, igual que en el resto de las entidades. */}
+      {!onHeaderControlsChange && (
+      <div className="flex items-center justify-between gap-2 mb-4">
+        <button
+          type="button"
+          onClick={() => {
+            guardar();
+            onVolver();
+          }}
+          className="shrink-0 p-1.5 rounded-lg text-primary/40 hover:text-primary hover:bg-primary/5 transition-colors"
+        >
+          {modoPopover ? <X size={14} /> : <ArrowLeft size={14} />}
+        </button>
+        <div className="flex-1 min-w-0 flex items-center gap-1.5">
+          <BIOMA_ICON size={12} className="text-accent/60 shrink-0" />
+          <input
+            className="flex-1 min-w-0 bg-transparent text-sm font-black uppercase italic tracking-tight text-primary truncate outline-none placeholder:text-primary/25 px-1 py-0.5 rounded hover:bg-primary/5 focus:bg-primary/8"
+            placeholder="Nombre del bioma…"
+            value={nombre}
+            onChange={(e) => setNombre(e.target.value)}
+            onBlur={guardar}
+          />
+        </div>
+        <div className="flex items-center gap-1 shrink-0">
+          {modoPopover && (
+            <button
+              type="button"
+              onClick={() => setMobileSidebarOpen(true)}
+              title="Entidades"
+              aria-label="Entidades"
+              className="sm:hidden p-1.5 rounded-lg text-primary/40 hover:text-primary hover:bg-primary/8 transition-colors"
+            >
+              <SlidersHorizontal size={13} />
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={onDelete}
+            className="p-1.5 rounded-lg text-primary/25 hover:text-red-400 hover:bg-red-400/10 transition-colors"
+          >
+            <Trash2 size={13} />
+          </button>
+          <button
+            type="button"
+            onClick={guardar}
+            className="text-micro font-black uppercase tracking-widest px-3 py-1.5 rounded-lg bg-primary text-bg-main hover:opacity-90 transition-opacity"
+          >
+            Guardar
+          </button>
+        </div>
+      </div>
+      )}
+
+      {layoutDosColumnas ? (
+        <div className="flex flex-col gap-3 flex-1 min-h-0 overflow-y-auto">
+          <div>
+            <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40 block mb-1">
+              Afinidad con Oris / elementos
+            </span>
+            <input
+              className="w-full bg-primary/[0.02] border border-primary/10 rounded-lg px-2.5 py-1.5 text-xs outline-none placeholder:text-primary/30"
+              placeholder="Ej. Tierra + Fuego dominantes, Runa ambiental que satura el aire…"
+              value={afinidad}
+              onChange={(e) => setAfinidad(e.target.value)}
+              onBlur={guardar}
+            />
+          </div>
+
+          <div>
+            <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40 block mb-1.5">
+              Descripción
+            </span>
+            <RichEditor
+              minHeight="5rem"
+              placeholder="Cómo es el bioma, su relación con la física del mundo, particularidades…"
+              value={descripcion}
+              onChange={setDescripcion}
+            />
+          </div>
+        </div>
+      ) : (
+        <>
+          <div className="mb-3">
+            <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40 block mb-1">
+              Afinidad con Oris / elementos
+            </span>
+            <input
+              className="w-full bg-primary/[0.02] border border-primary/10 rounded-lg px-2.5 py-1.5 text-xs outline-none placeholder:text-primary/30"
+              placeholder="Ej. Tierra + Fuego dominantes, Runa ambiental que satura el aire…"
+              value={afinidad}
+              onChange={(e) => setAfinidad(e.target.value)}
+              onBlur={guardar}
+            />
+          </div>
+
+          <div className="mb-4">
+            <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40 block mb-1.5">
+              Descripción
+            </span>
+            <RichEditor
+              minHeight="6.25rem"
+              placeholder="Cómo es el bioma, su relación con la física del mundo, particularidades…"
+              value={descripcion}
+              onChange={setDescripcion}
+            />
+          </div>
+
+          <div className="mb-4">
+            <SelectorReinosMulti
+              ids={reinoIds}
+              onChange={onChangeReinos}
+              onSelectReino={onSelectReino}
+              label="Reinos con territorio en este bioma"
+            />
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40">
+                Ecosistemas de este bioma
+              </span>
+              {onCrearEcosistema && (
+                <button
+                  type="button"
+                  disabled={creandoEcosistema}
+                  onClick={onCrearEcosistema}
+                  className="flex items-center gap-1 text-micro font-black uppercase tracking-widest text-primary/40 hover:text-primary transition-colors disabled:opacity-40"
+                >
+                  <Plus size={10} /> Nuevo ecosistema
+                </button>
+              )}
+            </div>
+
+            {ecosistemas.length === 0 ? (
+              <p className="text-micro text-primary/25 italic py-1">Sin ecosistemas todavía</p>
+            ) : (
+              <div className="flex flex-wrap gap-1.5">
+                {ecosistemas.map((e) => (
+                  <button
+                    key={e.id}
+                    type="button"
+                    onClick={() => onSelectEcosistema?.(e.id)}
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-micro font-bold bg-primary/10 hover:bg-primary/20 text-primary/70 border border-primary/15 transition-colors truncate max-w-[200px]"
+                    title={e.nombre}
+                  >
+                    <Leaf size={9} className="text-accent/60 shrink-0" />
+                    <span className="truncate">{e.nombre}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </>
+      )}
+      </div>
+
+      {/* ── Barra lateral — sección Entidad (Reinos + Ecosistemas) ──
+          Solo en modo popover: la pantalla completa (EditorReino-like)
+          mantiene el layout original de una sola columna. En celular
+          arranca oculta (hidden sm:flex) y se abre como drawer con el
+          botón "Entidades" de la barra de título — mismo comportamiento
+          que EditorCriatura/EditorReino. */}
+      {layoutDosColumnas && (
+        <aside
+          className={`hidden sm:flex shrink-0 w-44 flex-col border-l overflow-y-auto overflow-x-hidden pl-0 ${
+            usaAsideGlobal ? "" : "-my-4 -mr-4"
+          }`}
+          style={{
+            borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)",
+            background: "color-mix(in srgb, var(--primary) 1%, transparent)",
+            scrollbarWidth: "none",
+          }}
+        >
+          {sidebar}
+        </aside>
+      )}
+
+      {/* ── Barra lateral — mobile drawer ─────────────────────────────────── */}
+      {layoutDosColumnas && mobileSidebarOpen && (
+        <div className="sm:hidden fixed inset-0 z-[10000] flex justify-end">
+          <div
+            className="absolute inset-0"
+            style={{
+              background: "color-mix(in srgb, var(--primary) 20%, transparent)",
+            }}
+            onClick={() => setMobileSidebarOpen(false)}
+          />
+          <div
+            className="relative flex flex-col h-full overflow-y-auto shadow-2xl"
+            style={{
+              width: "200px",
+              background: "var(--white-custom, var(--bg-main))",
+              borderLeft:
+                "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+              scrollbarWidth: "none",
+            }}
+          >
+            <div
+              className="shrink-0 flex items-center justify-between px-3 py-2 border-b"
+              style={{
+                borderColor:
+                  "color-mix(in srgb, var(--primary) 10%, transparent)",
+              }}
+            >
+              <span className="text-micro font-black uppercase tracking-[0.2em] flex items-center gap-1.5 text-primary/40">
+                <SlidersHorizontal size={9} /> Entidades
+              </span>
+              <button
+                className="p-1 rounded-lg text-primary/30 hover:text-primary hover:bg-primary/8 transition-all"
+                onClick={() => setMobileSidebarOpen(false)}
+              >
+                <X size={13} />
+              </button>
+            </div>
+
+            {sidebar}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

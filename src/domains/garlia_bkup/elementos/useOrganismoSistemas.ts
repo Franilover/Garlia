@@ -1,0 +1,340 @@
+"use client";
+
+/**
+ * useOrganismoSistemas.ts
+ * ───────────────────────────────────────────────────────────────────────────
+ * Resuelve los Sistemas vinculados a UN Organismo — lee desde la vista
+ * `v_organismos_sistemas_efectivos_v4` que resuelve herencia por clado.
+ * La tabla base `organismo_sistemas` solo contiene vínculos directos
+ * (proporcion libre), pero los sistemas heredados del clado viven
+ * únicamente en la vista; usar la tabla base devuelve 0 filas para
+ * organismos que solo tienen sistemas heredados.
+ *
+ * Columnas de la vista: organismo_id, sistema_id, proporcion, fuente, origen.
+ * No tiene `id` propio — se usa `sistema_id` como clave de vínculo.
+ *
+ * Techo de la cadena: Célula → Tejido → Órgano → Sistema → Organismo.
+ * Un mismo Sistema puede reutilizarse en varios Organismos.
+ *
+ * Fase 8: cache-first vía Dexie, mismo patrón que useOrganoTejidos.ts /
+ * useSistemaOrganos.ts (sistemas ya están en DEXIE_TABLES desde v35).
+ * Además espeja el resultado en useOrganismoBiologiaStore (Zustand) para
+ * que otra instancia del hook pidiendo el mismo organismoId adopte el
+ * resultado ya resuelto sin refetchear.
+ *
+ * Fix race condition (oct-2026): se usa una ref local `abortId` para
+ * descartar resultados de fetches que lleguen tarde (cuando organismoId
+ * cambió mientras el fetch estaba en vuelo).
+ */
+
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { supabase } from "@/infra/supabase/supabase";
+import { db } from "@/infra/supabase/db";
+
+import {
+  CONFIG_ORGANISMO_SISTEMAS,
+  CONFIG_SISTEMAS,
+  type OrganismoSistema,
+  type Sistema,
+} from "@/domains/garlia/elementos/types";
+import { useOrganismoBiologiaStore } from "@/domains/garlia/elementos/useOrganismoBiologiaStore";
+
+// ── Cache-first: leer/escribir Dexie ───────────────────────────────────────
+// Los vínculos ahora vienen de la vista v_organismos_sistemas_efectivos_v4
+// (que incluye sistemas heredados del clado). La vista no tiene una tabla
+// Dexie propia, así que los vínculos siempre se revalidan desde Supabase.
+// Solo cacheamos los sistemas en sí (catálogo estable).
+async function leerVinculosDeDexie(_organismoId: string): Promise<OrganismoSistema[]> {
+  // Sin cache de vínculos: la vista resuelve herencia dinámica
+  return [];
+}
+
+async function leerSistemasDeDexie(ids: string[]): Promise<Record<string, Sistema>> {
+  const out: Record<string, Sistema> = {};
+  if (!db || ids.length === 0) return out;
+  try {
+    const rows = await db.sistemas.bulkGet(ids);
+    for (const r of rows) if (r) out[(r as unknown as Sistema).id] = r as unknown as Sistema;
+  } catch {}
+  return out;
+}
+
+async function guardarEnDexie(_vinculos: OrganismoSistema[], sistemas: Sistema[]) {
+  try {
+    if (!db) return;
+    // Los vínculos vienen de una vista (no de una tabla base), no se cachean.
+    // Solo cacheamos los datos de los Sistemas (catálogo estable).
+    if (sistemas.length) await db.sistemas.bulkPut(sistemas as any[]);
+  } catch (e) {
+    console.warn("[useOrganismoSistemas] no se pudo guardar en Dexie:", e);
+  }
+}
+
+/** Una fila resuelta: vínculo + Sistema ya cargado, lista para la UI. */
+export interface SistemaDeOrganismo {
+  vinculo_id: string;
+  organismo_id: string;
+  sistema_id: string;
+  proporcion: string | null;
+  /** 'directo' = vínculo en tabla base / 'clado' = heredado del clado. */
+  fuente?: string;
+  /** 'propio' | 'heredado' según la vista efectivos. */
+  origen?: string;
+  sistema: Sistema;
+}
+
+export function useOrganismoSistemas(organismoId: string | null) {
+  // ── Zustand: cache en memoria compartida entre componentes ────────────
+  const cacheEntry = useOrganismoBiologiaStore((s) =>
+    organismoId ? s.sistemasPorOrganismo[organismoId] : undefined,
+  );
+  const setSistemasEnStore = useOrganismoBiologiaStore((s) => s.setSistemas);
+
+  const [vinculos, setVinculosLocal] = useState<OrganismoSistema[]>(cacheEntry?.vinculos ?? []);
+  const [sistemas, setSistemasLocal] = useState<Record<string, Sistema>>(cacheEntry?.sistemas ?? {});
+  const [loading, setLoading] = useState(!cacheEntry);
+
+  // Ref para cancelar fetches en vuelo cuando organismoId cambia
+  const fetchIdRef = useRef(0);
+
+  // Si otro componente ya resolvió este organismoId en el store, adoptamos
+  // ese estado de inmediato en vez de esperar otro round-trip.
+  useEffect(() => {
+    if (cacheEntry) {
+      setVinculosLocal(cacheEntry.vinculos);
+      setSistemasLocal(cacheEntry.sistemas);
+      setLoading(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [organismoId]);
+
+  // Ref para leer siempre los valores más frescos sin capturarlos en closures
+  const sistemasRef = useRef(sistemas);
+  const vinculosRef = useRef(vinculos);
+  useEffect(() => { sistemasRef.current = sistemas; }, [sistemas]);
+  useEffect(() => { vinculosRef.current = vinculos; }, [vinculos]);
+
+  const setVinculos = useCallback(
+    (updater: OrganismoSistema[] | ((prev: OrganismoSistema[]) => OrganismoSistema[])) => {
+      setVinculosLocal((prev) => {
+        const next = typeof updater === "function" ? (updater as any)(prev) : updater;
+        if (organismoId) setSistemasEnStore(organismoId, next, sistemasRef.current);
+        return next;
+      });
+    },
+    [organismoId, setSistemasEnStore],
+  );
+
+  const setSistemas = useCallback(
+    (
+      updater:
+        | Record<string, Sistema>
+        | ((prev: Record<string, Sistema>) => Record<string, Sistema>),
+    ) => {
+      setSistemasLocal((prev) => {
+        const next = typeof updater === "function" ? (updater as any)(prev) : updater;
+        if (organismoId) setSistemasEnStore(organismoId, vinculosRef.current, next);
+        return next;
+      });
+    },
+    [organismoId, setSistemasEnStore],
+  );
+
+  const load = useCallback(async () => {
+    if (!organismoId) {
+      setVinculosLocal([]);
+      setSistemasLocal({});
+      setLoading(false);
+      return;
+    }
+
+    // Token único para este fetch — si organismoId cambia antes de que
+    // llegue la respuesta, el fetch viejo descarta su resultado.
+    const myFetchId = ++fetchIdRef.current;
+    console.log(`[DEBUG useOrganismoSistemas] load() organismoId=${organismoId} fetchId=${myFetchId} cacheEntry=${!!cacheEntry}`);
+
+    // ── Paso 1: pintar de inmediato con lo que ya haya en Dexie ──────────
+    if (!cacheEntry) {
+      const vinculosLocales = await leerVinculosDeDexie(organismoId);
+      if (myFetchId !== fetchIdRef.current) return; // organismoId cambió
+      if (vinculosLocales.length > 0) {
+        const sistemaIdsLocales = vinculosLocales.map((v) => v.sistema_id);
+        const sistemasLocales = await leerSistemasDeDexie(sistemaIdsLocales);
+        if (myFetchId !== fetchIdRef.current) return;
+        setVinculosLocal(vinculosLocales);
+        setSistemasLocal(sistemasLocales);
+        setSistemasEnStore(organismoId, vinculosLocales, sistemasLocales);
+        setLoading(false);
+      } else {
+        setLoading(true);
+      }
+    }
+
+    // ── Paso 2: revalidar contra Supabase desde la vista efectivos ────────
+    // Usamos v_organismos_sistemas_efectivos_v4 en lugar de la tabla base
+    // organismo_sistemas porque resuelve herencia por clado. La vista tiene
+    // columnas: organismo_id, sistema_id, proporcion, fuente, origen.
+    // No tiene `id` propio — fabricamos uno sintético desde sistema_id.
+    console.log(`[DEBUG useOrganismoSistemas] fetch START organismoId=${organismoId} fetchId=${myFetchId}`);
+    const { data: vinculoData, error: vinculoError } = await supabase
+      .from("v_organismos_sistemas_efectivos_v4")
+      .select("organismo_id, sistema_id, proporcion, fuente, origen")
+      .eq("organismo_id", organismoId);
+
+    if (myFetchId !== fetchIdRef.current) {
+      console.log(`[DEBUG useOrganismoSistemas] DESCARTADO (llegó tarde) fetchId=${myFetchId} actual=${fetchIdRef.current}`);
+      return;
+    }
+    if (vinculoError || !vinculoData) {
+      console.error("[DEBUG useOrganismoSistemas] error vínculos:", vinculoError);
+      setLoading(false);
+      return;
+    }
+
+    // Normalizar filas de la vista al shape OrganismoSistema esperado por la UI.
+    // `id` sintético = sistema_id (único por organismo en la vista).
+    const vinculosResueltos: OrganismoSistema[] = (vinculoData as any[]).map((row) => ({
+      id: row.sistema_id,
+      organismo_id: row.organismo_id,
+      sistema_id: row.sistema_id,
+      proporcion: row.proporcion ?? null,
+      created_at: "",
+    }));
+    console.log(`[DEBUG useOrganismoSistemas] vínculos OK count=${vinculosResueltos.length}`, vinculosResueltos.map(v => v.sistema_id));
+
+    const sistemaIds = [...new Set(vinculosResueltos.map((v) => v.sistema_id))];
+    if (sistemaIds.length === 0) {
+      setVinculosLocal(vinculosResueltos);
+      setSistemasLocal({});
+      setSistemasEnStore(organismoId, vinculosResueltos, {});
+      setLoading(false);
+      void guardarEnDexie(vinculosResueltos, []);
+      return;
+    }
+
+    const { data: sistemaData, error: sistemaError } = await supabase
+      .from(CONFIG_SISTEMAS.tabla)
+      .select(CONFIG_SISTEMAS.select)
+      .in("id", sistemaIds);
+
+    if (myFetchId !== fetchIdRef.current) {
+      console.log(`[DEBUG useOrganismoSistemas] DESCARTADO query2 fetchId=${myFetchId} actual=${fetchIdRef.current}`);
+      return;
+    }
+    if (sistemaError) {
+      console.error("[DEBUG useOrganismoSistemas] error sistemas:", sistemaError);
+    }
+
+    const sistemasPorId: Record<string, Sistema> = {};
+    for (const s of (sistemaData ?? []) as unknown as Sistema[]) sistemasPorId[s.id] = s;
+    console.log(`[DEBUG useOrganismoSistemas] sistemas OK count=${Object.keys(sistemasPorId).length}`, Object.values(sistemasPorId).map(s => s.nombre));
+
+    // Setear todo junto — vinculos Y sistemas en el mismo ciclo de render
+    setVinculosLocal(vinculosResueltos);
+    setSistemasLocal(sistemasPorId);
+    setSistemasEnStore(organismoId, vinculosResueltos, sistemasPorId);
+    setLoading(false);
+    console.log(`[DEBUG useOrganismoSistemas] SETEADO OK organismoId=${organismoId}`);
+    void guardarEnDexie(vinculosResueltos, Object.values(sistemasPorId));
+  }, [organismoId, cacheEntry, setSistemasEnStore]);
+
+  useEffect(() => {
+    void load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [organismoId]);
+
+  const items = useMemo<SistemaDeOrganismo[]>(() => {
+    const result: SistemaDeOrganismo[] = [];
+    for (const v of vinculos) {
+      const sistema = sistemas[v.sistema_id];
+      if (!sistema) continue;
+      result.push({
+        vinculo_id: v.id,
+        organismo_id: v.organismo_id,
+        sistema_id: v.sistema_id,
+        proporcion: v.proporcion,
+        fuente: (v as any).fuente,
+        origen: (v as any).origen,
+        sistema,
+      });
+    }
+    return result;
+  }, [vinculos, sistemas]);
+
+  /** Vincular un Sistema directo a este Organismo (escribe en tabla base,
+   *  la vista lo reflejará en el próximo reload). */
+  const vincularExistente = useCallback(
+    async (sistemaId: string) => {
+      if (!organismoId) return null;
+      const { data: vinculo, error } = await supabase
+        .from(CONFIG_ORGANISMO_SISTEMAS.tabla)
+        .insert([{ organismo_id: organismoId, sistema_id: sistemaId }])
+        .select()
+        .single();
+      if (error || !vinculo) return null;
+
+      let sistemaResuelto = sistemas[sistemaId];
+      if (!sistemaResuelto) {
+        const { data: sistemaData } = await supabase
+          .from(CONFIG_SISTEMAS.tabla)
+          .select(CONFIG_SISTEMAS.select)
+          .eq("id", sistemaId)
+          .single();
+        if (sistemaData) {
+          sistemaResuelto = sistemaData as unknown as Sistema;
+          setSistemas((prev) => ({ ...prev, [sistemaId]: sistemaResuelto }));
+        }
+      }
+      const vinculoTyped = vinculo as unknown as OrganismoSistema;
+      setVinculos((prev) => [...prev, vinculoTyped]);
+      void guardarEnDexie([vinculoTyped], sistemaResuelto ? [sistemaResuelto] : []);
+      return vinculoTyped;
+    },
+    [organismoId, sistemas, setSistemas, setVinculos],
+  );
+
+  /** Editar la proporción de un vínculo directo (solo aplica a filas
+   *  con fuente='directo'; los heredados del clado son read-only). */
+  const actualizarProporcion = useCallback(
+    async (vinculoId: string, proporcion: string) => {
+      setVinculos((prev) => {
+        const next = prev.map((v) => (v.id === vinculoId ? { ...v, proporcion } : v));
+        const actualizado = next.find((v) => v.id === vinculoId);
+        if (actualizado) void guardarEnDexie([actualizado], []);
+        return next;
+      });
+      // vinculoId = sistema_id (id sintético de la vista) — en la tabla base
+      // el PK también es el id de fila, pero para vínculos directos
+      // podemos filtrar por organismo_id + sistema_id con seguridad.
+      const { error } = await supabase
+        .from(CONFIG_ORGANISMO_SISTEMAS.tabla)
+        .update({ proporcion })
+        .eq("organismo_id", organismoId!)
+        .eq("sistema_id", vinculoId);
+      if (error) console.error("[useOrganismoSistemas] error actualizando proporción:", error);
+    },
+    [setVinculos],
+  );
+
+  /** Quitar un vínculo directo (el Sistema queda en su catálogo, no se borra).
+   *  Los sistemas heredados del clado no pueden quitarse desde aquí. */
+  const quitar = useCallback(
+    async (vinculoId: string) => {
+      // vinculoId = sistema_id (id sintético). Filtramos optimistamente en UI
+      // y luego borramos en tabla base usando organismo_id + sistema_id.
+      setVinculos((prev) => prev.filter((v) => v.id !== vinculoId));
+      try {
+        // No borramos de Dexie (ya no cacheamos vínculos de la vista)
+      } catch {}
+      const { error } = await supabase
+        .from(CONFIG_ORGANISMO_SISTEMAS.tabla)
+        .delete()
+        .eq("organismo_id", organismoId!)
+        .eq("sistema_id", vinculoId);
+      if (error) console.error("[useOrganismoSistemas] error quitando vínculo:", error);
+    },
+    [setVinculos],
+  );
+
+  return { items, loading, vincularExistente, actualizarProporcion, quitar, load };
+}

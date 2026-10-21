@@ -54,7 +54,7 @@ import {
   type FilaIum,
 } from "@/domains/garlia/fisica/types";
 
-// ─── Animaciones por IUM (canvas) ────────────────────────────────────────────
+// ─── Sistema de animación procedural basado en anim_traits de partículas ──────
 
 const PI2 = Math.PI * 2;
 const _lerp = (a: number, b: number, t: number) => a + (b - a) * t;
@@ -62,6 +62,384 @@ const _ease = (t: number) => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) /
 const _rand = (a: number, b: number) => a + (b - a) * Math.random();
 
 type AnimFn = (ctx: CanvasRenderingContext2D, W: number, H: number, t: number) => void;
+
+// Traits que vienen de Supabase columna particulas.anim_traits
+interface AnimTrait {
+  tipo: string;          // orbital|pulso|carga|stream|rayo|scan|morph|caos|chispa|simetria|enlace|convergencia|radial_out|nucleo|malla|flujo|onda|vortice|espiral
+  velocidad: number;     // multiplicador de velocidad (0.3–3.5)
+  amplitud: number;      // tamaño relativo del efecto (0.3–2.2)
+  densidad: number;      // cantidad de elementos visuales (1–12)
+  agitacion: number;     // caos añadido al conjunto (-0.3 a 1.0)
+  color: string;         // hex
+  forma: string;         // punto|linea|anillo|espiral
+  pulsa: boolean;
+  estela: boolean;
+  direccion: string;     // orbital|fuera|centro|lateral|omnidireccional
+  peso_visual: number;   // opacidad base relativa
+  cantidad?: number;     // cantidad de esta partícula en el IUM (de iums_particulas)
+}
+
+// Dado un array de traits (todas las partículas de todos los IUMs), genera una AnimFn compuesta
+function buildTraitAnimFn(traits: AnimTrait[]): AnimFn {
+  // Calcular agitación global como suma clampada de todas las agitaciones
+  const agitacionGlobal = Math.max(-0.3,
+    Math.min(1.5, traits.reduce((s, tr) => s + tr.agitacion * (tr.cantidad ?? 1), 0))
+  );
+  const caosBase = Math.max(0, agitacionGlobal);
+
+  return function traitAnimFn(ctx, W, H, t) {
+    const cx = W / 2, cy = H / 2;
+    const R = Math.min(W, H) * 0.4; // radio base del área de animación
+
+    for (const tr of traits) {
+      const q    = tr.cantidad ?? 1;
+      const spd  = tr.velocidad * (1 + caosBase * 0.3);
+      const amp  = tr.amplitud;
+      const dens = Math.round(tr.densidad * q);
+      const col  = tr.color;
+      const alpha = Math.min(0.95, (tr.peso_visual / Math.max(1, traits.length * 0.4)) * 1.8);
+
+      ctx.save();
+      ctx.globalAlpha = alpha;
+
+      switch (tr.tipo) {
+
+        case "orbital": {
+          // Puntos girando en órbita a diferente radio
+          for (let i = 0; i < dens; i++) {
+            const ang  = (t * spd + i * (PI2 / dens));
+            const r    = R * 0.35 * amp * (0.6 + (i % 3) * 0.25);
+            const px   = cx + Math.cos(ang) * r;
+            const py   = cy + Math.sin(ang) * r;
+            const sz   = 2.5 + Math.sin(t * 2 + i) * 1.2;
+            if (tr.estela) {
+              const ang2 = ang - 0.3;
+              ctx.beginPath(); ctx.moveTo(cx + Math.cos(ang2) * r, cy + Math.sin(ang2) * r); ctx.lineTo(px, py);
+              ctx.strokeStyle = col + "55"; ctx.lineWidth = sz * 0.7; ctx.stroke();
+            }
+            ctx.fillStyle = col;
+            ctx.beginPath(); ctx.arc(px, py, sz, 0, PI2); ctx.fill();
+          }
+          break;
+        }
+
+        case "pulso": {
+          // Anillos que pulsan hacia afuera
+          for (let i = 0; i < dens; i++) {
+            const phase = (t * spd * 0.5 + i / dens) % 1;
+            const r     = phase * R * amp;
+            const a     = (1 - phase) * 0.7;
+            ctx.beginPath(); ctx.arc(cx, cy, r, 0, PI2);
+            ctx.strokeStyle = col + Math.round(a * 255).toString(16).padStart(2, "0");
+            ctx.lineWidth = 2 + (1 - phase) * 3; ctx.stroke();
+          }
+          // núcleo pulsante
+          const pulse = 0.85 + Math.sin(t * spd) * 0.15;
+          const gc = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 0.18 * amp * pulse);
+          gc.addColorStop(0, col + "dd"); gc.addColorStop(1, col + "00");
+          ctx.fillStyle = gc; ctx.beginPath(); ctx.arc(cx, cy, R * 0.2 * amp * pulse, 0, PI2); ctx.fill();
+          break;
+        }
+
+        case "carga": {
+          // Puntos que convergen al centro acelerando
+          for (let i = 0; i < dens; i++) {
+            const baseAng = (i / dens) * PI2;
+            const frac    = ((t * spd * 0.4 + i * 0.17) % 1);
+            const r       = (1 - frac) * R * amp * 0.9;
+            const px      = cx + Math.cos(baseAng) * r;
+            const py      = cy + Math.sin(baseAng) * r;
+            ctx.fillStyle = col;
+            ctx.beginPath(); ctx.arc(px, py, 2 + frac * 2, 0, PI2); ctx.fill();
+          }
+          const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 0.25);
+          glow.addColorStop(0, col + "88"); glow.addColorStop(1, col + "00");
+          ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(cx, cy, R * 0.28, 0, PI2); ctx.fill();
+          break;
+        }
+
+        case "stream": {
+          // Flujo de puntos horizontales tipo datos
+          for (let i = 0; i < dens; i++) {
+            const frac = ((t * spd * 0.4 + i / dens) % 1);
+            const px   = (frac - 0.5) * W * 0.9 + cx;
+            const row  = (i % 4) - 1.5;
+            const py   = cy + row * R * 0.18 * amp;
+            const sz   = 2 + Math.sin(t * 3 + i) * 0.8;
+            ctx.fillStyle = col;
+            ctx.globalAlpha = alpha * (0.4 + frac * 0.6);
+            ctx.beginPath(); ctx.arc(px, py, sz, 0, PI2); ctx.fill();
+          }
+          break;
+        }
+
+        case "rayo": {
+          // Rayos que parten del centro hacia afuera
+          const flicker = 0.6 + Math.abs(Math.sin(t * 7)) * 0.4;
+          ctx.globalAlpha = alpha * flicker;
+          for (let i = 0; i < dens; i++) {
+            const ang = (i / dens) * PI2 + t * spd * 0.3;
+            const len = R * amp * (0.5 + Math.random() * 0.5);
+            ctx.beginPath(); ctx.moveTo(cx, cy);
+            // rayo dentado
+            let x = cx, y = cy;
+            const segs = 5;
+            for (let s = 1; s <= segs; s++) {
+              const f = s / segs;
+              x = cx + Math.cos(ang) * len * f + (s < segs ? _rand(-8, 8) : 0);
+              y = cy + Math.sin(ang) * len * f + (s < segs ? _rand(-8, 8) : 0);
+              ctx.lineTo(x, y);
+            }
+            ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.stroke();
+          }
+          break;
+        }
+
+        case "scan": {
+          // Anillos que se expanden como sonar
+          for (let i = 0; i < dens; i++) {
+            const phase = ((t * spd * 0.35 + i / dens) % 1);
+            const r     = phase * R * 1.1 * amp;
+            const a     = (1 - phase) * 0.6;
+            ctx.beginPath(); ctx.arc(cx, cy, r, 0, PI2);
+            ctx.strokeStyle = col; ctx.lineWidth = 1.2;
+            ctx.globalAlpha = alpha * a; ctx.stroke();
+          }
+          break;
+        }
+
+        case "morph": case "adaptacion": {
+          // Polígono que cambia número de lados suavemente
+          const lados = 3 + Math.round(Math.abs(Math.sin(t * spd * 0.3)) * 4);
+          ctx.beginPath();
+          for (let i = 0; i <= lados; i++) {
+            const ang = (i / lados) * PI2 + t * spd * 0.2;
+            const r   = R * amp * 0.45 * (0.8 + Math.sin(t * 2 + i * 0.7) * 0.2);
+            const px  = cx + Math.cos(ang) * r, py = cy + Math.sin(ang) * r;
+            i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+          }
+          ctx.closePath(); ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.stroke();
+          break;
+        }
+
+        case "caos": {
+          // Partículas dispersas con movimiento aleatorio basado en seno
+          for (let i = 0; i < dens; i++) {
+            const seed = i * 137.5;
+            const px = cx + Math.sin(t * spd * 0.7 + seed) * R * amp * 0.85;
+            const py = cy + Math.cos(t * spd * 0.5 + seed * 1.3) * R * amp * 0.85;
+            ctx.fillStyle = col;
+            ctx.globalAlpha = alpha * (0.4 + Math.abs(Math.sin(t + i)) * 0.6);
+            ctx.beginPath(); ctx.arc(px, py, 2 + Math.sin(t * 3 + i) * 1.5, 0, PI2); ctx.fill();
+          }
+          break;
+        }
+
+        case "chispa": {
+          // Destellos que aparecen y desaparecen rápido
+          for (let i = 0; i < dens; i++) {
+            const lifeT = ((t * spd + i * 0.31) % 1);
+            if (lifeT > 0.5) break;
+            const ang  = (i / dens) * PI2 + i * 0.8;
+            const r    = R * amp * 0.6 * lifeT * 2;
+            const px   = cx + Math.cos(ang) * r, py = cy + Math.sin(ang) * r;
+            const a    = Math.sin(lifeT * PI2) * 0.9;
+            ctx.fillStyle = col; ctx.globalAlpha = alpha * a;
+            ctx.beginPath(); ctx.arc(px, py, 2.5, 0, PI2); ctx.fill();
+            if (tr.estela) {
+              ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(px, py);
+              ctx.strokeStyle = col; ctx.lineWidth = 1; ctx.globalAlpha = alpha * a * 0.4; ctx.stroke();
+            }
+          }
+          break;
+        }
+
+        case "simetria": {
+          // Patrón simétrico estable — flores geométricas
+          for (let p = 0; p < dens; p++) {
+            const ang = (p / dens) * PI2 + t * spd * 0.1;
+            const r   = R * amp * 0.5;
+            const px  = cx + Math.cos(ang) * r, py = cy + Math.sin(ang) * r;
+            // línea radial suave
+            ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(px, py);
+            ctx.strokeStyle = col; ctx.lineWidth = 1; ctx.globalAlpha = alpha * 0.3; ctx.stroke();
+            ctx.fillStyle = col; ctx.globalAlpha = alpha * 0.7;
+            ctx.beginPath(); ctx.arc(px, py, 3, 0, PI2); ctx.fill();
+          }
+          // anillo central
+          ctx.beginPath(); ctx.arc(cx, cy, R * amp * 0.2, 0, PI2);
+          ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.globalAlpha = alpha * 0.4; ctx.stroke();
+          break;
+        }
+
+        case "enlace": {
+          // Líneas que van de un borde al otro pasando por el centro
+          for (let i = 0; i < dens; i++) {
+            const ang  = (i / dens) * PI2 + t * spd * 0.15;
+            const px1  = cx + Math.cos(ang) * R * amp * 0.85;
+            const py1  = cy + Math.sin(ang) * R * amp * 0.85;
+            const px2  = cx + Math.cos(ang + Math.PI) * R * amp * 0.85;
+            const py2  = cy + Math.sin(ang + Math.PI) * R * amp * 0.85;
+            ctx.beginPath(); ctx.moveTo(px1, py1); ctx.lineTo(px2, py2);
+            ctx.strokeStyle = col; ctx.lineWidth = 1; ctx.globalAlpha = alpha * 0.35; ctx.stroke();
+          }
+          break;
+        }
+
+        case "convergencia": {
+          // Puntos moviéndose hacia el centro
+          for (let i = 0; i < dens; i++) {
+            const ang  = (i / dens) * PI2 + i * 0.4;
+            const frac = 1 - ((t * spd * 0.35 + i * 0.13) % 1);
+            const r    = frac * R * amp * 0.9;
+            const px   = cx + Math.cos(ang) * r, py = cy + Math.sin(ang) * r;
+            const sz   = 2 + (1 - frac) * 2;
+            ctx.fillStyle = col; ctx.globalAlpha = alpha * frac;
+            ctx.beginPath(); ctx.arc(px, py, sz, 0, PI2); ctx.fill();
+          }
+          break;
+        }
+
+        case "radial_out": {
+          // Puntos expandiéndose desde el centro
+          for (let i = 0; i < dens; i++) {
+            const ang  = (i / dens) * PI2 + i * 0.3 + t * spd * 0.05;
+            const frac = ((t * spd * 0.35 + i * 0.13) % 1);
+            const r    = frac * R * amp * 1.1;
+            const px   = cx + Math.cos(ang) * r, py = cy + Math.sin(ang) * r;
+            ctx.fillStyle = col; ctx.globalAlpha = alpha * (1 - frac);
+            ctx.beginPath(); ctx.arc(px, py, 2.5 + frac * 1.5, 0, PI2); ctx.fill();
+          }
+          break;
+        }
+
+        case "nucleo": {
+          // Glow pesado en el centro con anillos lentos
+          const pulse = 1 + Math.sin(t * spd * 0.5) * 0.12;
+          const glow  = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * amp * 0.55 * pulse);
+          glow.addColorStop(0, col + "cc"); glow.addColorStop(0.5, col + "44"); glow.addColorStop(1, col + "00");
+          ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(cx, cy, R * amp * 0.6 * pulse, 0, PI2); ctx.fill();
+          for (let i = 0; i < dens; i++) {
+            const r = R * amp * (0.15 + i * 0.12) * pulse;
+            ctx.beginPath(); ctx.arc(cx, cy, r, 0, PI2);
+            ctx.strokeStyle = col; ctx.lineWidth = 1; ctx.globalAlpha = alpha * (0.5 - i * 0.1); ctx.stroke();
+          }
+          break;
+        }
+
+        case "malla": {
+          // Cuadrícula semitransparente
+          const step = R * amp * 0.28;
+          const shift = (t * spd * 8) % step;
+          ctx.strokeStyle = col; ctx.lineWidth = 0.8; ctx.globalAlpha = alpha * 0.25;
+          for (let x = cx - R - step + shift; x < cx + R + step; x += step) {
+            ctx.beginPath(); ctx.moveTo(x, cy - R); ctx.lineTo(x, cy + R); ctx.stroke();
+          }
+          for (let y = cy - R - step + shift; y < cy + R + step; y += step) {
+            ctx.beginPath(); ctx.moveTo(cx - R, y); ctx.lineTo(cx + R, y); ctx.stroke();
+          }
+          break;
+        }
+
+        case "flujo": {
+          // Líneas de flujo que barren horizontalmente
+          for (let i = 0; i < dens; i++) {
+            const frac = ((t * spd * 0.4 + i / dens) % 1);
+            const px   = (frac - 0.5) * W * 0.9 + cx;
+            const py   = cy + (i - dens / 2) * R * amp * 0.18;
+            const len  = W * 0.08;
+            ctx.beginPath(); ctx.moveTo(px - len, py); ctx.lineTo(px, py);
+            ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.globalAlpha = alpha * (0.3 + frac * 0.7); ctx.stroke();
+            // punta del flujo
+            ctx.fillStyle = col; ctx.globalAlpha = alpha;
+            ctx.beginPath(); ctx.arc(px, py, 2.5, 0, PI2); ctx.fill();
+          }
+          break;
+        }
+
+        case "onda": {
+          // Ondas expansivas — más dinámicas que scan
+          for (let i = 0; i < dens; i++) {
+            const phase = ((t * spd * 0.5 + i / dens) % 1);
+            const r     = phase * R * amp * 1.2;
+            const a     = Math.sin(phase * Math.PI) * 0.8;
+            ctx.beginPath(); ctx.arc(cx, cy, r, 0, PI2);
+            ctx.strokeStyle = col; ctx.lineWidth = 1.5 + (1 - phase) * 2;
+            ctx.globalAlpha = alpha * a; ctx.stroke();
+          }
+          if (tr.pulsa) {
+            const pulse = 0.8 + Math.sin(t * spd) * 0.2;
+            const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 0.3);
+            g.addColorStop(0, col + "66"); g.addColorStop(1, col + "00");
+            ctx.fillStyle = g; ctx.globalAlpha = alpha * pulse;
+            ctx.beginPath(); ctx.arc(cx, cy, R * 0.32, 0, PI2); ctx.fill();
+          }
+          break;
+        }
+
+        case "vortice": {
+          // Espiral aspirante
+          for (let i = 0; i < dens; i++) {
+            const frac = 1 - ((t * spd * 0.4 + i / dens) % 1);
+            const ang  = frac * PI2 * 3 + t * spd * 0.5;
+            const r    = frac * R * amp * 0.95;
+            const px   = cx + Math.cos(ang) * r, py = cy + Math.sin(ang) * r;
+            ctx.fillStyle = col; ctx.globalAlpha = alpha * frac;
+            if (tr.estela && i > 0) {
+              const frac2 = 1 - ((t * spd * 0.4 + (i - 1) / dens) % 1);
+              const ang2  = frac2 * PI2 * 3 + t * spd * 0.5;
+              ctx.beginPath();
+              ctx.moveTo(cx + Math.cos(ang2) * frac2 * R * amp, cy + Math.sin(ang2) * frac2 * R * amp);
+              ctx.lineTo(px, py);
+              ctx.strokeStyle = col; ctx.lineWidth = 1.2; ctx.globalAlpha = alpha * frac * 0.5; ctx.stroke();
+            }
+            ctx.globalAlpha = alpha * frac;
+            ctx.beginPath(); ctx.arc(px, py, 2.5 + (1 - frac) * 1.5, 0, PI2); ctx.fill();
+          }
+          break;
+        }
+
+        case "espiral": {
+          // Espiral expansiva
+          ctx.beginPath();
+          const vueltas = 2.5 + amp;
+          for (let i = 0; i <= 120; i++) {
+            const frac = i / 120;
+            const ang  = frac * PI2 * vueltas + t * spd * 0.4;
+            const r    = frac * R * amp * 0.9;
+            const px   = cx + Math.cos(ang) * r, py = cy + Math.sin(ang) * r;
+            i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+          }
+          ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.globalAlpha = alpha * 0.8; ctx.stroke();
+          // punta brillante
+          const tipAng = PI2 * vueltas + t * spd * 0.4;
+          const tipR   = R * amp * 0.9;
+          ctx.fillStyle = col; ctx.globalAlpha = alpha;
+          ctx.beginPath(); ctx.arc(cx + Math.cos(tipAng) * tipR, cy + Math.sin(tipAng) * tipR, 3.5, 0, PI2); ctx.fill();
+          break;
+        }
+
+        default:
+          break;
+      }
+
+      ctx.restore();
+    }
+
+    // Glow central suave — siempre presente, color del trait más pesado
+    const dominante = [...traits].sort((a, b) => b.peso_visual - a.peso_visual)[0];
+    if (dominante) {
+      ctx.save();
+      ctx.globalAlpha = 0.12;
+      const gc = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 0.4);
+      gc.addColorStop(0, dominante.color + "ff");
+      gc.addColorStop(1, dominante.color + "00");
+      ctx.fillStyle = gc;
+      ctx.beginPath(); ctx.arc(cx, cy, R * 0.4, 0, PI2); ctx.fill();
+      ctx.restore();
+    }
+  };
+}
 
 const IUM_ANIM: Record<string, AnimFn> = {
   pondus(ctx, W, H, t) {
@@ -433,28 +811,7 @@ const IUM_ANIM: Record<string, AnimFn> = {
   },
 };
 
-// Mapa nombre-del-IUM → clave en IUM_ANIM (igual que `id` en los datos del HTML original)
-const IUM_ANIM_KEY: Record<string, string> = {
-  Pondus:      "pondus",
-  Velox:       "velox",
-  Fluxus:      "fluxor",
-  Fulgor:      "fulgor",
-  Codex:       "patrix",
-  Tensio:      "tensia",
-  Forma:       "formix",
-  Voluntas:    "voluntas",
-  Sensus:      "sensia",
-  Mutatio:     "metus",
-  Ruina:       "ruina",
-  Radiatio:    "radiatio",
-  Receptio:    "receptio",
-  Retentio:    "retentio",
-  Transmissio: "transmissio",
-  Resonantia:  "resonantia",
-  Inductio:    "inductio",
-  Percolatio:  "percolatio",
-  Dispersio:   "dispersio",
-};
+// IUM_ANIM_KEY eliminado — las animaciones son ahora procedurales via animTraits de partículas
 
 // ─── Componente canvas animado para el panel de IUMs ─────────────────────────
 
@@ -470,6 +827,7 @@ interface IumNodeAnim {
   cy: number;       // Y pantalla relativa al div padre
   delay: number;    // segundos hasta activarse (orden topológico)
   color: string;    // color TASI del nodo
+  animTraits: AnimTrait[]; // traits procedurales de las partículas de este IUM
 }
 
 const _easeInOut = (t: number) => t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2;
@@ -496,7 +854,7 @@ function IumMergedCanvas({
   const MOVE_MS    = 2000; // duración del viaje al centro
   const FINAL_WAIT = 0;    // sin pausa — la superposición arranca al llegar
 
-  const nodesKey = nodes.map(n => `${n.nombre}:${Math.round(n.cx)},${Math.round(n.cy)}`).join("|");
+  const nodesKey = nodes.map(n => `${n.nombre}:${Math.round(n.cx)},${Math.round(n.cy)}:${n.animTraits.length}`).join("|");
 
   // Reset completo al cambiar composición
   useEffect(() => {
@@ -545,24 +903,23 @@ function IumMergedCanvas({
       const mStart = moveStartRef.current;
       const fStart = finalStartRef.current;
 
-      // ── FASE FINAL: todas las animFn superpuestas en el centro ───────────────
+      // ── FASE FINAL: animación procedural combinada de TODOS los traits ───────
       if (fStart !== null && now >= fStart) {
         const ftS = (now - fStart) / 1000;
+        const fadeIn = Math.min(1, ftS / 0.4);
 
-        // Tamaño completo desde el primer frame, solo fade-in suave de alpha
-        const S        = 560;
-        const perAlpha = Math.min(1, (1 / nodes.length) * 2.2) * Math.min(1, ftS / 0.4);
+        // Recolectar todos los traits de todos los IUMs (con su cantidad)
+        const allTraits: AnimTrait[] = nodes.flatMap(n => n.animTraits ?? []);
 
-        nodes.forEach((node) => {
-          const key    = IUM_ANIM_KEY[node.nombre];
-          const animFn = key ? IUM_ANIM[key] : null;
-          if (!animFn) return;
+        if (allTraits.length > 0) {
+          const S = 560;
+          const animFn = buildTraitAnimFn(allTraits);
           ctx!.save();
-          ctx!.globalAlpha = perAlpha;
+          ctx!.globalAlpha = fadeIn;
           ctx!.translate(destX - S / 2, destY - S / 2);
           animFn(ctx!, S, S, ftS);
           ctx!.restore();
-        });
+        }
 
         rafRef.current = requestAnimationFrame(frame);
         return;
@@ -588,9 +945,8 @@ function IumMergedCanvas({
         }
 
         nodes.forEach((node, i) => {
-          const key    = IUM_ANIM_KEY[node.nombre];
-          const animFn = key ? IUM_ANIM[key] : null;
-          if (!animFn) return;
+          if (!node.animTraits?.length) return;
+          const animFn = buildTraitAnimFn(node.animTraits);
 
           // El nodo con mayor delay (más alejado del núcleo) lleva más tiempo activo,
           // así que empieza a moverse antes
@@ -652,6 +1008,8 @@ interface IumCatalogo {
   extra?: string | null;
   composicion: { particula: string; cantidad: number }[];
   geometria: GeometriaIum | undefined;
+  // Traits de animación procedural derivados de anim_traits de cada partícula
+  animTraits: AnimTrait[];
 }
 
 interface IumSalidaFuncional {
@@ -834,7 +1192,7 @@ function useIumsCatalogo() {
 
       const { data: partData } = await supabase
         .from("particulas")
-        .select("id, nombre");
+        .select("id, nombre, anim_traits");
 
       const { data: geoData } = await supabase
         .from("v_iums_geometria_canonica_v1")
@@ -842,17 +1200,29 @@ function useIumsCatalogo() {
 
       if (!vivo) return;
 
-      const nombreDePart = new Map<string, string>(
-        (partData ?? []).map((p: { id: string; nombre: string }) => [p.id, p.nombre]),
+      // Mapa id → { nombre, anim_traits }
+      const partMap = new Map<string, { nombre: string; traits: AnimTrait | null }>(
+        (partData ?? []).map((p: { id: string; nombre: string; anim_traits: AnimTrait | null }) => [
+          p.id, { nombre: p.nombre, traits: p.anim_traits ?? null }
+        ]),
       );
 
       const composPorIum = new Map<string, { particula: string; cantidad: number }[]>();
+      const traitsPorIum = new Map<string, AnimTrait[]>();
+
       for (const fila of pRelData ?? []) {
-        const nombre = nombreDePart.get(fila.particula_id);
-        if (!nombre) continue;
+        const part = partMap.get(fila.particula_id);
+        if (!part) continue;
+        // composicion
         const arr = composPorIum.get(fila.ium_id) ?? [];
-        arr.push({ particula: nombre, cantidad: fila.cantidad });
+        arr.push({ particula: part.nombre, cantidad: fila.cantidad });
         composPorIum.set(fila.ium_id, arr);
+        // traits
+        if (part.traits) {
+          const tarr = traitsPorIum.get(fila.ium_id) ?? [];
+          tarr.push({ ...part.traits, cantidad: fila.cantidad });
+          traitsPorIum.set(fila.ium_id, tarr);
+        }
       }
 
       const geoPorIum = new Map<string, GeometriaIum>(
@@ -870,6 +1240,7 @@ function useIumsCatalogo() {
         extra: i.extra,
         composicion: composPorIum.get(i.id) ?? [],
         geometria: geoPorIum.get(i.id),
+        animTraits: traitsPorIum.get(i.id) ?? [],
       }));
 
       setIums(result);
@@ -4037,12 +4408,14 @@ export default function SimuladorIUM() {
                 svgPt.x = comp.x; svgPt.y = comp.y;
                 const screenPt = svgPt.matrixTransform(ctm!);
                 const distVal  = distOv.get(comp.uid) ?? 0;
+                const iumData  = iumMap.get(comp.ium_id);
                 return {
-                  nombre: iumMap.get(comp.ium_id)?.nombre ?? "",
-                  cx:     screenPt.x - divRect.left,
-                  cy:     screenPt.y - divRect.top,
-                  delay:  (maxDistOv - distVal) * 0.22,
-                  color:  colorTASIdeIum(iumMap.get(comp.ium_id)),
+                  nombre:     iumData?.nombre ?? "",
+                  cx:         screenPt.x - divRect.left,
+                  cy:         screenPt.y - divRect.top,
+                  delay:      (maxDistOv - distVal) * 0.22,
+                  color:      colorTASIdeIum(iumData),
+                  animTraits: iumData?.animTraits ?? [],
                 };
               });
 

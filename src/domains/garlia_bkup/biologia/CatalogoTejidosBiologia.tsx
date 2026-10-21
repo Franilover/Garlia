@@ -1,0 +1,1094 @@
+"use client";
+
+/**
+ * CatalogoTejidosBiologia.tsx
+ * ───────────────────────────────────────────────────────────────────────────
+ * Biblioteca global de Células y Tejidos — dos grids navegables, cada una
+ * con su editor propio (crear/editar/borrar), sin necesidad de pasar por
+ * ningún Órgano. Nace del pedido explícito de mostrar en Biología, arriba
+ * de Órganos, la misma jerarquía Compuesto→Célula→Tejido pero como
+ * catálogo de solo composición — separado de "Usar existente" (que vive
+ * dentro de la fórmula de un Órgano puntual, ver SelectorFormulaTejidos.tsx).
+ *
+ * Migración ago-2026 (ver elementos/types.ts): Célula→Compuesto y
+ * Tejido→Célula dejaron de ser 1:1 (compuesto_id/celula_id, legacy) y
+ * pasaron a M:N vía tablas puente:
+ *   - celula_estructuras (useCelulaEstructuras) → de qué Estructura(s)
+ *     real(es) está hecha la Célula (celula_compuestos, el vínculo directo
+ *     Célula→Compuesto, quedó vacía tras esta migración — ver nota en
+ *     types.ts; el panel de Célula ya no la usa ni permite editarla)
+ *   - tejido_celulas    (useTejidoCelulas)     → qué Células pueblan el Tejido
+ *   - tejido_compuestos (useTejidoCompuestos)  → matriz extracelular directa
+ * El panel de Tejido sigue con selector M:N editable (ListaVinculosMN,
+ * agregar por búsqueda, quitar por fila) — el de Célula pasó a solo
+ * lectura porque su composición real ahora viene de una migración/trigger,
+ * no de edición manual (ver ListaEstructurasDeCelula).
+ *
+ * Mismo lenguaje visual que GridCatalogoGrupo (grid de 3 columnas, click
+ * abre panel flotante centrado).
+ */
+
+import { Beaker, Boxes, ChevronLeft, Layers, PawPrint, Plus, Save, Trash2, X, Search } from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
+
+import { useConfirm } from "@/ui/ConfirmModal";
+import { SaveIndicator } from "@/domains/garlia/_shared/UIComponents";
+import { type SaveStatus } from "@/ui/saveStatus";
+import {
+  useEstructuraComposicion,
+  type CompuestoDeEstructura,
+} from "@/domains/garlia/elementos/useEstructuraComposicion";
+import { useCelulaEstructuras, type EstructuraDeCelula } from "@/domains/garlia/elementos/useCelulaEstructuras";
+import { useTejidoCelulas, type CelulaDeTejido } from "@/domains/garlia/elementos/useTejidoCelulas";
+import { useTejidoCompuestos, type CompuestoDeTejido } from "@/domains/garlia/elementos/useTejidoCompuestos";
+import { useTejidosDeUnaCelula } from "@/domains/garlia/elementos/useTejidosDeUnaCelula";
+import { useOrganosDeUnTejido } from "@/domains/garlia/elementos/useOrganosDeUnTejido";
+import { useOrganosDeUnaCelula } from "@/domains/garlia/elementos/useOrganosDeUnaCelula";
+import { useSistemasYOrganismosDeOrganos } from "@/domains/garlia/elementos/useSistemasYOrganismosDeOrganos";
+import { useCriaturasDeOrganismos } from "@/domains/garlia/elementos/useCriaturasDeOrganismos";
+import type { Celula, Compuesto, Estructura, Tejido } from "@/domains/garlia/elementos/types";
+import { GridPropiedadesCalculadas } from "@/domains/garlia/_shared/GridPropiedadesCalculadas";
+import { BreadcrumbJerarquia } from "./BreadcrumbJerarquia";
+import { ListaIndiceCatalogo } from "@/domains/garlia/_shared/ListaIndiceCatalogoItem";
+
+interface Props {
+  /**
+   * Este catálogo pasó a ser controlado (2026-09-11): ya no maneja su
+   * propia selección, ni su propio fetch, ni monta el editor
+   * (PanelEditorCelula/PanelEditorTejido) — todo eso ahora vive en
+   * BiologiaPage.tsx (hooks useCelulas/useTejidos subidos al padre +
+   * PanelFlotanteShellBiologia), para eliminar el parpadeo al saltar
+   * entre este catálogo y sus hermanos (Sistemas/Organismos, Órgano), y
+   * para no duplicar el fetch de datos con el que usa el shell.
+   * Este componente solo pinta las 2 grillas y reporta selección.
+   */
+  celulas: Celula[];
+  loadingCelulas?: boolean;
+  tejidos: Tejido[];
+  loadingTejidos?: boolean;
+  celulaSeleccionadaId: string | null;
+  onSeleccionarCelula: (id: string | null) => void;
+  tejidoSeleccionadoId: string | null;
+  onSeleccionarTejido: (id: string | null) => void;
+}
+
+export function CatalogoTejidosBiologia({
+  celulas,
+  loadingCelulas,
+  tejidos,
+  loadingTejidos,
+  celulaSeleccionadaId,
+  onSeleccionarCelula,
+  tejidoSeleccionadoId,
+  onSeleccionarTejido,
+}: Props) {
+  return (
+    <div className="flex flex-wrap gap-4">
+      {/* ── Células ────────────────────────────────────────────────────── */}
+      <div
+        className="flex flex-col gap-2 min-w-[220px]"
+        style={{ flexGrow: Math.max(celulas.length, 1), flexBasis: 0 }}
+      >
+        <div className="flex items-center justify-between">
+          <p className="text-micro font-black uppercase tracking-[0.2em] text-primary/50">
+            Células · {celulas.length}
+          </p>
+        </div>
+
+        <GridSimple
+          items={celulas}
+          loading={!!loadingCelulas}
+          seleccionadoId={celulaSeleccionadaId}
+          onSeleccionar={onSeleccionarCelula}
+          labelVacio="células"
+        />
+      </div>
+
+      {/* ── Tejidos ────────────────────────────────────────────────────── */}
+      <div
+        className="flex flex-col gap-2 min-w-[220px]"
+        style={{ flexGrow: Math.max(tejidos.length, 1), flexBasis: 0 }}
+      >
+        <div className="flex items-center justify-between">
+          <p className="text-micro font-black uppercase tracking-[0.2em] text-primary/50">
+            Tejidos · {tejidos.length}
+          </p>
+        </div>
+
+        <GridSimple
+          items={tejidos}
+          loading={!!loadingTejidos}
+          seleccionadoId={tejidoSeleccionadoId}
+          onSeleccionar={onSeleccionarTejido}
+          labelVacio="tejidos"
+        />
+      </div>
+    </div>
+  );
+}
+
+// ─── Solo-Células / Solo-Tejidos (2026-09-25) ──────────────────────────────
+// Mitades de CatalogoTejidosBiologia partidas en componentes propios, para
+// BiologiaCatalogos (BiologiaPage.tsx): ahora Células y Tejidos son tabs
+// separadas (BloqueTabsSeccion), no columnas del mismo flex-wrap — cada
+// una necesita poder renderizarse sola, a ancho completo, sin la otra al
+// lado. CatalogoTejidosBiologia (arriba) se mantiene tal cual por
+// compatibilidad, aunque BiologiaPage.tsx ya no la use directamente.
+interface PropsCatalogoCelulas {
+  celulas: Celula[];
+  loadingCelulas?: boolean;
+  celulaSeleccionadaId: string | null;
+  onSeleccionarCelula: (id: string | null) => void;
+}
+
+export function CatalogoCelulasBiologia({
+  celulas,
+  loadingCelulas,
+  celulaSeleccionadaId,
+  onSeleccionarCelula,
+}: PropsCatalogoCelulas) {
+  return (
+    <GridSimple
+      items={celulas}
+      loading={!!loadingCelulas}
+      seleccionadoId={celulaSeleccionadaId}
+      onSeleccionar={onSeleccionarCelula}
+      labelVacio="células"
+    />
+  );
+}
+
+interface PropsCatalogoTejidos {
+  tejidos: Tejido[];
+  loadingTejidos?: boolean;
+  tejidoSeleccionadoId: string | null;
+  onSeleccionarTejido: (id: string | null) => void;
+}
+
+export function CatalogoTejidosSoloBiologia({
+  tejidos,
+  loadingTejidos,
+  tejidoSeleccionadoId,
+  onSeleccionarTejido,
+}: PropsCatalogoTejidos) {
+  return (
+    <GridSimple
+      items={tejidos}
+      loading={!!loadingTejidos}
+      seleccionadoId={tejidoSeleccionadoId}
+      onSeleccionar={onSeleccionarTejido}
+      labelVacio="tejidos"
+    />
+  );
+}
+
+// ─── Grid genérica (solo lista + click, sin lógica de edición) ─────────────
+// Rediseño (biblioteca grande): antes era un flex-wrap de PillCatalogoItem
+// (chips), que con ~70 ítems y nombres largos quedaba desordenado (pills de
+// ancho muy dispar, mucho alto ocupado). Ahora usa ListaIndiceCatalogo — una
+// lista densa en columnas, una fila por ítem — pensada específicamente para
+// catálogos grandes de Biología (Células/Tejidos/Órganos).
+
+function GridSimple<T extends { id: string; nombre: string }>({
+  items,
+  loading,
+  seleccionadoId,
+  onSeleccionar,
+  labelVacio,
+}: {
+  items: T[];
+  loading: boolean;
+  seleccionadoId: string | null;
+  onSeleccionar: (id: string) => void;
+  labelVacio: string;
+}) {
+  return (
+    <ListaIndiceCatalogo
+      items={items}
+      loading={loading}
+      seleccionadoId={seleccionadoId}
+      onSeleccionar={onSeleccionar}
+      labelVacio={labelVacio}
+    />
+  );
+}
+
+// ─── Lista de Estructuras de una Célula (solo lectura) ─────────────────────
+// Reemplaza a ListaVinculosMN<CompuestoDeCelula> en el panel de Célula:
+// celula_estructuras se puebla por migración/triggers, no por edición
+// manual, así que acá no hay buscador ni botón de quitar — solo se
+// muestra la Estructura real y, anidados debajo, sus Compuestos (vía
+// estructura_compuestos), para no perder de vista "de qué está hecha en
+// el fondo" sin tener que abrir la Estructura aparte.
+function ListaEstructurasDeCelula({
+  items,
+  loading,
+  onAbrirCompuesto,
+}: {
+  items: EstructuraDeCelula[];
+  loading: boolean;
+  onAbrirCompuesto?: (compuestoId: string) => void;
+}) {
+  if (loading) {
+    return <p className="text-micro text-primary/25 italic py-1">Cargando…</p>;
+  }
+  if (items.length === 0) {
+    return (
+      <p className="text-micro text-primary/25 italic py-1">
+        Sin Estructura vinculada todavía.
+      </p>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      {items.map((v) => (
+        <div
+          key={v.vinculo_id}
+          className="flex flex-col gap-1.5 bg-primary/5 rounded-md px-2.5 py-2 border border-primary/10"
+        >
+          <div className="flex items-center gap-1.5">
+            <Boxes size={11} className="text-primary/40 shrink-0" />
+            <span className="text-micro font-black text-primary/80 truncate">
+              {v.estructura.nombre}
+            </span>
+            {v.rol && (
+              <span className="text-micro text-primary/40 truncate">· {v.rol}</span>
+            )}
+          </div>
+
+          {v.compuestos.length > 0 && (
+            <div className="flex flex-col gap-1 pl-3 border-l border-primary/10">
+              {v.compuestos.map((c) => (
+                <button
+                  key={c.vinculo_id}
+                  type="button"
+                  onClick={() => onAbrirCompuesto?.(c.compuesto_id)}
+                  disabled={!onAbrirCompuesto}
+                  className="flex items-center gap-1.5 text-left text-micro text-primary/60 disabled:cursor-default hover:enabled:text-accent hover:enabled:underline cursor-pointer w-fit"
+                >
+                  {c.compuesto.nombre}
+                  {c.rol && <span className="text-primary/35"> · {c.rol}</span>}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── Panel Célula: nombre, función, notas, Estructura real (vía
+// celula_estructuras) ────────────────────────────────────────────────────
+// Exportado: reutilizado directo desde SelectorFormulaTejidos (fila "hecho
+// de" de un Tejido en la fórmula de un Órgano) — clickear ahí debe abrir
+// ESTE panel (Célula), no el del Compuesto directo, ver cadena real en el
+// comentario de arriba del archivo.
+
+export function PanelEditorCelula({
+  item,
+  compuestos,
+  loadingCompuestos,
+  onCerrar,
+  onActualizar,
+  onEliminar,
+  onCompuestoCreado,
+  onAbrirCompuesto,
+  onAbrirTejido,
+  onAbrirOrgano,
+  onAbrirSistema,
+  onAbrirOrganismo,
+  onAbrirCriatura,
+  sinAnimacion,
+  sinMarco,
+}: {
+  item: Celula;
+  compuestos: Compuesto[];
+  loadingCompuestos?: boolean;
+  onCerrar: () => void;
+  onActualizar: (id: string, cambios: Partial<Celula>) => void;
+  onEliminar: (id: string) => Promise<{ ok: boolean; error: unknown }>;
+  onCompuestoCreado?: (c: Compuesto) => void;
+  onAbrirCompuesto?: (compuestoId: string) => void;
+  /** Cierra este panel y abre el del Tejido elegido — navegación hacia arriba. */
+  onAbrirTejido?: (tejidoId: string) => void;
+  /** Cierra este panel y abre el del Órgano elegido — navegación transitiva
+   *  (Célula → Tejido → Órgano, unión de todos los Órganos alcanzables). */
+  onAbrirOrgano?: (organoId: string) => void;
+  /** Cierra este panel y abre el del Sistema elegido — navegación
+   *  transitiva un nivel más arriba (unión de todos los Sistemas
+   *  alcanzables vía cualquier Órgano de la Célula). */
+  onAbrirSistema?: (sistemaId: string) => void;
+  /** Cierra este panel y abre el del Organismo elegido — techo de la
+   *  cadena, misma unión transitiva un nivel más arriba todavía. */
+  onAbrirOrganismo?: (organismoId: string) => void;
+  /** Cierra este panel y navega a la Criatura elegida — salto DIRECTO (unión
+   *  transitiva de las Criaturas que usan cualquier Organismo alcanzable),
+   *  sin pasar por Organismo. Sale del shell de Biología: lo resuelve el
+   *  padre (ver PanelEditorOrganismo.onAbrirCriatura). */
+  onAbrirCriatura?: (criaturaId: string) => void;
+  /** true cuando este panel se abrió como salto desde OTRO nivel del
+   *  breadcrumb (no un click nuevo desde la grilla) — suprime la
+   *  animación de entrada para evitar el parpadeo "cierra y abre". */
+  sinAnimacion?: boolean;
+  /** Suprime el marco/borde del panel flotante — usado cuando el panel se
+   *  embebe dentro de otro contenedor que ya provee su propio marco. */
+  sinMarco?: boolean;
+}) {
+  const { confirm, ConfirmModal } = useConfirm();
+  const [eliminando, setEliminando] = useState(false);
+  const [errorEliminar, setErrorEliminar] = useState<string | null>(null);
+
+  const estructurasDeCelula = useCelulaEstructuras(item.id);
+  const tejidosQueUsanEstaCelula = useTejidosDeUnaCelula(item.id);
+  const organosQueUsanEstaCelula = useOrganosDeUnaCelula(item.id);
+  const organoIds = useMemo(
+    () => organosQueUsanEstaCelula.items.map((o) => o.id),
+    [organosQueUsanEstaCelula.items],
+  );
+  const sistemasYOrganismos = useSistemasYOrganismosDeOrganos(organoIds);
+  const organismoIds = useMemo(
+    () => sistemasYOrganismos.organismoItems.map((o) => o.id),
+    [sistemasYOrganismos.organismoItems],
+  );
+  const criaturasAlcanzables = useCriaturasDeOrganismos(organismoIds);
+
+  async function handleEliminar() {
+    const ok = await confirm({
+      title: "Eliminar célula",
+      message: `¿Eliminar "${item.nombre}"? Esta acción no se puede deshacer. Si algún Tejido la usa, no se va a poder borrar.`,
+    });
+    if (!ok) return;
+    setEliminando(true);
+    setErrorEliminar(null);
+    const res = await onEliminar(item.id);
+    setEliminando(false);
+    if (!res.ok) {
+      setErrorEliminar(
+        "No se pudo eliminar — probablemente algún Tejido todavía la usa. Quitala de ahí primero.",
+      );
+    }
+  }
+
+  return (
+    <PanelFlotanteBase sinAnimacion={sinAnimacion} sinMarco={sinMarco}>
+      <ConfirmModal />
+      <PanelFlotanteHeader
+        nombre={item.nombre ?? ""}
+        placeholder="Nombre…"
+        onChangeNombre={(nombre) => onActualizar(item.id, { nombre })}
+        onEliminar={handleEliminar}
+        eliminando={eliminando}
+        onCerrar={onCerrar}
+      />
+
+      <div className="shrink-0 px-3 pt-2">
+        <BreadcrumbJerarquia
+          niveles={[
+            { label: "Célula", icono: <Beaker size={10} />, activo: true },
+            {
+              label: "Tejido",
+              icono: <Layers size={10} />,
+              activo: false,
+              items: tejidosQueUsanEstaCelula.items.map((v) => ({
+                id: v.tejido_id,
+                nombre: v.tejido.nombre,
+              })),
+              loading: tejidosQueUsanEstaCelula.loading,
+              onNavegar: onAbrirTejido,
+            },
+            {
+              label: "Órgano",
+              icono: <Boxes size={10} />,
+              activo: false,
+              items: organosQueUsanEstaCelula.items.map((o) => ({
+                id: o.id,
+                nombre: o.nombre,
+              })),
+              loading: organosQueUsanEstaCelula.loading,
+              onNavegar: onAbrirOrgano,
+            },
+            {
+              label: "Sistema",
+              icono: <Layers size={10} />,
+              activo: false,
+              items: sistemasYOrganismos.sistemaItems.map((s) => ({ id: s.id, nombre: s.nombre })),
+              loading: sistemasYOrganismos.loading,
+              onNavegar: onAbrirSistema,
+            },
+            {
+              label: "Organismo",
+              icono: <Boxes size={10} />,
+              activo: false,
+              items: sistemasYOrganismos.organismoItems.map((o) => ({ id: o.id, nombre: o.nombre })),
+              loading: sistemasYOrganismos.loading,
+              onNavegar: onAbrirOrganismo,
+            },
+            {
+              label: "Criatura",
+              icono: <PawPrint size={10} />,
+              activo: false,
+              items: criaturasAlcanzables.items.map((c) => ({ id: c.id, nombre: c.nombre })),
+              loading: sistemasYOrganismos.loading || criaturasAlcanzables.loading,
+              onNavegar: onAbrirCriatura,
+            },
+          ]}
+        />
+      </div>
+
+      <div className="flex-1 min-h-0 overflow-y-auto p-4">
+        {errorEliminar && <ErrorBanner texto={errorEliminar} />}
+
+        <div className="flex flex-col md:flex-row gap-3 md:gap-5 mt-1">
+          {/* Columna izquierda: composición real — Estructura(s) de la que
+              viene la célula, con sus Compuestos. Solo lectura: se puebla
+              por migración/triggers (celula_estructuras +
+              estructura_compuestos), no por edición manual acá — ver
+              useCelulaEstructuras. */}
+          <div className="md:w-1/2 min-w-0">
+            <p className="text-micro font-black uppercase tracking-widest text-primary/30 mb-1">
+              Estructura · de qué está hecha la célula
+            </p>
+            <ListaEstructurasDeCelula
+              items={estructurasDeCelula.items}
+              loading={estructurasDeCelula.loading}
+              onAbrirCompuesto={onAbrirCompuesto}
+            />
+          </div>
+
+          {/* Columna derecha: bloques de texto — función + notas */}
+          <div className="md:w-1/2 min-w-0 flex flex-col gap-3">
+            <div>
+              <p className="text-micro font-black uppercase tracking-widest text-primary/30 mb-1">
+                Función
+              </p>
+              <input
+                className="w-full bg-transparent px-0 py-0.5 text-micro font-bold text-primary/60 outline-none placeholder:text-primary/25"
+                placeholder="Función…"
+                value={item.funcion ?? ""}
+                onChange={(e) => onActualizar(item.id, { funcion: e.target.value })}
+              />
+            </div>
+
+            <NotasField
+              value={item.notas ?? ""}
+              onChange={(notas) => onActualizar(item.id, { notas })}
+            />
+
+            <NotaReutilizable />
+          </div>
+        </div>
+      </div>
+    </PanelFlotanteBase>
+  );
+}
+
+// ─── Panel Tejido: nombre, función, notas, Células + Compuestos de matriz
+// (M:N vía tejido_celulas / tejido_compuestos) ──────────────────────────
+// Exportado: reutilizado directo desde SelectorFormulaTejidos/GruposCompuestosPage
+// (editor de la fórmula de un Órgano) para abrir el mismo editor completo al
+// clickear el nombre de una fila — un solo editor de Tejido en toda la app.
+
+export function PanelEditorTejido({
+  item,
+  celulas,
+  loadingCelulas,
+  compuestos,
+  loadingCompuestos,
+  onCerrar,
+  onActualizar,
+  onEliminar,
+  onAbrirCelula,
+  onAbrirOrgano,
+  onAbrirSistema,
+  onAbrirOrganismo,
+  onAbrirCriatura,
+  onCompuestoCreado,
+  onAbrirCompuesto,
+  sinAnimacion,
+  sinMarco,
+}: {
+  item: Tejido;
+  celulas: Celula[];
+  loadingCelulas?: boolean;
+  compuestos: Compuesto[];
+  loadingCompuestos?: boolean;
+  onCerrar: () => void;
+  onActualizar: (id: string, cambios: Partial<Tejido>) => void;
+  onEliminar: (id: string) => Promise<{ ok: boolean; error: unknown }>;
+  /** Cierra este panel y abre el de la Célula elegida — navegación cruzada. */
+  onAbrirCelula?: (celulaId: string) => void;
+  /** Cierra este panel y abre el del Órgano elegido — navegación hacia arriba. */
+  onAbrirOrgano?: (organoId: string) => void;
+  /** Cierra este panel y abre el del Sistema elegido — navegación
+   *  transitiva un nivel más arriba (unión de todos los Sistemas
+   *  alcanzables vía cualquier Órgano de este Tejido). */
+  onAbrirSistema?: (sistemaId: string) => void;
+  /** Cierra este panel y abre el del Organismo elegido — techo de la
+   *  cadena, misma unión transitiva un nivel más arriba todavía. */
+  onAbrirOrganismo?: (organismoId: string) => void;
+  /** Cierra este panel y navega a la Criatura elegida — salto DIRECTO (unión
+   *  transitiva de las Criaturas que usan cualquier Organismo alcanzable),
+   *  sin pasar por Organismo. Sale del shell de Biología: lo resuelve el
+   *  padre (ver PanelEditorOrganismo.onAbrirCriatura). */
+  onAbrirCriatura?: (criaturaId: string) => void;
+  onCompuestoCreado?: (c: Compuesto) => void;
+  onAbrirCompuesto?: (compuestoId: string) => void;
+  /** true cuando este panel se abrió como salto desde OTRO nivel del
+   *  breadcrumb — suprime la animación de entrada. */
+  sinAnimacion?: boolean;
+  /** ver PanelFlotanteBase.sinMarco. */
+  sinMarco?: boolean;
+}) {
+  const { confirm, ConfirmModal } = useConfirm();
+  const [eliminando, setEliminando] = useState(false);
+  const [errorEliminar, setErrorEliminar] = useState<string | null>(null);
+
+  const vinculosCelula = useTejidoCelulas(item.id);
+  const vinculosCompuesto = useTejidoCompuestos(item.id);
+  const organosQueUsanEsteTejido = useOrganosDeUnTejido(item.id);
+  const organoIds = useMemo(
+    () => organosQueUsanEsteTejido.items.map((v) => v.organo_id),
+    [organosQueUsanEsteTejido.items],
+  );
+  const sistemasYOrganismos = useSistemasYOrganismosDeOrganos(organoIds);
+  const organismoIds = useMemo(
+    () => sistemasYOrganismos.organismoItems.map((o) => o.id),
+    [sistemasYOrganismos.organismoItems],
+  );
+  const criaturasAlcanzables = useCriaturasDeOrganismos(organismoIds);
+
+  async function handleEliminar() {
+    const ok = await confirm({
+      title: "Eliminar tejido",
+      message: `¿Eliminar "${item.nombre}"? Esta acción no se puede deshacer. Si algún Órgano lo usa, no se va a poder borrar.`,
+    });
+    if (!ok) return;
+    setEliminando(true);
+    setErrorEliminar(null);
+    const res = await onEliminar(item.id);
+    setEliminando(false);
+    if (!res.ok) {
+      setErrorEliminar(
+        "No se pudo eliminar — probablemente algún Órgano todavía lo usa. Quitalo de esa fórmula primero.",
+      );
+    }
+  }
+
+  return (
+    <PanelFlotanteBase sinAnimacion={sinAnimacion} sinMarco={sinMarco}>
+      <ConfirmModal />
+      <PanelFlotanteHeader
+        nombre={item.nombre ?? ""}
+        placeholder="Nombre…"
+        onChangeNombre={(nombre) => onActualizar(item.id, { nombre })}
+        onEliminar={handleEliminar}
+        eliminando={eliminando}
+        onCerrar={onCerrar}
+      />
+
+      <div className="shrink-0 px-3 pt-2">
+        <BreadcrumbJerarquia
+          niveles={[
+            {
+              label: "Célula",
+              icono: <Beaker size={10} />,
+              activo: false,
+              items: vinculosCelula.items.map((v) => ({
+                id: v.celula_id,
+                nombre: v.celula.nombre,
+              })),
+              loading: vinculosCelula.loading,
+              onNavegar: onAbrirCelula,
+            },
+            { label: "Tejido", icono: <Layers size={10} />, activo: true },
+            {
+              label: "Órgano",
+              icono: <Boxes size={10} />,
+              activo: false,
+              items: organosQueUsanEsteTejido.items.map((v) => ({
+                id: v.organo_id,
+                nombre: v.organo.nombre,
+              })),
+              loading: organosQueUsanEsteTejido.loading,
+              onNavegar: onAbrirOrgano,
+            },
+            {
+              label: "Sistema",
+              icono: <Layers size={10} />,
+              activo: false,
+              items: sistemasYOrganismos.sistemaItems.map((s) => ({ id: s.id, nombre: s.nombre })),
+              loading: sistemasYOrganismos.loading,
+              onNavegar: onAbrirSistema,
+            },
+            {
+              label: "Organismo",
+              icono: <Boxes size={10} />,
+              activo: false,
+              items: sistemasYOrganismos.organismoItems.map((o) => ({ id: o.id, nombre: o.nombre })),
+              loading: sistemasYOrganismos.loading,
+              onNavegar: onAbrirOrganismo,
+            },
+            {
+              label: "Criatura",
+              icono: <PawPrint size={10} />,
+              activo: false,
+              items: criaturasAlcanzables.items.map((c) => ({ id: c.id, nombre: c.nombre })),
+              loading: sistemasYOrganismos.loading || criaturasAlcanzables.loading,
+              onNavegar: onAbrirCriatura,
+            },
+          ]}
+        />
+      </div>
+
+      <div className="flex-1 min-h-0 overflow-y-auto p-4">
+        {errorEliminar && <ErrorBanner texto={errorEliminar} />}
+
+        <div className="flex flex-col md:flex-row gap-3 md:gap-5 mt-1">
+          {/* Columna izquierda: composición / vínculos */}
+          <div className="md:w-1/2 min-w-0 flex flex-col gap-3">
+            <div>
+              <p className="text-micro font-black uppercase tracking-widest text-primary/30 mb-1">
+                Células · qué tipos celulares lo pueblan
+              </p>
+              <ListaVinculosMN<CelulaDeTejido>
+                items={vinculosCelula.items}
+                loading={vinculosCelula.loading}
+                catalogo={celulas}
+                loadingCatalogo={loadingCelulas}
+                getNombre={(v) => v.celula.nombre}
+                getCatalogoId={(v) => v.celula_id}
+                rolPlaceholder="Rol (ej. célula principal)…"
+                iconoCatalogo={<Beaker size={11} className="text-accent/60 shrink-0" />}
+                onAgregar={(celulaId) => void vinculosCelula.vincularExistente(celulaId)}
+                onActualizarRol={vinculosCelula.actualizarRol}
+                onQuitar={vinculosCelula.quitar}
+                onAbrirItem={onAbrirCelula}
+              />
+            </div>
+
+            <div>
+              <p className="text-micro font-black uppercase tracking-widest text-primary/30 mb-1">
+                Compuestos de matriz · material directo, sin pasar por una célula
+              </p>
+              <ListaVinculosMN<CompuestoDeTejido>
+                items={vinculosCompuesto.items}
+                loading={vinculosCompuesto.loading}
+                catalogo={compuestos}
+                loadingCatalogo={loadingCompuestos}
+                getNombre={(v) => v.compuesto.nombre}
+                getCatalogoId={(v) => v.compuesto_id}
+                rolPlaceholder="Rol (ej. matriz extracelular)…"
+                onAgregar={(compuestoId) => void vinculosCompuesto.vincularExistente(compuestoId)}
+                onActualizarRol={vinculosCompuesto.actualizarRol}
+                onQuitar={vinculosCompuesto.quitar}
+                onAbrirCompuesto={onAbrirCompuesto}
+                onCompuestoCreado={onCompuestoCreado}
+              />
+            </div>
+          </div>
+
+          {/* Columna derecha: bloques de texto — función + notas */}
+          <div className="md:w-1/2 min-w-0 flex flex-col gap-3">
+            <div>
+              <p className="text-micro font-black uppercase tracking-widest text-primary/30 mb-1">
+                Función
+              </p>
+              <input
+                className="w-full bg-transparent px-0 py-0.5 text-micro font-bold text-primary/60 outline-none placeholder:text-primary/25"
+                placeholder="Función…"
+                value={item.funcion ?? ""}
+                onChange={(e) => onActualizar(item.id, { funcion: e.target.value })}
+              />
+            </div>
+
+            <NotasField
+              value={item.notas ?? ""}
+              onChange={(notas) => onActualizar(item.id, { notas })}
+            />
+
+            <NotaReutilizable />
+          </div>
+        </div>
+      </div>
+    </PanelFlotanteBase>
+  );
+}
+
+// ─── ListaVinculosMN: lista genérica de vínculos M:N con rol libre —
+// reemplaza a los viejos SelectorCompuesto/SelectorCelula (single-pick) en
+// este archivo. Cada fila: nombre del item vinculado (clickeable si se
+// provee onAbrirItem/onAbrirCompuesto) + input de rol + botón quitar.
+// Debajo, un buscador para agregar un vínculo nuevo del catálogo — no crea
+// entradas nuevas de Célula/Compuesto desde acá, solo vincula existentes,
+// igual que useOrganoTejidos con "usar existente". ──────────────────────
+
+interface VinculoConNombre {
+  vinculo_id: string;
+  rol: string | null;
+}
+
+function ListaVinculosMN<T extends VinculoConNombre>({
+  items,
+  loading,
+  catalogo,
+  loadingCatalogo,
+  getNombre,
+  getCatalogoId,
+  rolPlaceholder,
+  iconoCatalogo,
+  onAgregar,
+  onActualizarRol,
+  onQuitar,
+  onAbrirItem,
+  onAbrirCompuesto,
+}: {
+  items: T[];
+  loading: boolean;
+  catalogo: { id: string; nombre: string }[];
+  loadingCatalogo?: boolean;
+  getNombre: (v: T) => string;
+  getCatalogoId: (v: T) => string;
+  rolPlaceholder: string;
+  iconoCatalogo?: React.ReactNode;
+  onAgregar: (catalogoId: string) => void;
+  onActualizarRol: (vinculoId: string, rol: string) => void;
+  onQuitar: (vinculoId: string) => void;
+  /** Navegación cruzada genérica (ej. abrir la Célula vinculada). */
+  onAbrirItem?: (catalogoId: string) => void;
+  /** Navegación cruzada específica para Compuesto (nombre distinto por claridad). */
+  onAbrirCompuesto?: (compuestoId: string) => void;
+  onCompuestoCreado?: (c: Compuesto) => void;
+}) {
+  const [buscando, setBuscando] = useState(false);
+
+  const yaVinculadosIds = useMemo(() => new Set(items.map(getCatalogoId)), [items, getCatalogoId]);
+  const disponibles = useMemo(
+    () => catalogo.filter((c) => !yaVinculadosIds.has(c.id)),
+    [catalogo, yaVinculadosIds],
+  );
+
+  const abrir = onAbrirItem ?? onAbrirCompuesto;
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      {loading ? (
+        <p className="text-micro text-primary/25 italic py-1">Cargando…</p>
+      ) : items.length === 0 ? (
+        <p className="text-micro text-primary/25 italic py-1">Sin vínculos todavía</p>
+      ) : (
+        <div className="flex flex-col gap-1">
+          {items.map((v) => (
+            <div
+              key={v.vinculo_id}
+              className="flex items-center gap-1.5 bg-primary/5 rounded-md pl-2.5 pr-1.5 py-1.5 border border-primary/10"
+            >
+              {iconoCatalogo}
+              <button
+                type="button"
+                onClick={() => abrir?.(getCatalogoId(v))}
+                disabled={!abrir}
+                className="shrink-0 max-w-[45%] truncate text-left text-micro font-bold text-primary/80 disabled:cursor-default hover:enabled:text-accent hover:enabled:underline cursor-pointer"
+              >
+                {getNombre(v) || "Sin nombre"}
+              </button>
+              <input
+                value={v.rol ?? ""}
+                onChange={(e) => onActualizarRol(v.vinculo_id, e.target.value)}
+                placeholder={rolPlaceholder}
+                className="flex-1 min-w-0 bg-transparent px-0 py-0.5 text-micro text-primary/60 outline-none placeholder:text-primary/25"
+              />
+              <button
+                type="button"
+                onClick={() => onQuitar(v.vinculo_id)}
+                title="Quitar"
+                className="shrink-0 w-6 h-6 flex items-center justify-center rounded text-primary/40 hover:text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer"
+              >
+                <X size={11} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {buscando ? (
+        <PickerCatalogoExistente
+          disponibles={disponibles}
+          loading={loadingCatalogo}
+          onElegir={(id) => {
+            onAgregar(id);
+            setBuscando(false);
+          }}
+          onClose={() => setBuscando(false)}
+        />
+      ) : (
+        <button
+          type="button"
+          onClick={() => setBuscando(true)}
+          className="flex items-center gap-1 self-start text-micro font-black uppercase tracking-widest text-primary/40 hover:text-primary transition-colors cursor-pointer"
+        >
+          <Plus size={10} /> Agregar
+        </button>
+      )}
+    </div>
+  );
+}
+
+function PickerCatalogoExistente({
+  disponibles,
+  loading,
+  onElegir,
+  onClose,
+}: {
+  disponibles: { id: string; nombre: string }[];
+  loading?: boolean;
+  onElegir: (id: string) => void;
+  onClose: () => void;
+}) {
+  const [busqueda, setBusqueda] = useState("");
+
+  const filtrados = useMemo(() => {
+    const q = busqueda.trim().toLowerCase();
+    if (!q) return disponibles;
+    return disponibles.filter((d) => d.nombre.toLowerCase().includes(q));
+  }, [disponibles, busqueda]);
+
+  return (
+    <div className="relative">
+      <div className="flex items-center gap-1.5 bg-primary/5 rounded-md pl-2.5 pr-1.5 py-1.5 border border-primary/15">
+        <Search size={12} className="text-primary/30 shrink-0" />
+        <input
+          autoFocus
+          value={busqueda}
+          onChange={(e) => setBusqueda(e.target.value)}
+          onBlur={() => setTimeout(onClose, 120)}
+          placeholder={loading ? "Cargando…" : "Buscar para vincular…"}
+          className="flex-1 min-w-0 bg-transparent px-0 py-0.5 text-micro font-bold text-primary outline-none placeholder:text-primary/30 placeholder:font-normal"
+        />
+        <button
+          type="button"
+          onMouseDown={onClose}
+          title="Cancelar"
+          className="shrink-0 w-5 h-5 flex items-center justify-center rounded text-primary/30 hover:text-primary transition-colors cursor-pointer"
+        >
+          <X size={10} />
+        </button>
+      </div>
+
+      <div
+        className="absolute z-20 mt-1 left-0 right-0 max-h-48 overflow-y-auto rounded-md border shadow-lg"
+        style={{
+          background: "var(--bg-main)",
+          borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
+        }}
+      >
+        {filtrados.length === 0 ? (
+          <p className="text-micro text-primary/25 italic text-center py-2">Sin resultados</p>
+        ) : (
+          filtrados.slice(0, 30).map((d) => (
+            <button
+              key={d.id}
+              type="button"
+              onMouseDown={() => onElegir(d.id)}
+              className="w-full flex items-center gap-1.5 px-2 py-1 text-left text-micro font-bold text-primary/75 hover:bg-primary/6 hover:text-primary transition-colors truncate"
+            >
+              {d.nombre || "Sin nombre"}
+            </button>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Piezas chicas compartidas ──────────────────────────────────────────────
+
+/**
+ * Caja blanca interna del panel — el portal/backdrop/Escape/scroll-lock
+ * ahora vive UNA sola vez en PanelFlotanteShellBiologia (BiologiaPage.tsx),
+ * compartido entre los 5 niveles del breadcrumb de Biología. Antes cada
+ * PanelEditorX de acá montaba su propio createPortal con el mismo
+ * z-[9999]: al saltar entre catálogos hermanos, React desmontaba un nodo
+ * DOM y montaba otro (componentes JSX distintos), lo que se veía como un
+ * parpadeo "cierra y abre" del fondo del modal.
+ */
+function PanelFlotanteBase({
+  children,
+  sinAnimacion,
+  sinMarco,
+}: {
+  children: React.ReactNode;
+  /** true cuando este panel reemplaza a otro por una navegación de
+   *  breadcrumb (no una apertura nueva) — suprime la animación de entrada
+   *  para no parpadear al saltar entre niveles de la jerarquía. */
+  sinAnimacion?: boolean;
+  /**
+   * true para NO montar el marco blanco propio (w-full h-full max-w-6xl…)
+   * — usado cuando este editor reemplaza el contenido de OTRO marco ya
+   * existente (ver GrupoCompuestoPanelFlotante en GruposCompuestosPage.tsx,
+   * que muestra el Tejido/Célula de una fila DENTRO del mismo marco del
+   * Órgano, en vez de apilar un panel nuevo encima). Solo devuelve
+   * children (header + body) tal cual.
+   */
+  sinMarco?: boolean;
+}) {
+  if (sinMarco) return <>{children}</>;
+
+  return (
+    <div
+      className="w-full h-full max-w-6xl rounded-2xl overflow-hidden shadow-2xl flex flex-col"
+      style={{
+        background: "var(--bg-main)",
+        border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
+        animation: sinAnimacion ? "none" : "popIn 160ms cubic-bezier(0.34, 1.56, 0.64, 1)",
+      }}
+      onClick={(e) => e.stopPropagation()}
+    >
+      {children}
+    </div>
+  );
+}
+
+/**
+ * Header estándar del panel flotante grande — mismo look que
+ * ElementoPanelFlotante/CompuestoPanelFlotante: cuadro con ícono a la
+ * izquierda, input de nombre grande, botón eliminar y botón cerrar a la
+ * derecha. A diferencia de Elemento/Compuesto (que publican headerControls
+ * con botón "Guardar" explícito), acá se mantiene el autosave on-change ya
+ * existente en Tejido/Célula/Grano/Veta — solo se iguala la cáscara visual.
+ */
+/**
+ * Header estándar del panel flotante grande — mismo look que
+ * ElementoPanelFlotante/CompuestoPanelFlotante: flecha de volver (si hay
+ * onBack) a la izquierda en vez de la caja de ícono, input de nombre
+ * grande, SaveIndicator + botón Guardar explícito, botón eliminar y botón
+ * cerrar a la derecha. El guardado sigue siendo autosave on-change (mismo
+ * comportamiento de siempre en Tejido/Célula/Sistema/Organismo) — el botón
+ * Guardar dispara onGuardar si se pasa (para forzar/confirmar) y siempre
+ * deja ver un "Guardado" momentáneo, igual que si hubiera guardado manual.
+ */
+function PanelFlotanteHeader({
+  onBack,
+  nombre,
+  placeholder,
+  onChangeNombre,
+  onGuardar,
+  onEliminar,
+  eliminando,
+  onCerrar,
+}: {
+  /** Flecha de volver a la izquierda — mismo lugar que ChevronLeft en
+   *  CompuestoEditor/ElementoEditor. Si se omite, no se muestra nada ahí
+   *  (el nombre arranca pegado al borde izquierdo). */
+  onBack?: () => void;
+  nombre: string;
+  placeholder: string;
+  onChangeNombre: (nombre: string) => void;
+  /** Se llama al click en Guardar, además de mostrar el SaveIndicator —
+   *  opcional, útil si el caller quiere forzar un guardado puntual más
+   *  allá del autosave on-change ya existente. */
+  onGuardar?: () => void | Promise<void>;
+  onEliminar: () => void;
+  eliminando?: boolean;
+  onCerrar: () => void;
+}) {
+  const [status, setStatus] = useState<SaveStatus>("idle");
+
+  async function handleGuardar() {
+    setStatus("saving");
+    try {
+      await onGuardar?.();
+      setStatus("saved");
+    } catch (e) {
+      console.error("[PanelFlotanteHeader] error guardando:", e);
+      setStatus("error");
+    }
+  }
+
+  return (
+    <div
+      className="shrink-0 flex items-center gap-1.5 px-3 py-2 border-b"
+      style={{
+        borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
+        background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+      }}
+    >
+      {onBack && (
+        <button
+          type="button"
+          onClick={onBack}
+          title="Volver"
+          className="shrink-0 flex items-center justify-center w-6 h-6 rounded-md border border-primary/15 text-primary/40 hover:text-primary hover:border-primary/35 hover:bg-primary/5 transition-all cursor-pointer"
+        >
+          <ChevronLeft size={12} />
+        </button>
+      )}
+      <input
+        className="flex-1 min-w-0 bg-transparent text-sm font-black text-primary outline-none placeholder:text-primary/25"
+        placeholder={placeholder}
+        value={nombre}
+        onChange={(e) => onChangeNombre(e.target.value)}
+      />
+      <div className="shrink-0 flex items-center gap-1.5">
+        <SaveIndicator status={status} />
+        <button
+          type="button"
+          onClick={onEliminar}
+          disabled={eliminando}
+          title="Eliminar"
+          className="shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg text-micro font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all disabled:opacity-40 cursor-pointer"
+        >
+          <Trash2 size={10} />
+        </button>
+        <button
+          type="button"
+          disabled={status === "saving"}
+          onClick={handleGuardar}
+          className="flex items-center gap-1 px-3 py-1 rounded-lg text-micro font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50"
+        >
+          <Save size={10} /> Guardar
+        </button>
+      </div>
+      <button
+        type="button"
+        onClick={onCerrar}
+        title="Cerrar (Esc)"
+        className="shrink-0 p-1.5 rounded-lg text-primary/40 hover:text-primary hover:bg-primary/8 transition-colors cursor-pointer"
+      >
+        <X size={16} />
+      </button>
+    </div>
+  );
+}
+
+function ErrorBanner({ texto }: { texto: string }) {
+  return (
+    <p className="text-micro text-red-500/80 bg-red-500/5 border border-red-500/15 rounded-md px-2 py-1.5">
+      {texto}
+    </p>
+  );
+}
+
+function NotasField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <div>
+      <p className="text-micro font-black uppercase tracking-widest text-primary/30 mb-1">Notas</p>
+      <textarea
+        className="w-full min-h-[4rem] bg-transparent px-0 py-1 text-primary/70 resize-none outline-none placeholder:text-primary/25"
+        placeholder="Notas…"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      />
+    </div>
+  );
+}
+
+function NotaReutilizable() {
+  return (
+    <p className="text-micro text-primary/25 italic">
+      Reutilizable: se puede vincular a varios Órganos desde el botón &quot;Usar existente&quot;
+      en la fórmula de cada Órgano.
+    </p>
+  );
+}

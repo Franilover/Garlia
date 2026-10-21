@@ -1,0 +1,729 @@
+"use client";
+
+/**
+ * ElementoEditor.tsx
+ * ───────────────────────────────────────────────────────────────────────────
+ * Detalle editable de un Elemento: número atómico, nombre, símbolo, familia,
+ * noble sí/no, notas, y las 3 capas (núcleo/media/externa) — cada una con
+ * un input numérico por tipo de partícula (0 = no aparece en la capa).
+ *
+ * Guardado con debounce simple al perder foco (blur) / al cambiar selects,
+ * mismo criterio que el resto de editores del panel admin: update directo
+ * a Supabase + propagación al estado del padre via onActualizar.
+ */
+
+import { Atom, Beaker, ChevronLeft, Package, UserRound } from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
+
+import { supabase } from "@/infra/supabase/supabase";
+import { useConfirm } from "@/ui/ConfirmModal";
+
+import { EditorHeaderBar } from "../_shared/EditorHeaderBar";
+import { usePublishHeaderControls, type OnHeaderControlsChange } from "../_shared/useEditorHeaderControls";
+import { type SaveStatus } from "@/ui/saveStatus";
+
+import { InfoFormulasPopover } from "./InfoFormulasPopover";
+import { TarjetaPropiedadesFisicas } from "../_shared/GridPropiedadesCalculadas";
+import {
+  fusionarInterpretaciones,
+  renombrarClaves,
+  useInterpretacionEscritor,
+} from "../_shared/useInterpretacionEscritor";
+
+/** Renombres de columna conocidos para Elemento: la vista de
+ *  interpretaciones (`v_frontend_escritor_propiedades_interpretadas`) usa
+ *  nombres cortos (`masa`, `volumen`, `carga_neta`), mientras que
+ *  propiedadesCalculadasDeElemento arma sus tarjetas con el nombre de
+ *  columna interno de la tabla `elementos` (`masa_base`, `volumen_base`,
+ *  `carga_q`) — misma correspondencia que ya usaba el camino legado
+ *  (ALIAS_CLAVE_HUMANA_ELEMENTO en elementos/types.ts, dirección
+ *  clave-interna→clave-vista; acá va invertida: clave-vista→clave-tarjeta,
+ *  que es lo que espera renombrarClaves). FE-018: reemplaza a
+ *  ALIAS_ELEMENTO (antes centralizado en useInterpretacionEscritor.ts).
+ *
+ *  BUGFIX: la versión anterior de este mapa solo traía `carga_neta` y
+ *  daba por sentado (incorrectamente) que `masa`/`volumen` de la vista ya
+ *  coincidían con `masa_base`/`volumen_base` de la tarjeta — por eso
+ *  Elemento no mostraba nada en modo Escritor: casi ninguna clave hacía
+ *  match. */
+const ALIAS_ELEMENTO: Record<string, string> = {
+  masa: "masa_base",
+  volumen: "volumen_base",
+  carga_neta: "carga_q",
+};
+import { ParticulaVisual } from "../fisica/ParticulaVisual";
+
+import {
+  calcularParticulaDominante,
+  calcularReactividadElemento,
+} from "./afinidad";
+import {
+  LAYER_LABEL,
+  LAYER_PARTICLES,
+  PARTICLE_TYPES,
+  capacidadExterna,
+  layerTotal,
+  propiedadesCalculadasDeElemento,
+  resumenHumanoDeElemento,
+  type Compuesto,
+  type Elemento,
+  type LayerName,
+  type ParticleMap,
+  type ParticleType,
+  type PropiedadCalculada,
+} from "./types";
+import { useParticulas } from "../fisica/useFisica";
+import { useElementoSitiosEnlace, type ElementoSitioEnlace } from "./useElementoSitiosEnlace";
+import type { ModoPresentacion } from "../_shared/useContratoPresentacion";
+
+interface Props {
+  elemento: Elemento;
+  todosLosElementos?: Elemento[];
+  onBack: () => void;
+  onActualizar: (id: string, cambios: Partial<Elemento>) => void;
+  onEliminar?: (id: string) => void;
+  /** Publica los controles de header (nombre, símbolo, guardar, eliminar)
+   *  hacia el contenedor (ElementoPanelFlotante), que los renderiza en su
+   *  propia barra para evitar la barra duplicada. Si no se pasa, este
+   *  editor sigue mostrando su propia barra (uso standalone). */
+  onHeaderControlsChange?: OnHeaderControlsChange;
+  /** Catálogo de compuestos — usado para calcular compuestosQueLoUsan
+   *  (columna "Usado en compuestos" del cuerpo). El breadcrumb de 4
+   *  niveles vive en ElementoPanelFlotante, no acá. */
+  compuestos?: Compuesto[];
+  /** Ya no se invoca desde este archivo: el salto Elemento→Compuesto vive
+   *  en el breadcrumb de ElementoPanelFlotante (que ya tiene su propio
+   *  callback para eso), no en el breadcrumb interno que este editor tenía
+   *  antes. Se deja declarada por compatibilidad de firma con el caller. */
+  onNavigateCompuesto?: (compuestoId: string) => void;
+}
+
+export function ElementoEditor({
+  elemento,
+  todosLosElementos,
+  onBack,
+  onActualizar,
+  onEliminar,
+  onHeaderControlsChange,
+  compuestos,
+  onNavigateCompuesto,
+}: Props) {
+  const { confirm, ConfirmModal } = useConfirm();
+  const [saving, setSaving] = useState(false);
+  const [local, setLocal] = useState(elemento);
+  // Toggle "Científico ↔ Escritor" del header — mismo patrón que
+  // CompuestoEditor: alterna cómo se muestran las propiedades físicas
+  // (valor técnico vs. nivel + explicación en lenguaje llano), sin
+  // recalcular nada. La capa humana viene del contrato canónico de
+  // Supabase (v_frontend_escritor_propiedades_interpretadas, ver
+  // useInterpretacionEscritor) y solo se consulta en modo "escritor". Los
+  // valores del estado son los del contrato de presentación
+  // (ModoPresentacion: "cientifico" | "escritor", FE-018).
+  const [modoVista, setModoVista] = useState<ModoPresentacion>("cientifico");
+
+  useEffect(() => setLocal(elemento), [elemento]);
+
+  // Estado Noble (sección 3.2): la capa externa debe estar 100% saturada
+  // para que "es_noble" sea coherente con la regla de bloqueo de enlaces.
+  // Ya no es un toggle manual: se deriva 100% de las partículas — si la
+  // capa externa está saturada, el elemento ES Noble, sin excepción.
+  const totalExterna = useMemo(() => layerTotal(local.externa), [local.externa]);
+  const capacidadTotalExterna = useMemo(
+    () => capacidadExterna(local.numero_atomico),
+    [local.numero_atomico],
+  );
+  const esNobleDerivado = capacidadTotalExterna > 0 && totalExterna === capacidadTotalExterna;
+
+  // Mantiene local.es_noble sincronizado con el derivado y lo persiste
+  // apenas cambia (ej. al completar o vaciar la capa externa), sin que el
+  // usuario tenga que tocar nada — reemplaza al toggle manual de antes.
+  useEffect(() => {
+    if (local.es_noble === esNobleDerivado) return;
+    setLocal((prev) => ({ ...prev, es_noble: esNobleDerivado }));
+    persist({ es_noble: esNobleDerivado });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [esNobleDerivado]);
+
+  async function persist(cambios: Partial<Elemento>) {
+    setSaving(true);
+    try {
+      const { error } = await supabase.from("elementos").update(cambios).eq("id", elemento.id);
+      if (error) throw error;
+      onActualizar(elemento.id, cambios);
+    } catch (e) {
+      console.error("[ElementoEditor] error guardando:", e);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function setLayerValue(layer: LayerName, particle: string, value: number) {
+    const current: ParticleMap = { ...(local[layer] || {}) };
+    if (value > 0) current[particle as keyof ParticleMap] = value;
+    else delete current[particle as keyof ParticleMap];
+    setLocal((prev) => ({ ...prev, [layer]: current }));
+  }
+
+  // Partícula(s) dominante(s): la(s) de mayor cantidad sumando las 3 capas.
+  const dominantes = useMemo(() => calcularParticulaDominante(local), [local]);
+
+  // Reactividad ("energía de activación"): cuánto déficit acumulado tiene
+  // el elemento solo — mismo cálculo que para compuestos, aplicado a un
+  // elemento suelto (ver calcularReactividadElemento en afinidad.ts).
+  const reactividad = useMemo(() => calcularReactividadElemento(local), [local]);
+
+  // Propiedades físicas calculadas por Supabase (masa, estabilidad, rigidez,
+  // dureza, etc.) — puramente de lectura, ver propiedadesCalculadasDeElemento.
+  // Capa humana (modo Escritor) desde el motor de Supabase; sin umbrales ni
+  // textos propios acá. Elemento hoy solo trae masa/estabilidad/rigidez/
+  // flexibilidad como valor_mostrable (volumen aún no está resuelto).
+  const { interpretaciones: interpretacionesCrudas } = useInterpretacionEscritor(
+    "elemento",
+    elemento.id,
+    modoVista === "escritor",
+  );
+  const interpretaciones = useMemo(
+    () => renombrarClaves(interpretacionesCrudas, ALIAS_ELEMENTO),
+    [interpretacionesCrudas],
+  );
+  const propiedadesFisicas = useMemo(
+    () =>
+      // FE-018 fix: fusionarInterpretaciones oculta propiedades sin
+      // interpretación válida — correcto solo en modo Escritor. En modo
+      // científico `interpretaciones` está vacío a propósito (hook
+      // desactivado arriba); fusionar ahí ocultaba toda la lista técnica.
+      modoVista === "escritor"
+        ? fusionarInterpretaciones(propiedadesCalculadasDeElemento(local), interpretaciones)
+        : propiedadesCalculadasDeElemento(local),
+    [local, interpretaciones, modoVista],
+  );
+  const { items: sitiosEnlace, loading: sitiosLoading } = useElementoSitiosEnlace(elemento.id);
+
+  // Compuestos donde se usa este elemento — para la columna junto a Notas.
+  const compuestosQueLoUsan = useMemo(
+    () =>
+      (compuestos ?? []).filter((c) =>
+        (c.componentes ?? []).some((comp) => comp.elemento_id === elemento.id),
+      ),
+    [compuestos, elemento.id],
+  );
+
+  async function handleEliminar() {
+    if (!onEliminar) return;
+    const ok = await confirm({
+      title: "Eliminar elemento",
+      message: `¿Eliminar "${local.nombre}" de la tabla? Esta acción no se puede deshacer.`,
+    });
+    if (ok) onEliminar(elemento.id);
+  }
+
+  function handleGuardar() {
+    persist({
+      nombre: local.nombre,
+      simbolo: local.simbolo,
+      familia: local.familia,
+      es_noble: local.es_noble,
+      es_catalizador: local.es_catalizador,
+      notas: local.notas,
+      nucleo: local.nucleo,
+      media: local.media,
+      externa: local.externa,
+    });
+  }
+
+  const status: SaveStatus = saving ? "saving" : "idle";
+
+  const headerControls = {
+    prefix: (
+      <>
+        <button
+          type="button"
+          onClick={onBack}
+          className="shrink-0 flex items-center justify-center w-6 h-6 rounded-md border border-primary/15 text-primary/40 hover:text-primary hover:border-primary/35 hover:bg-primary/5 transition-all cursor-pointer"
+        >
+          <ChevronLeft size={12} />
+        </button>
+        <span className="shrink-0 text-micro font-black uppercase tracking-widest text-primary/30 px-1.5 py-0.5 rounded border border-primary/15">
+          #{local.numero_atomico}
+        </span>
+      </>
+    ),
+    nombre: local.nombre ?? "",
+    placeholderNombre: "Nombre del elemento",
+    onChangeNombre: (nombre: string) => setLocal((p) => ({ ...p, nombre })),
+    onBlurNombre: () => persist({ nombre: local.nombre }),
+    status,
+    onGuardar: handleGuardar,
+    onEliminar: handleEliminar,
+    extra: (
+      <>
+        <input
+          value={local.simbolo ?? ""}
+          onChange={(e) => setLocal((p) => ({ ...p, simbolo: e.target.value }))}
+          onBlur={() => persist({ simbolo: local.simbolo })}
+          placeholder="Sm"
+          maxLength={3}
+          className="shrink-0 w-10 text-center bg-primary/5 rounded-md px-1 py-0.5 text-micro font-black text-primary outline-none placeholder:text-primary/25 border border-primary/10"
+        />
+        <button
+          type="button"
+          onClick={() => setModoVista((m) => (m === "cientifico" ? "escritor" : "cientifico"))}
+          title={
+            modoVista === "cientifico"
+              ? "Ver explicación en lenguaje llano de las propiedades"
+              : "Ver valores y fórmulas técnicas"
+          }
+          aria-pressed={modoVista === "escritor"}
+          className={`shrink-0 flex items-center gap-1 px-2 h-6 rounded-md border text-micro font-black uppercase tracking-widest transition-all cursor-pointer ${
+            modoVista === "escritor"
+              ? "border-accent/40 bg-accent/10 text-accent"
+              : "border-primary/15 text-primary/40 hover:text-primary hover:border-primary/35 hover:bg-primary/5"
+          }`}
+        >
+          {modoVista === "escritor" ? <UserRound size={11} /> : <Beaker size={11} />}
+          <span className="hidden sm:inline">{modoVista === "escritor" ? "Escritor" : "Científico"}</span>
+        </button>
+      </>
+    ),
+  };
+
+  usePublishHeaderControls(headerControls, onHeaderControlsChange);
+
+  return (
+    <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+      <ConfirmModal />
+      {!onHeaderControlsChange && <EditorHeaderBar controls={headerControls} />}
+
+      {/* El breadcrumb Elemento › Compuesto que vivía acá se quitó: quedaba
+          duplicado con el de 4 niveles (Elemento › Compuesto › Materiales ›
+          Objetos) que ya dibuja ElementoPanelFlotante, único caller de
+          este editor (ver ElementosPage.tsx) — se veían dos barras
+          apiladas, una vieja y una nueva. compuestosQueLoUsan sigue
+          calculándose más abajo, usado por la columna "Usado en
+          compuestos" del cuerpo; no se tocó esa parte. */}
+
+      {/* Body */}
+      <div className="flex-1 min-h-0 p-2.5 flex flex-col gap-3 overflow-y-auto overflow-x-hidden">
+        {/* Propiedades físicas + Sitios de enlace (izquierda, apiladas) +
+            Núcleo/Media/Externa apiladas verticalmente + átomo gráfico
+            (derecha) — 2 columnas. Reemplaza al bloque de selectores
+            (N° atómico, Familia, Noble, Catalizador) que vivía acá: Noble
+            y Catalizador ya se editan/derivan en otro lado, y N° atómico/
+            Familia son metadatos de catálogo, no algo que se ajuste
+            seguido comparado con las partículas de las 3 capas. */}
+        <div className="grid grid-cols-1 md:grid-cols-[0.85fr_1.3fr] gap-3 items-start">
+          <div className="flex flex-col gap-2 min-w-0">
+            <PropiedadesFisicasBloque
+              propiedades={propiedadesFisicas}
+              modo={modoVista}
+              resumenHumano={resumenHumanoDeElemento(local)}
+            />
+            <SitiosEnlaceBloque sitios={sitiosEnlace} loading={sitiosLoading} />
+          </div>
+
+          {/* Columna derecha: título con ratio deficit/capacidad +
+              partículas dominantes, luego 2 mini-columnas — Núcleo/Media/
+              Externa apiladas (izquierda) y el átomo visual (derecha). */}
+          <div className="flex flex-col gap-1.5 min-w-0">
+            <div className="flex items-center justify-end">
+              <div className="flex items-center gap-1.5">
+                <span
+                  title="Déficit acumulado sobre la capacidad total de las 3 capas"
+                  className="text-micro font-black tabular-nums text-primary/40"
+                >
+                  {reactividad.deficitTotal}/{reactividad.capacidadTotal}
+                </span>
+                {dominantes.length > 0 && (
+                  <span
+                    title="Partícula(s) dominante(s)"
+                    className="text-micro font-bold text-primary/60 bg-primary/5 rounded px-1.5 py-0.5"
+                  >
+                    {dominantes.map((d) => d.particula).join(" / ")}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-[auto_13.5rem] gap-2 items-stretch justify-start">
+              {/* Visualización tipo átomo real: núcleo + capas orbitales,
+                  con las partículas propias del mundo (Masa, Cinética,
+                  Voluntad…) en vez de protones/neutrones/electrones
+                  genéricos. Va primero (izquierda) para que la barra
+                  vertical de partículas quede a la derecha del gráfico.
+                  Columna "auto" (no "1fr"): el gráfico es cuadrado y se ata
+                  a la altura de la pila de partículas de al lado
+                  (aspect-square h-full, por defecto en AtomoVisual sin
+                  className angosto). */}
+              <AtomoVisual
+                elemento={local}
+                className="w-full aspect-square h-auto max-w-[16rem] mx-auto md:w-auto md:aspect-auto md:h-full md:max-w-none md:mx-0"
+              />
+
+              {/* Ancho fijo (13.5rem, ya no "minmax(6.5rem, auto)"): con 9
+                  partículas por capa (sistema TASI, 2026-09-12) una lista
+                  de 1 columna se volvía muy larga y el track "auto" sin
+                  techo empujaba el ancho del panel flotante, generando
+                  scroll horizontal. Cada capa ahora se pinta en grid 3×3
+                  (orden por columna: 1,4,7 / 2,5,8 / 3,6,9 — layout pedido
+                  explícitamente) para crecer en alto, no en ancho. */}
+              <div className="flex flex-col gap-2 shrink-0 w-full md:w-[13.5rem]">
+                {(["nucleo", "media", "externa"] as LayerName[]).map((layer, i) => (
+                  <div
+                    key={layer}
+                    className="flex flex-col gap-1.5 p-1.5 rounded-lg border border-primary/10"
+                  >
+                    <span className="text-[9px] font-black uppercase tracking-[0.05em] text-primary/40 text-center whitespace-nowrap">
+                      {LAYER_LABEL[layer]}
+                    </span>
+                    <div className="border-t border-primary/10" />
+                    {/* grid-flow-col: llena columna por columna (1,4,7 en
+                        la 1ª columna, 2,5,8 en la 2ª, 3,6,9 en la 3ª) —
+                        3 filas × 3 columnas, en vez de 1 columna de 9. */}
+                    <div className="grid grid-cols-3 grid-flow-col grid-rows-3 gap-x-1.5 gap-y-1">
+                      {LAYER_PARTICLES[layer].map((particle) => {
+                        const value = local[layer]?.[particle] ?? 0;
+                        return (
+                          <div
+                            key={particle}
+                            className="flex items-center justify-between gap-1 px-1 py-1 min-w-0"
+                            title={particle}
+                          >
+                            <span className="text-xs font-bold text-primary/60 truncate">
+                              {particle}
+                            </span>
+                            <input
+                              type="number"
+                              min={0}
+                              value={value}
+                              onChange={(e) =>
+                                setLayerValue(layer, particle, Math.max(0, Number(e.target.value)))
+                              }
+                              onBlur={() => persist({ [layer]: local[layer] } as Partial<Elemento>)}
+                              className="w-5 shrink-0 text-center bg-transparent text-sm font-black text-primary outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Sitios de enlace del elemento (tabla "elemento_sitios_enlace"): agrupa
+ * sitios idénticos (mismo tipo+geometría+afinidad+capacidad+selectividad,
+ * que es lo usual — ver useElementoSitiosEnlace) en una sola fila con un
+ * contador "×N", en vez de repetir la fila por cada numero_sitio. Solo
+ * lectura, mismo criterio derivado que PropiedadesFisicasBloque.
+ */
+function SitiosEnlaceBloque({
+  sitios,
+  loading,
+}: {
+  sitios: ElementoSitioEnlace[];
+  loading: boolean;
+}) {
+  const grupos = useMemo(() => {
+    const mapa = new Map<string, { sitio: ElementoSitioEnlace; cantidad: number }>();
+    for (const s of sitios) {
+      const clave = [
+        s.tipo,
+        s.geometria_clave,
+        s.afinidad,
+        s.capacidad,
+        s.selectividad,
+        s.saturacion,
+        s.estado,
+      ].join("|");
+      const existente = mapa.get(clave);
+      if (existente) existente.cantidad += 1;
+      else mapa.set(clave, { sitio: s, cantidad: 1 });
+    }
+    return Array.from(mapa.values());
+  }, [sitios]);
+
+  if (loading || grupos.length === 0) return null;
+
+  const fmt = (v: number | null) => (v === null ? "—" : v.toFixed(2));
+
+  // Fórmulas de sitio (ver elemento_propiedad_reglas en Supabase): cada
+  // campo de un sitio de enlace se hereda directamente de una propiedad ya
+  // calculada del elemento — no son valores nuevos e independientes, así
+  // que el popover explica esa herencia en vez de una fórmula desde cero.
+  const PROPIEDADES_SITIO: PropiedadCalculada[] = [
+    { clave: "sitio_afinidad", label: "Afinidad", valor: "—", descripcion: "Qué tan bien conecta el sitio con otros.", formula: "Afinidad = (afinidad de enlace + interacción del elemento) / 2" },
+    { clave: "sitio_capacidad", label: "Capacidad", valor: "—", descripcion: "Cuánto puede sostener el sitio.", formula: "Capacidad = capacidad de enlace del elemento" },
+    { clave: "sitio_selectividad", label: "Selectividad", valor: "—", descripcion: "Qué tan exigente es el sitio al aceptar enlaces.", formula: "Selectividad = selectividad de enlace del elemento" },
+    { clave: "sitio_saturacion", label: "Saturación", valor: "—", descripcion: "Qué tan ocupado está el sitio.", formula: "Saturación = enlaces usados en este sitio / capacidad del sitio" },
+  ];
+
+  return (
+    <div className="flex flex-col gap-1.5 p-2">
+      <div className="flex items-center gap-1.5">
+        <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
+          Sitios de enlace
+        </span>
+        <InfoFormulasPopover propiedades={PROPIEDADES_SITIO} />
+      </div>
+      <div className="flex flex-col gap-1">
+        {grupos.map(({ sitio, cantidad }, i) => (
+          <div
+            key={i}
+            className="flex flex-col gap-0.5 rounded-md border border-primary/10 px-2 py-1"
+          >
+            <div className="flex items-center gap-1.5">
+              <span className="text-micro font-black text-primary/60 shrink-0">×{cantidad}</span>
+              <span className="text-micro font-bold text-primary/70 truncate capitalize">
+                {sitio.tipo}
+                {sitio.geometria_clave && (
+                  <span className="font-normal text-primary/40"> · {sitio.geometria_clave}</span>
+                )}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span title="Afinidad" className="text-micro tabular-nums text-primary/50">
+                af {fmt(sitio.afinidad)}
+              </span>
+              <span title="Capacidad" className="text-micro tabular-nums text-primary/50">
+                cap {fmt(sitio.capacidad)}
+              </span>
+              <span title="Selectividad" className="text-micro tabular-nums text-primary/50">
+                sel {fmt(sitio.selectividad)}
+              </span>
+              <span
+                title="Saturación"
+                className={`text-micro font-bold tabular-nums ${
+                  (sitio.saturacion ?? 0) > 0 ? "text-primary/70" : "text-primary/30"
+                }`}
+              >
+                sat {fmt(sitio.saturacion)}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Sección de solo lectura con las propiedades físicas que Supabase calcula
+ * automáticamente (trigger calcular_propiedades_elemento) a partir de las 3
+ * capas de partículas. Nunca editable desde acá — cambian solo si cambia la
+ * composición del elemento arriba. El título "derivado" + el ícono distinto
+ * marcan visualmente que no son campos manuales, mismo criterio pedido para
+ * Compuesto.
+ */
+function PropiedadesFisicasBloque({
+  propiedades,
+  modo = "cientifico",
+  resumenHumano,
+}: {
+  propiedades: PropiedadCalculada[];
+  /** "cientifico" (default): valor + fórmula técnica, como siempre. "escritor":
+   *  nivel + explicación en lenguaje llano — ver botón Científico ↔
+   *  Escritor en el header de ElementoEditor, mismo patrón que
+   *  CompuestoEditor. */
+  modo?: ModoPresentacion;
+  /** Frase de propiedades_emergentes.humano.resumen — se muestra arriba de
+   *  la grilla solo en modo Humana. Null si el elemento no tiene capa
+   *  humana todavía. */
+  resumenHumano?: string | null;
+}) {
+  // columnas=3 (antes 2): con las columnas de carga/catálisis/transición por
+  // capa + ocupación externa sumadas (ver auditoría 2026-08-30), la lista
+  // pasó de 21 a 41 propiedades — 2 columnas dejaba una sola tira vertical
+  // larguísima. 3 reparte mejor sin apretar tanto como las 5 de Compuesto
+  // (que tiene menos texto por etiqueta).
+  return (
+    <div className="flex flex-col gap-2">
+      {modo === "escritor" && resumenHumano && (
+        <p className="text-micro leading-relaxed text-primary/60 bg-accent/5 border border-accent/15 rounded-md px-2.5 py-2">
+          {resumenHumano}
+        </p>
+      )}
+      <TarjetaPropiedadesFisicas propiedades={propiedades} columnas={3} modo={modo} />
+    </div>
+  );
+}
+
+// ─── Visualización tipo átomo real ──────────────────────────────────────
+// Núcleo central con las partículas de la capa "nucleo" (equivalente a
+// protones/neutrones) y dos anillos orbitales para "media" y "externa"
+// (equivalente a las capas de electrones), cada uno con las partículas
+// propias del mundo (Masa, Cinética, Voluntad, etc.) girando alrededor en
+// vez de electrones genéricos.
+//
+// Cada partícula se dibuja reusando ParticulaVisual (fisica/ParticulaVisual)
+// tal cual — el mismo componente que usa el visor de Física y IumVisual —
+// en vez de una copia propia de sectores/colores. Así el diseño (trazo,
+// tipografía, paleta sepia) se edita en un solo lugar y queda idéntico en
+// Elementos, Compuestos, Partículas e Iums.
+
+/** Une todas las ocurrencias de una capa en una lista plana de partículas
+ * individuales (ej. {Masa: 2} → ["Masa", "Masa"]) para poder distribuirlas
+ * una por una alrededor de una órbita. */
+function particulasDeCapa(layer: ParticleMap | null | undefined): ParticleType[] {
+  if (!layer) return [];
+  const out: ParticleType[] = [];
+  for (const tipo of PARTICLE_TYPES) {
+    const n = layer[tipo] ?? 0;
+    for (let i = 0; i < n; i++) out.push(tipo);
+  }
+  return out;
+}
+
+/**
+ * Perfil mínimo que necesita AtomoVisual: las 3 capas como ParticleMap.
+ * Tanto Elemento como el PerfilAtomico calculado de un Compuesto (suma de
+ * partículas de todos sus elementos componentes) cumplen esta forma, por
+ * eso el mismo dibujo sirve para ambos sin duplicar el SVG.
+ */
+export interface PerfilConCapas {
+  nucleo?: ParticleMap | null;
+  media?: ParticleMap | null;
+  externa?: ParticleMap | null;
+}
+
+export function AtomoVisual({
+  elemento,
+  className,
+}: {
+  elemento: PerfilConCapas;
+  /** Clases del contenedor (tamaño/forma). Por defecto se comporta como
+   *  siempre — cuadrado atado a la altura del padre (h-full) — para no
+   *  romper el uso existente en ElementoEditor. Pasar algo como
+   *  "w-full aspect-square h-auto" cuando el padre es una columna angosta
+   *  y se quiere que la molécula use todo el ancho disponible en vez de
+   *  quedar chica por depender de una altura fija. */
+  className?: string;
+}) {
+  // El toggle letra/gráfico ("Aa"/"∆") se sacó a pedido: siempre se ve el
+  // gráfico (círculos de Partícula reales, vía ParticulaVisual).
+  const nucleares = useMemo(() => particulasDeCapa(elemento.nucleo), [elemento.nucleo]);
+  const capaMedia = useMemo(() => particulasDeCapa(elemento.media), [elemento.media]);
+  const capaExterna = useMemo(() => particulasDeCapa(elemento.externa), [elemento.externa]);
+
+  // Fórmula A/T/S real leída de la tabla "particulas" en Supabase (misma
+  // fuente que usa Física) en vez de una constante fija en el frontend —
+  // así el modo "ats" refleja siempre la convención vigente sin necesidad
+  // de tocar código cuando cambia en la base de datos.
+  const { items: particulasDb } = useParticulas();
+  const formulaPorNombre = useMemo(() => {
+    const out: Partial<Record<ParticleType, string>> = {};
+    for (const p of particulasDb) {
+      if (PARTICLE_TYPES.includes(p.nombre as ParticleType)) {
+        out[p.nombre as ParticleType] = p.formula;
+      }
+    }
+    return out;
+  }, [particulasDb]);
+
+  const size = 200;
+  const cx = size / 2;
+  const cy = size / 2;
+  const radios = { media: 48, externa: 82 };
+
+  // El núcleo no tiene radio de órbita fijo: a más partículas apiñadas,
+  // más chicas y más separadas del centro necesitan estar para no
+  // solaparse. Escala en base a la cantidad, con piso y techo para que
+  // ni quede gigante con 1 partícula ni ilegible con muchas.
+  const nucleoCount = Math.max(nucleares.length, 1);
+  const nucleoParticleRadius = Math.max(5, Math.min(11, 16 - nucleoCount * 0.7));
+  const nucleoOrbitRadius = nucleoCount === 1 ? 0 : Math.max(12, Math.min(26, 10 + nucleoCount * 1.6));
+
+  const particleRadius = { nucleo: nucleoParticleRadius, orbita: 10 };
+
+  function posicionEnOrbita(i: number, total: number, radio: number) {
+    const angulo = (i / Math.max(total, 1)) * Math.PI * 2 - Math.PI / 2;
+    return { x: cx + Math.cos(angulo) * radio, y: cy + Math.sin(angulo) * radio };
+  }
+
+  /** Dibuja el círculo de una partícula reusando ParticulaVisual (mismo
+   *  componente que Física/Iums) vía foreignObject, para que se vea
+   *  idéntica en todos lados — mismo trazo, misma paleta sepia, misma
+   *  tipografía — sin duplicar la lógica de sectores/colores acá. */
+  function contenidoParticula(particula: ParticleType, r: number) {
+    const formula = formulaPorNombre[particula] ?? "";
+    return (
+      <foreignObject x={-r} y={-r} width={r * 2} height={r * 2}>
+        <ParticulaVisual formula={formula} size={r * 2} />
+      </foreignObject>
+    );
+  }
+
+  return (
+    <div
+      className={`relative flex items-center justify-center p-2 ${
+        className ?? "shrink-0 aspect-square h-full"
+      }`}
+      title="Representación del átomo: núcleo + capas orbitales con las partículas propias del mundo"
+    >
+      <svg viewBox={`0 0 ${size} ${size}`} className="w-full h-full max-w-full max-h-full">
+        {/* Órbitas: solo el trazo, sin relleno */}
+        {(["media", "externa"] as const).map((layer) => (
+          <circle
+            key={layer}
+            cx={cx}
+            cy={cy}
+            r={radios[layer]}
+            fill="none"
+            style={{ stroke: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
+            strokeDasharray="2 4"
+            strokeWidth={1.5}
+          />
+        ))}
+
+        {/* Núcleo: partículas de la capa "nucleo" apiladas al centro */}
+        <g>
+          {nucleares.length === 0 ? (
+            <circle
+              cx={cx}
+              cy={cy}
+              r={particleRadius.nucleo}
+              style={{ fill: "color-mix(in srgb, var(--primary) 15%, transparent)" }}
+            />
+          ) : (
+            nucleares.map((particula, i) => {
+              const pos =
+                nucleares.length === 1
+                  ? { x: cx, y: cy }
+                  : posicionEnOrbita(i, nucleares.length, nucleoOrbitRadius);
+              return (
+                <g key={`${particula}-${i}`} transform={`translate(${pos.x}, ${pos.y})`}>
+                  <title>{particula}</title>
+                  {contenidoParticula(particula, particleRadius.nucleo)}
+                </g>
+              );
+            })
+          )}
+        </g>
+
+        {/* Capas orbitales: cada partícula distribuida a lo largo del anillo */}
+        {(
+          [
+            { layer: "media" as const, particulas: capaMedia, radio: radios.media },
+            { layer: "externa" as const, particulas: capaExterna, radio: radios.externa },
+          ]
+        ).map(({ layer, particulas, radio }) =>
+          particulas.map((particula, i) => {
+            const pos = posicionEnOrbita(i, particulas.length, radio);
+            return (
+              <g key={`${layer}-${particula}-${i}`} transform={`translate(${pos.x}, ${pos.y})`}>
+                <title>{particula}</title>
+                {contenidoParticula(particula, particleRadius.orbita)}
+              </g>
+            );
+          }),
+        )}
+      </svg>
+    </div>
+  );
+}

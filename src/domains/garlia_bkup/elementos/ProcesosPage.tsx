@@ -1,0 +1,2146 @@
+"use client";
+
+/**
+ * ProcesosPage.tsx
+ * ───────────────────────────────────────────────────────────────────────────
+ * Catálogo de Procesos (tabla "procesos"): antes solo lectura (pills +
+ * panel de detalle sin edición), ahora editor completo con el mismo patrón
+ * visual y de guardado que Elemento/Compuesto/Reacción — EditorHeaderBar +
+ * usePublishHeaderControls + useConfirm para eliminar.
+ *
+ * Un Proceso describe una receta entrada→transformación→salida en lenguaje
+ * natural (regla_clave/entrada/transformacion/salida/conservacion) y puede,
+ * opcionalmente, vincularse a una o más Reacciones concretas (tabla puente
+ * proceso_reacciones) — ver ReaccionesPage.tsx: Reacción es un concepto
+ * independiente, no una etapa obligatoria de Proceso.
+ */
+
+import { Activity, Atom, Beaker, Cpu, Loader2, Plus, Save, Trash2, X, Zap } from "lucide-react";
+import { createPortal } from "react-dom";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+
+import { TituloCategoria } from "../_shared/TituloCategoria";
+import { supabase } from "@/infra/supabase/supabase";
+import { useConfirm } from "@/ui/ConfirmModal";
+import { type SaveStatus } from "@/ui/saveStatus";
+
+import { EditorHeaderBar } from "../_shared/EditorHeaderBar";
+import { usePublishHeaderControls, type OnHeaderControlsChange } from "../_shared/useEditorHeaderControls";
+import { useSupabaseData } from "@/infra/sync/useSupabaseData";
+
+import { useProcesos } from "./useProcesos";
+import { useReacciones } from "./useReacciones";
+import { useElementos } from "./useElementos";
+import { useFenomenos } from "./useFenomenos";
+import { useOris } from "@/domains/garlia/fisica/useFisica";
+import type { Oris } from "@/domains/garlia/fisica/types";
+import { OrisEditor } from "@/domains/garlia/fisica/OrisEditor";
+import { iumAFilaIum, particulasDeIum, type Ium } from "@/domains/garlia/fisica/types";
+import { useIumsConParticulas } from "@/domains/garlia/fisica/useIumsConParticulas";
+import { useGeometriaIums } from "@/domains/garlia/fisica/useGeometriaIums";
+import { IumPanelFlotante } from "@/domains/garlia/fisica/FisicaPage";
+import { IumGlifo } from "@/domains/garlia/fisica/ParticulaVisual";
+import { ReaccionPanelFlotante } from "./ReaccionesPage";
+import { ElementoPanelFlotante } from "./ElementosPage";
+import { FenomenoPanelFlotante } from "./FenomenosPage";
+import {
+  vincularReaccionAProceso,
+  actualizarProcesoReaccion,
+  desvincularReaccionDeProceso,
+} from "./persistirProcesoReaccion";
+import { vincularOrisAProceso, desvincularOrisDeProceso } from "./persistirOrisProceso";
+import {
+  vincularElementoAProceso,
+  actualizarElementoProceso,
+  desvincularElementoDeProceso,
+} from "./persistirElementoProceso";
+import {
+  vincularFenomenoAProceso,
+  actualizarFenomenoProceso,
+  desvincularFenomenoDeProceso,
+} from "./persistirFenomenoProceso";
+import {
+  useProcesoConfiguracionIum,
+  type ProcesoConfiguracionIumFlujo,
+} from "./useProcesoConfiguracionIum";
+import {
+  CONFIG_ELEMENTO_PROCESOS,
+  CONFIG_FENOMENO_PROCESOS,
+  CONFIG_ORIS_PROCESOS,
+  CONFIG_PROCESO_REACCIONES,
+  type Elemento,
+  type ElementoProceso,
+  type Fenomeno,
+  type FenomenoProceso,
+  type OrisProceso,
+  type Proceso,
+  type ProcesoReaccion,
+  type Reaccion,
+} from "./types";
+
+const ESTADOS_FUNDAMENTO = ["definida", "en_revision", "estable", "obsoleta"] as const;
+
+/**
+ * Cuenta cuántas columnas de `minColWidth`px (+ `gap`px entre ellas) caben en
+ * el ancho actual del contenedor referenciado. Mismo helper que en
+ * MaterialesPage.tsx/EstructurasPage.tsx (biblioteca con columnas tipo
+ * mampostería) — replicado acá para que Procesos comparta el mismo diseño.
+ */
+function useResponsiveColumnCount(
+  ref: React.RefObject<HTMLElement | null>,
+  minColWidth: number,
+  gap: number,
+): number {
+  const [columnas, setColumnas] = useState(3);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    const calcular = (ancho: number) => {
+      const n = Math.max(1, Math.floor((ancho + gap) / (minColWidth + gap)));
+      setColumnas(n);
+    };
+
+    calcular(el.getBoundingClientRect().width);
+
+    const observer = new ResizeObserver((entries) => {
+      const ancho = entries[0]?.contentRect.width;
+      if (ancho != null) calcular(ancho);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [ref, minColWidth, gap]);
+
+  return columnas;
+}
+
+/**
+ * Reparte una lista de secciones en `numColumnas` columnas con un algoritmo
+ * greedy (cada sección va a la columna con menor "altura" acumulada) — evita
+ * los huecos grandes que dejaría CSS columns/grid auto-fit con grupos de
+ * tamaños dispares. Mismo helper que en MaterialesPage/EstructurasPage.
+ */
+function distribuirEnColumnas<T>(
+  secciones: T[],
+  numColumnas: number,
+  getPeso: (s: T) => number,
+): T[][] {
+  const columnas: T[][] = Array.from({ length: numColumnas }, () => []);
+  const alturas = new Array(numColumnas).fill(0);
+  const OVERHEAD = 2;
+
+  for (const seccion of secciones) {
+    let colMenor = 0;
+    for (let i = 1; i < numColumnas; i++) {
+      if (alturas[i] < alturas[colMenor]) colMenor = i;
+    }
+    columnas[colMenor].push(seccion);
+    alturas[colMenor] += getPeso(seccion) + OVERHEAD;
+  }
+
+  return columnas;
+}
+
+/**
+ * Agrupa los Procesos por `dominio_fisico` (rama física del fenómeno: térmico,
+ * mecánico, lumínico…). Si no tiene dominio_fisico asignado, cae en un grupo
+ * secundario por `naturaleza_canonica` (mecanismo/biológico/variante/resultado).
+ *
+ * IMPORTANTE — separación semántica (migración 2026-10-13):
+ *   • `procesos` son fenómenos físicos del mundo. Se agrupan por dominio_fisico.
+ *   • `conjuraciones` son hechizos que activan procesos vía Oris. Se agrupan
+ *     POR ORIS en su propia página — nunca acá.
+ *   • El campo `tipo` está obsoleto; no usar para agrupar. Ver documentacion_sistema.
+ */
+function agruparPorTipo(items: Proceso[]): { id: string; nombre: string; items: Proceso[] }[] {
+  const orden: string[] = [];
+  const mapa = new Map<string, Proceso[]>();
+  const sinDominio: Proceso[] = [];
+
+  for (const p of items) {
+    // Usar dominio_fisico; si no tiene, agrupar por naturaleza_canonica como fallback
+    const clave = p.dominio_fisico ?? null;
+    if (!clave) {
+      sinDominio.push(p);
+      continue;
+    }
+    if (!mapa.has(clave)) {
+      mapa.set(clave, []);
+      orden.push(clave);
+    }
+    mapa.get(clave)!.push(p);
+  }
+
+  const grupos = orden.map((clave) => ({
+    id: clave,
+    nombre: clave.charAt(0).toUpperCase() + clave.slice(1),
+    items: mapa.get(clave)!,
+  }));
+
+  // Los sin dominio_fisico se subdividen por naturaleza_canonica
+  if (sinDominio.length > 0) {
+    const porNaturaleza = new Map<string, Proceso[]>();
+    const ordenNaturaleza: string[] = [];
+    const sinNada: Proceso[] = [];
+
+    for (const p of sinDominio) {
+      const nat = p.naturaleza_canonica ?? null;
+      if (!nat) { sinNada.push(p); continue; }
+      if (!porNaturaleza.has(nat)) { porNaturaleza.set(nat, []); ordenNaturaleza.push(nat); }
+      porNaturaleza.get(nat)!.push(p);
+    }
+
+    for (const nat of ordenNaturaleza) {
+      grupos.push({
+        id: `__nat__${nat}`,
+        nombre: nat.charAt(0).toUpperCase() + nat.slice(1),
+        items: porNaturaleza.get(nat)!,
+      });
+    }
+    if (sinNada.length > 0) {
+      grupos.push({ id: "__sin-clasificar__", nombre: "Sin clasificar", items: sinNada });
+    }
+  }
+
+  return grupos;
+}
+
+/** Casilla de un Proceso en el grid tipo tabla periódica — mismo lenguaje
+ *  visual que ElementoCasilla/CompuestoCasilla/EstructuraCasilla (tarjeta de
+ *  grilla con bordes compartidos, sin fondo, sin rounded), en vez de la pill
+ *  suelta que tenía antes. Proceso no tiene un "símbolo" corto propio, así
+ *  que el nombre ocupa el lugar central, igual que en EstructuraCasilla. */
+function ProcesoCasilla({
+  proceso,
+  seleccionado,
+  onClick,
+}: {
+  proceso: Proceso;
+  seleccionado: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={proceso.nombre}
+      className={`group flex flex-col items-center justify-center gap-0.5 p-1.5 border-r border-b transition-colors text-center ${
+        seleccionado
+          ? "border-primary/10 bg-primary/10 ring-1 ring-inset ring-primary/40"
+          : "border-primary/10 hover:bg-primary/5"
+      }`}
+    >
+      <span className="text-sm font-black leading-tight text-primary/70 line-clamp-3">
+        {proceso.nombre}
+      </span>
+    </button>
+  );
+}
+
+/** Un grupo de Procesos (por "tipo") con su título y su grid — mismo patrón
+ *  que ChipGrupoEstructuras en EstructurasPage.tsx.
+ *
+ *  minmax(140px…) en vez de los 68px de Fenómenos/Materiales: Proceso usa
+ *  frases largas como nombre (ej. "Acumulación y Descarga de Energía"),
+ *  que a 68px quedaban cortadas incluso con line-clamp-2 — una casilla más
+ *  ancha les da lugar a esas frases sin achicar tanto el texto. */
+function ChipGrupoProcesos({
+  titulo,
+  items,
+  seleccionadoId,
+  onSeleccionar,
+}: {
+  titulo: string;
+  items: Proceso[];
+  seleccionadoId: string | null;
+  onSeleccionar: (id: string) => void;
+}) {
+  return (
+    <div className="flex flex-col">
+      <TituloCategoria titulo={titulo} total={items.length} />
+      <div
+        className="grid gap-0 border-t border-l border-primary/10"
+        style={{ gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))" }}
+      >
+        {items.map((proceso) => (
+          <ProcesoCasilla
+            key={proceso.id}
+            proceso={proceso}
+            seleccionado={proceso.id === seleccionadoId}
+            onClick={() => onSeleccionar(proceso.id)}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Sección de Reacciones vinculadas a este Proceso — editable: agregar una
+ * reacción existente del catálogo, editar su orden/rol dentro del proceso,
+ * o desvincularla. Mismo lenguaje visual que ComposicionRealBloque en
+ * CompuestosPage.tsx (fila + inputs con onBlur + botón agregar con select).
+ * Nunca crea ni edita la Reacción en sí — solo la fila puente.
+ */
+function ReaccionesVinculadasBloque({
+  procesoId,
+  reacciones,
+  onAbrirReaccion,
+}: {
+  procesoId: string;
+  reacciones: Reaccion[];
+  onAbrirReaccion?: (reaccionId: string) => void;
+}) {
+  const { confirm, ConfirmModal } = useConfirm();
+  const { data: vinculos, loading, refetch } = useSupabaseData<ProcesoReaccion>(
+    CONFIG_PROCESO_REACCIONES.tabla,
+    { select: CONFIG_PROCESO_REACCIONES.select, order: { campo: "orden" } },
+  );
+  const [guardandoId, setGuardandoId] = useState<string | null>(null);
+  const [agregando, setAgregando] = useState(false);
+  const [nuevaReaccionId, setNuevaReaccionId] = useState("");
+  const [nuevoRol, setNuevoRol] = useState("");
+
+  const vinculosDeEsteProceso = useMemo(
+    () => vinculos.filter((v) => v.proceso_id === procesoId),
+    [vinculos, procesoId],
+  );
+
+  const reaccionesDisponibles = useMemo(
+    () =>
+      reacciones.filter((r) => !vinculosDeEsteProceso.some((v) => v.reaccion_id === r.id)),
+    [reacciones, vinculosDeEsteProceso],
+  );
+
+  async function handleOrdenBlur(vinculoId: string, valor: string) {
+    const orden = valor.trim() === "" ? null : Number(valor);
+    if (orden !== null && !Number.isFinite(orden)) return;
+    setGuardandoId(vinculoId);
+    await actualizarProcesoReaccion(vinculoId, { orden });
+    setGuardandoId(null);
+    refetch();
+  }
+
+  async function handleRolBlur(vinculoId: string, rol: string) {
+    setGuardandoId(vinculoId);
+    await actualizarProcesoReaccion(vinculoId, { rol: rol.trim() || null });
+    setGuardandoId(null);
+    refetch();
+  }
+
+  async function handleQuitar(vinculoId: string, nombre: string) {
+    const ok = await confirm({
+      title: "Desvincular reacción",
+      message: `¿Desvincular "${nombre}" de este proceso? La reacción en sí no se elimina.`,
+    });
+    if (!ok) return;
+    setGuardandoId(vinculoId);
+    await desvincularReaccionDeProceso(vinculoId);
+    setGuardandoId(null);
+    refetch();
+  }
+
+  async function handleAgregar() {
+    if (!nuevaReaccionId) return;
+    setGuardandoId(nuevaReaccionId);
+    await vincularReaccionAProceso(procesoId, nuevaReaccionId, {
+      rol: nuevoRol.trim() || null,
+      orden: vinculosDeEsteProceso.length,
+    });
+    setGuardandoId(null);
+    setAgregando(false);
+    setNuevaReaccionId("");
+    setNuevoRol("");
+    refetch();
+  }
+
+  if (loading) return null;
+
+  return (
+    <div className="flex flex-col gap-1.5 min-w-0 p-2.5 rounded-lg border border-primary/10">
+      <ConfirmModal />
+      <div className="flex items-center gap-1.5">
+        <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
+          Reacciones
+        </span>
+        <button
+          type="button"
+          onClick={() => setAgregando((v) => !v)}
+          disabled={reaccionesDisponibles.length === 0}
+          title="Vincular una reacción existente"
+          className="shrink-0 flex items-center justify-center w-5 h-5 rounded border border-primary/15 text-primary/40 hover:text-primary hover:border-primary/35 hover:bg-primary/5 transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed ml-auto"
+        >
+          <Plus size={10} />
+        </button>
+      </div>
+
+      {agregando && (
+        <div className="flex flex-col gap-1 px-2 py-1.5 rounded-md border border-primary/10 bg-primary/5">
+          <select
+            value={nuevaReaccionId}
+            onChange={(e) => setNuevaReaccionId(e.target.value)}
+            className="bg-primary/5 rounded-md px-1.5 py-1 text-micro font-bold text-primary outline-none border border-primary/10 focus:border-primary/30"
+          >
+            <option value="">Elegir reacción…</option>
+            {reaccionesDisponibles.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.nombre || "(sin nombre)"}
+              </option>
+            ))}
+          </select>
+          <div className="flex items-center gap-1">
+            <input
+              value={nuevoRol}
+              onChange={(e) => setNuevoRol(e.target.value)}
+              placeholder="Rol (opcional)"
+              className="flex-1 bg-primary/5 rounded-md px-1.5 py-1 text-micro font-bold text-primary outline-none border border-primary/10 focus:border-primary/30 placeholder:text-primary/25"
+            />
+            <button
+              type="button"
+              onClick={handleAgregar}
+              disabled={!nuevaReaccionId || guardandoId === nuevaReaccionId}
+              className="shrink-0 flex items-center justify-center w-6 h-6 rounded-md border border-primary/15 text-primary/40 hover:text-primary hover:border-primary/35 hover:bg-primary/5 transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              {guardandoId === nuevaReaccionId ? (
+                <Loader2 size={11} className="animate-spin" />
+              ) : (
+                <Plus size={11} />
+              )}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {vinculosDeEsteProceso.length === 0 && !agregando ? (
+        <p className="py-1 text-micro text-primary/30">
+          Sin reacción asociada — no todo proceso tiene una, y eso no es un dato faltante.
+        </p>
+      ) : (
+        <div className="flex flex-col gap-1">
+          {vinculosDeEsteProceso.map((vinculo) => {
+            const reaccion = reacciones.find((r) => r.id === vinculo.reaccion_id);
+            const ocupado = guardandoId === vinculo.id;
+            return (
+              <div
+                key={vinculo.id}
+                className="flex flex-col gap-1 px-2 py-1.5 rounded-md border border-transparent hover:border-primary/10 hover:bg-primary/[0.03] transition-colors"
+              >
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    disabled={!onAbrirReaccion}
+                    onClick={() => reaccion && onAbrirReaccion?.(reaccion.id)}
+                    title={onAbrirReaccion ? "Ver/editar esta reacción" : undefined}
+                    className={`flex items-center gap-1 text-micro font-bold text-primary/70 truncate text-left ${
+                      onAbrirReaccion ? "cursor-pointer hover:underline hover:text-primary" : ""
+                    }`}
+                  >
+                    <Beaker size={10} className="text-primary/40 shrink-0" />
+                    {reaccion?.nombre ?? vinculo.reaccion_id.slice(0, 8)}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleQuitar(vinculo.id, reaccion?.nombre ?? vinculo.reaccion_id)}
+                    disabled={ocupado}
+                    title="Desvincular de este proceso"
+                    className="ml-auto shrink-0 flex items-center justify-center w-5 h-5 rounded text-primary/25 hover:text-red-400 transition-colors cursor-pointer disabled:opacity-30"
+                  >
+                    {ocupado ? <Loader2 size={10} className="animate-spin" /> : <Trash2 size={10} />}
+                  </button>
+                </div>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <input
+                    type="number"
+                    defaultValue={vinculo.orden ?? ""}
+                    key={`orden-${vinculo.id}-${vinculo.orden ?? ""}`}
+                    onBlur={(e) => handleOrdenBlur(vinculo.id, e.target.value)}
+                    disabled={ocupado}
+                    placeholder="#"
+                    title="Orden"
+                    className="w-10 bg-primary/5 rounded px-1.5 py-0.5 text-micro font-bold text-primary outline-none border border-primary/10 focus:border-primary/30 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                  />
+                  <input
+                    defaultValue={vinculo.rol ?? ""}
+                    key={`rol-${vinculo.id}-${vinculo.rol ?? ""}`}
+                    onBlur={(e) => handleRolBlur(vinculo.id, e.target.value)}
+                    disabled={ocupado}
+                    placeholder="Rol"
+                    title="Rol"
+                    className="flex-1 min-w-0 bg-primary/5 rounded px-1.5 py-0.5 text-micro font-bold text-primary outline-none border border-primary/10 focus:border-primary/30 placeholder:text-primary/25"
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Sección de Oris compatibles con este Proceso (spec sección 1/4/5/6/10):
+ * lee y escribe directo contra "oris_procesos" — sin listas hardcodeadas,
+ * sin arrays manuales por Oris. Genérico: el mismo componente sirve para
+ * la ficha del Proceso (filtrando por proceso_id, mostrando qué Oris) y,
+ * parametrizado al revés, para la ficha del Oris (filtrando por oris_id,
+ * mostrando qué Procesos) — ver CompatibleProcesses en fisica/OrisEditor.tsx,
+ * que reutiliza este mismo bloque en su modo "desde Oris".
+ *
+ * El "rol" ya no se muestra como badge individual: se usa para agrupar
+ * los vínculos en secciones (Principales/Secundarios/Compatibles/Otros,
+ * ver SECCIONES_ROL más abajo). La tarjeta de cada vínculo queda mínima
+ * — solo nombre y desvincular, sin prioridad, notas ni toggle activo,
+ * ver OrisVinculadoItem.
+ */
+function OrisCompatiblesBloque({
+  procesoId,
+  oris,
+  onAbrirOris,
+}: {
+  procesoId: string;
+  oris: Oris[];
+  onAbrirOris?: (orisId: string) => void;
+}) {
+  const { confirm, ConfirmModal } = useConfirm();
+  const { data: vinculos, loading, refetch } = useSupabaseData<OrisProceso>(
+    CONFIG_ORIS_PROCESOS.tabla,
+    { select: CONFIG_ORIS_PROCESOS.select, order: { campo: "prioridad" } },
+  );
+  const [guardandoId, setGuardandoId] = useState<string | null>(null);
+  const [agregando, setAgregando] = useState(false);
+  const [nuevoOrisId, setNuevoOrisId] = useState("");
+  const [nuevoRol, setNuevoRol] = useState("");
+
+  // Sección 6 del spec: un proceso puede aparecer vinculado a varios Oris —
+  // eso NUNCA significa que existan varios procesos. Este filtro solo
+  // determina qué filas puente mostrar acá; el catálogo de Procesos
+  // (agruparPorTipo/useProcesos) sigue trayendo cada proceso una única vez.
+  const vinculosDeEsteProceso = useMemo(
+    () => vinculos.filter((v) => v.proceso_id === procesoId),
+    [vinculos, procesoId],
+  );
+
+  const orisDisponibles = useMemo(
+    () => oris.filter((o) => !vinculosDeEsteProceso.some((v) => v.oris_id === o.id)),
+    [oris, vinculosDeEsteProceso],
+  );
+
+  // Agrupación por secciones según el texto libre de `rol` (ver placeholder
+  // del input de abajo: "principal, secundario, compatible") — mismo
+  // patrón que ProcesosCompatiblesBloque en fisica/OrisEditor.tsx. Un rol
+  // que no calce con esos tres términos, o vínculos sin rol, caen en
+  // "Otros" para no perder datos existentes.
+  const SECCIONES_ROL = [
+    { key: "principal", titulo: "Principales" },
+    { key: "secundario", titulo: "Secundarios" },
+    { key: "compatible", titulo: "Compatibles" },
+  ] as const;
+
+  const gruposPorRol = useMemo(() => {
+    const grupos: Record<string, OrisProceso[]> = {
+      principal: [],
+      secundario: [],
+      compatible: [],
+      otros: [],
+    };
+    for (const vinculo of vinculosDeEsteProceso) {
+      const rol = (vinculo.rol ?? "").trim().toLowerCase();
+      if (rol === "principal" || rol === "secundario" || rol === "compatible") {
+        grupos[rol].push(vinculo);
+      } else {
+        grupos.otros.push(vinculo);
+      }
+    }
+    return grupos;
+  }, [vinculosDeEsteProceso]);
+
+  async function handleQuitar(vinculoId: string, nombre: string) {
+    const ok = await confirm({
+      title: "Desvincular Oris",
+      message: `¿Desvincular "${nombre}" de este proceso? El Oris en sí no se elimina.`,
+    });
+    if (!ok) return;
+    setGuardandoId(vinculoId);
+    await desvincularOrisDeProceso(vinculoId);
+    setGuardandoId(null);
+    refetch();
+  }
+
+  async function handleAgregar() {
+    if (!nuevoOrisId) return;
+    setGuardandoId(nuevoOrisId);
+    await vincularOrisAProceso(nuevoOrisId, procesoId, {
+      rol: nuevoRol.trim() || null,
+      prioridad: vinculosDeEsteProceso.length,
+    });
+    setGuardandoId(null);
+    setAgregando(false);
+    setNuevoOrisId("");
+    setNuevoRol("");
+    refetch();
+  }
+
+  if (loading) return null;
+
+  return (
+    <div className="flex flex-col gap-1.5 min-w-0 p-2.5 rounded-lg border border-primary/10">
+      <ConfirmModal />
+      <div className="flex items-center gap-1.5">
+        <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
+          Oris compatibles
+        </span>
+        <button
+          type="button"
+          onClick={() => setAgregando((v) => !v)}
+          disabled={orisDisponibles.length === 0}
+          title="Vincular un Oris existente"
+          className="shrink-0 flex items-center justify-center w-5 h-5 rounded border border-primary/15 text-primary/40 hover:text-primary hover:border-primary/35 hover:bg-primary/5 transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed ml-auto"
+        >
+          <Plus size={10} />
+        </button>
+      </div>
+
+      {agregando && (
+        <div className="flex flex-col gap-1 px-2 py-1.5 rounded-md border border-primary/10 bg-primary/5">
+          <select
+            value={nuevoOrisId}
+            onChange={(e) => setNuevoOrisId(e.target.value)}
+            className="bg-primary/5 rounded-md px-1.5 py-1 text-micro font-bold text-primary outline-none border border-primary/10 focus:border-primary/30"
+          >
+            <option value="">Elegir Oris…</option>
+            {orisDisponibles.map((o) => (
+              <option key={o.id} value={o.id}>
+                {o.nombre || "(sin nombre)"}
+              </option>
+            ))}
+          </select>
+          <div className="flex items-center gap-1">
+            <input
+              value={nuevoRol}
+              onChange={(e) => setNuevoRol(e.target.value)}
+              placeholder="Rol (ej. principal, secundario, compatible)"
+              className="flex-1 bg-primary/5 rounded-md px-1.5 py-1 text-micro font-bold text-primary outline-none border border-primary/10 focus:border-primary/30 placeholder:text-primary/25"
+            />
+            <button
+              type="button"
+              onClick={handleAgregar}
+              disabled={!nuevoOrisId || guardandoId === nuevoOrisId}
+              className="shrink-0 flex items-center justify-center w-6 h-6 rounded-md border border-primary/15 text-primary/40 hover:text-primary hover:border-primary/35 hover:bg-primary/5 transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              {guardandoId === nuevoOrisId ? (
+                <Loader2 size={11} className="animate-spin" />
+              ) : (
+                <Plus size={11} />
+              )}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {vinculosDeEsteProceso.length === 0 && !agregando ? (
+        <p className="py-1 text-micro text-primary/30">
+          Sin información registrada — ningún Oris está vinculado a este proceso todavía.
+        </p>
+      ) : (
+        <div className="flex flex-col gap-2.5">
+          {SECCIONES_ROL.map(({ key, titulo }) =>
+            gruposPorRol[key].length > 0 ? (
+              <div key={key} className="flex flex-col gap-1">
+                <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/25">
+                  {titulo}
+                </span>
+                <div className="flex flex-col gap-1">
+                  {gruposPorRol[key].map((vinculo) => (
+                    <OrisVinculadoItem
+                      key={vinculo.id}
+                      vinculo={vinculo}
+                      orisRelacionado={oris.find((o) => o.id === vinculo.oris_id)}
+                      ocupado={guardandoId === vinculo.id}
+                      onAbrirOris={onAbrirOris}
+                      onQuitar={handleQuitar}
+                    />
+                  ))}
+                </div>
+              </div>
+            ) : null,
+          )}
+
+          {gruposPorRol.otros.length > 0 && (
+            <div className="flex flex-col gap-1">
+              <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/25">
+                Otros
+              </span>
+              <div className="flex flex-col gap-1">
+                {gruposPorRol.otros.map((vinculo) => (
+                  <OrisVinculadoItem
+                    key={vinculo.id}
+                    vinculo={vinculo}
+                    orisRelacionado={oris.find((o) => o.id === vinculo.oris_id)}
+                    ocupado={guardandoId === vinculo.id}
+                    onAbrirOris={onAbrirOris}
+                    onQuitar={handleQuitar}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Tarjeta individual de un Oris vinculado — solo el nombre y desvincular.
+ *  Sin prioridad, sin toggle activo/inactivo, sin notas: el agrupamiento
+ *  por secciones (ver SECCIONES_ROL más arriba) ya comunica la jerarquía
+ *  visualmente, y esto queda igual de minimalista que ProcesoVinculadoItem
+ *  en fisica/OrisEditor.tsx. */
+function OrisVinculadoItem({
+  vinculo,
+  orisRelacionado,
+  ocupado,
+  onAbrirOris,
+  onQuitar,
+}: {
+  vinculo: OrisProceso;
+  orisRelacionado: Oris | undefined;
+  ocupado: boolean;
+  onAbrirOris?: (orisId: string) => void;
+  onQuitar: (vinculoId: string, nombre: string) => void;
+}) {
+  return (
+    <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-md border border-transparent hover:border-primary/10 hover:bg-primary/[0.03] transition-colors">
+      <button
+        type="button"
+        disabled={!onAbrirOris}
+        onClick={() => orisRelacionado && onAbrirOris?.(orisRelacionado.id)}
+        title={onAbrirOris ? "Ver/editar este Oris" : undefined}
+        className={`min-w-0 flex-1 truncate text-left text-micro font-bold text-primary/70 ${
+          onAbrirOris ? "cursor-pointer hover:underline hover:text-primary" : ""
+        }`}
+      >
+        {orisRelacionado?.nombre ?? vinculo.oris_id.slice(0, 8)}
+      </button>
+
+      <button
+        type="button"
+        onClick={() => onQuitar(vinculo.id, orisRelacionado?.nombre ?? vinculo.oris_id)}
+        disabled={ocupado}
+        title="Desvincular de este proceso"
+        className="shrink-0 flex items-center justify-center w-5 h-5 rounded text-primary/25 hover:text-red-400 transition-colors cursor-pointer disabled:opacity-30"
+      >
+        {ocupado ? <Loader2 size={10} className="animate-spin" /> : <Trash2 size={10} />}
+      </button>
+    </div>
+  );
+}
+
+/**
+ * Sección de Elementos relacionados con este Proceso (spec sección 3:
+ * "relaciones con elementos"). Mismo patrón que OrisCompatiblesBloque,
+ * sobre la tabla puente "elemento_procesos" — rol libre (sin un enum
+ * fijo de roles como Oris↔Proceso, ver sección 5, que solo aplica a esa
+ * relación puntual).
+ */
+function ElementosRelacionadosBloque({
+  procesoId,
+  elementos,
+  onAbrirElemento,
+}: {
+  procesoId: string;
+  elementos: Elemento[];
+  onAbrirElemento?: (elementoId: string) => void;
+}) {
+  const { confirm, ConfirmModal } = useConfirm();
+  const { data: vinculos, loading, refetch } = useSupabaseData<ElementoProceso>(
+    CONFIG_ELEMENTO_PROCESOS.tabla,
+    { select: CONFIG_ELEMENTO_PROCESOS.select, order: { campo: "created_at" } },
+  );
+  const [guardandoId, setGuardandoId] = useState<string | null>(null);
+  const [agregando, setAgregando] = useState(false);
+  const [nuevoElementoId, setNuevoElementoId] = useState("");
+  const [nuevoRol, setNuevoRol] = useState("");
+
+  const vinculosDeEsteProceso = useMemo(
+    () => vinculos.filter((v) => v.proceso_id === procesoId),
+    [vinculos, procesoId],
+  );
+
+  const elementosDisponibles = useMemo(
+    () => elementos.filter((el) => !vinculosDeEsteProceso.some((v) => v.elemento_id === el.id)),
+    [elementos, vinculosDeEsteProceso],
+  );
+
+  async function handleRolBlur(vinculoId: string, rol: string) {
+    setGuardandoId(vinculoId);
+    await actualizarElementoProceso(vinculoId, { rol: rol.trim() || null });
+    setGuardandoId(null);
+    refetch();
+  }
+
+  async function handleQuitar(vinculoId: string, nombre: string) {
+    const ok = await confirm({
+      title: "Desvincular elemento",
+      message: `¿Desvincular "${nombre}" de este proceso? El elemento en sí no se elimina.`,
+    });
+    if (!ok) return;
+    setGuardandoId(vinculoId);
+    await desvincularElementoDeProceso(vinculoId);
+    setGuardandoId(null);
+    refetch();
+  }
+
+  async function handleAgregar() {
+    if (!nuevoElementoId) return;
+    setGuardandoId(nuevoElementoId);
+    await vincularElementoAProceso(procesoId, nuevoElementoId, { rol: nuevoRol.trim() || null });
+    setGuardandoId(null);
+    setAgregando(false);
+    setNuevoElementoId("");
+    setNuevoRol("");
+    refetch();
+  }
+
+  if (loading) return null;
+
+  return (
+    <div className="flex flex-col gap-1.5 min-w-0 p-2.5 rounded-lg border border-primary/10">
+      <ConfirmModal />
+      <div className="flex items-center gap-1.5">
+        <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
+          Elementos relacionados
+        </span>
+        <button
+          type="button"
+          onClick={() => setAgregando((v) => !v)}
+          disabled={elementosDisponibles.length === 0}
+          title="Vincular un elemento existente"
+          className="shrink-0 flex items-center justify-center w-5 h-5 rounded border border-primary/15 text-primary/40 hover:text-primary hover:border-primary/35 hover:bg-primary/5 transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed ml-auto"
+        >
+          <Plus size={10} />
+        </button>
+      </div>
+
+      {agregando && (
+        <div className="flex flex-col gap-1 px-2 py-1.5 rounded-md border border-primary/10 bg-primary/5">
+          <select
+            value={nuevoElementoId}
+            onChange={(e) => setNuevoElementoId(e.target.value)}
+            className="bg-primary/5 rounded-md px-1.5 py-1 text-micro font-bold text-primary outline-none border border-primary/10 focus:border-primary/30"
+          >
+            <option value="">Elegir elemento…</option>
+            {elementosDisponibles.map((el) => (
+              <option key={el.id} value={el.id}>
+                {el.nombre} ({el.simbolo})
+              </option>
+            ))}
+          </select>
+          <div className="flex items-center gap-1">
+            <input
+              value={nuevoRol}
+              onChange={(e) => setNuevoRol(e.target.value)}
+              placeholder="Rol (opcional)"
+              className="flex-1 bg-primary/5 rounded-md px-1.5 py-1 text-micro font-bold text-primary outline-none border border-primary/10 focus:border-primary/30 placeholder:text-primary/25"
+            />
+            <button
+              type="button"
+              onClick={handleAgregar}
+              disabled={!nuevoElementoId || guardandoId === nuevoElementoId}
+              className="shrink-0 flex items-center justify-center w-6 h-6 rounded-md border border-primary/15 text-primary/40 hover:text-primary hover:border-primary/35 hover:bg-primary/5 transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              {guardandoId === nuevoElementoId ? (
+                <Loader2 size={11} className="animate-spin" />
+              ) : (
+                <Plus size={11} />
+              )}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {vinculosDeEsteProceso.length === 0 && !agregando ? (
+        <p className="py-1 text-micro text-primary/30">Sin información registrada.</p>
+      ) : (
+        <div className="flex flex-col gap-1">
+          {vinculosDeEsteProceso.map((vinculo) => {
+            const elemento = elementos.find((el) => el.id === vinculo.elemento_id);
+            const ocupado = guardandoId === vinculo.id;
+            return (
+              <div
+                key={vinculo.id}
+                className="flex items-center gap-1.5 px-2 py-1.5 rounded-md border border-transparent hover:border-primary/10 hover:bg-primary/[0.03] transition-colors"
+              >
+                <Atom size={10} className="text-primary/40 shrink-0" />
+                <button
+                  type="button"
+                  disabled={!onAbrirElemento || !elemento}
+                  onClick={() => elemento && onAbrirElemento?.(elemento.id)}
+                  title={onAbrirElemento ? "Ver/editar este elemento" : undefined}
+                  className={`min-w-0 flex-1 truncate text-left text-micro font-bold text-primary/70 ${
+                    onAbrirElemento && elemento ? "cursor-pointer hover:underline hover:text-primary" : ""
+                  }`}
+                >
+                  {elemento ? `${elemento.nombre} (${elemento.simbolo})` : vinculo.elemento_id.slice(0, 8)}
+                </button>
+                <input
+                  defaultValue={vinculo.rol ?? ""}
+                  key={`rol-${vinculo.id}-${vinculo.rol ?? ""}`}
+                  onBlur={(e) => handleRolBlur(vinculo.id, e.target.value)}
+                  disabled={ocupado}
+                  placeholder="Rol"
+                  className="flex-1 min-w-0 bg-primary/5 rounded px-1.5 py-0.5 text-micro font-bold text-primary outline-none border border-primary/10 focus:border-primary/30 placeholder:text-primary/25"
+                />
+                <button
+                  type="button"
+                  onClick={() => handleQuitar(vinculo.id, elemento?.nombre ?? vinculo.elemento_id)}
+                  disabled={ocupado}
+                  title="Desvincular de este proceso"
+                  className="shrink-0 flex items-center justify-center w-5 h-5 rounded text-primary/25 hover:text-red-400 transition-colors cursor-pointer disabled:opacity-30"
+                >
+                  {ocupado ? <Loader2 size={10} className="animate-spin" /> : <Trash2 size={10} />}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Sección de Fenómenos relacionados con este Proceso (spec sección 3:
+ * "relaciones con fenómenos"). Mismo patrón que ElementosRelacionadosBloque,
+ * sobre la tabla puente "fenomeno_procesos".
+ */
+function FenomenosRelacionadosBloque({
+  procesoId,
+  fenomenos,
+  onAbrirFenomeno,
+}: {
+  procesoId: string;
+  fenomenos: Fenomeno[];
+  onAbrirFenomeno?: (fenomenoId: string) => void;
+}) {
+  const { confirm, ConfirmModal } = useConfirm();
+  const { data: vinculos, loading, refetch } = useSupabaseData<FenomenoProceso>(
+    CONFIG_FENOMENO_PROCESOS.tabla,
+    { select: CONFIG_FENOMENO_PROCESOS.select, order: { campo: "created_at" } },
+  );
+  const [guardandoId, setGuardandoId] = useState<string | null>(null);
+  const [agregando, setAgregando] = useState(false);
+  const [nuevoFenomenoId, setNuevoFenomenoId] = useState("");
+  const [nuevoRol, setNuevoRol] = useState("");
+
+  const vinculosDeEsteProceso = useMemo(
+    () => vinculos.filter((v) => v.proceso_id === procesoId),
+    [vinculos, procesoId],
+  );
+
+  const fenomenosDisponibles = useMemo(
+    () => fenomenos.filter((f) => !vinculosDeEsteProceso.some((v) => v.fenomeno_id === f.id)),
+    [fenomenos, vinculosDeEsteProceso],
+  );
+
+  async function handleRolBlur(vinculoId: string, rol: string) {
+    setGuardandoId(vinculoId);
+    await actualizarFenomenoProceso(vinculoId, { rol: rol.trim() || null });
+    setGuardandoId(null);
+    refetch();
+  }
+
+  async function handleQuitar(vinculoId: string, nombre: string) {
+    const ok = await confirm({
+      title: "Desvincular fenómeno",
+      message: `¿Desvincular "${nombre}" de este proceso? El fenómeno en sí no se elimina.`,
+    });
+    if (!ok) return;
+    setGuardandoId(vinculoId);
+    await desvincularFenomenoDeProceso(vinculoId);
+    setGuardandoId(null);
+    refetch();
+  }
+
+  async function handleAgregar() {
+    if (!nuevoFenomenoId) return;
+    setGuardandoId(nuevoFenomenoId);
+    await vincularFenomenoAProceso(procesoId, nuevoFenomenoId, { rol: nuevoRol.trim() || null });
+    setGuardandoId(null);
+    setAgregando(false);
+    setNuevoFenomenoId("");
+    setNuevoRol("");
+    refetch();
+  }
+
+  if (loading) return null;
+
+  return (
+    <div className="flex flex-col gap-1.5 min-w-0 p-2.5 rounded-lg border border-primary/10">
+      <ConfirmModal />
+      <div className="flex items-center gap-1.5">
+        <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
+          Fenómenos relacionados
+        </span>
+        <button
+          type="button"
+          onClick={() => setAgregando((v) => !v)}
+          disabled={fenomenosDisponibles.length === 0}
+          title="Vincular un fenómeno existente"
+          className="shrink-0 flex items-center justify-center w-5 h-5 rounded border border-primary/15 text-primary/40 hover:text-primary hover:border-primary/35 hover:bg-primary/5 transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed ml-auto"
+        >
+          <Plus size={10} />
+        </button>
+      </div>
+
+      {agregando && (
+        <div className="flex flex-col gap-1 px-2 py-1.5 rounded-md border border-primary/10 bg-primary/5">
+          <select
+            value={nuevoFenomenoId}
+            onChange={(e) => setNuevoFenomenoId(e.target.value)}
+            className="bg-primary/5 rounded-md px-1.5 py-1 text-micro font-bold text-primary outline-none border border-primary/10 focus:border-primary/30"
+          >
+            <option value="">Elegir fenómeno…</option>
+            {fenomenosDisponibles.map((f) => (
+              <option key={f.id} value={f.id}>
+                {f.nombre}
+              </option>
+            ))}
+          </select>
+          <div className="flex items-center gap-1">
+            <input
+              value={nuevoRol}
+              onChange={(e) => setNuevoRol(e.target.value)}
+              placeholder="Rol (opcional)"
+              className="flex-1 bg-primary/5 rounded-md px-1.5 py-1 text-micro font-bold text-primary outline-none border border-primary/10 focus:border-primary/30 placeholder:text-primary/25"
+            />
+            <button
+              type="button"
+              onClick={handleAgregar}
+              disabled={!nuevoFenomenoId || guardandoId === nuevoFenomenoId}
+              className="shrink-0 flex items-center justify-center w-6 h-6 rounded-md border border-primary/15 text-primary/40 hover:text-primary hover:border-primary/35 hover:bg-primary/5 transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              {guardandoId === nuevoFenomenoId ? (
+                <Loader2 size={11} className="animate-spin" />
+              ) : (
+                <Plus size={11} />
+              )}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {vinculosDeEsteProceso.length === 0 && !agregando ? (
+        <p className="py-1 text-micro text-primary/30">Sin información registrada.</p>
+      ) : (
+        <div className="flex flex-col gap-1">
+          {vinculosDeEsteProceso.map((vinculo) => {
+            const fenomeno = fenomenos.find((f) => f.id === vinculo.fenomeno_id);
+            const ocupado = guardandoId === vinculo.id;
+            return (
+              <div
+                key={vinculo.id}
+                className="flex items-center gap-1.5 px-2 py-1.5 rounded-md border border-transparent hover:border-primary/10 hover:bg-primary/[0.03] transition-colors"
+              >
+                <Zap size={10} className="text-primary/40 shrink-0" />
+                <button
+                  type="button"
+                  disabled={!onAbrirFenomeno || !fenomeno}
+                  onClick={() => fenomeno && onAbrirFenomeno?.(fenomeno.id)}
+                  title={onAbrirFenomeno ? "Ver/editar este fenómeno" : undefined}
+                  className={`min-w-0 flex-1 truncate text-left text-micro font-bold text-primary/70 ${
+                    onAbrirFenomeno && fenomeno ? "cursor-pointer hover:underline hover:text-primary" : ""
+                  }`}
+                >
+                  {fenomeno?.nombre ?? vinculo.fenomeno_id.slice(0, 8)}
+                </button>
+                <input
+                  defaultValue={vinculo.rol ?? ""}
+                  key={`rol-${vinculo.id}-${vinculo.rol ?? ""}`}
+                  onBlur={(e) => handleRolBlur(vinculo.id, e.target.value)}
+                  disabled={ocupado}
+                  placeholder="Rol"
+                  className="flex-1 min-w-0 bg-primary/5 rounded px-1.5 py-0.5 text-micro font-bold text-primary outline-none border border-primary/10 focus:border-primary/30 placeholder:text-primary/25"
+                />
+                <button
+                  type="button"
+                  onClick={() => handleQuitar(vinculo.id, fenomeno?.nombre ?? vinculo.fenomeno_id)}
+                  disabled={ocupado}
+                  title="Desvincular de este proceso"
+                  className="shrink-0 flex items-center justify-center w-5 h-5 rounded text-primary/25 hover:text-red-400 transition-colors cursor-pointer disabled:opacity-30"
+                >
+                  {ocupado ? <Loader2 size={10} className="animate-spin" /> : <Trash2 size={10} />}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Diagrama de flujo simple (SVG, layout automático) para los "Enlaces" de
+ * una Configuración IUM: en vez de listar "origen → destino (tipo)" como
+ * texto plano, dibuja cada IUM como un nodo y cada enlace como una flecha
+ * entre nodos, agrupando en columnas por nivel (BFS desde los nodos sin
+ * entradas) — mismo criterio que un diagrama de flujo tipo Sugiyama
+ * simplificado, sin depender de topologías T01…T07 (esas son específicas
+ * de OrisTopologiaVisual.tsx; acá el grafo puede ser cualquier forma).
+ *
+ * Si el grafo tiene ciclos o nodos desconectados de las fuentes, esos nodos
+ * caen todos en la columna 0 — se prioriza siempre mostrar algo legible por
+ * sobre un layout perfecto.
+ */
+function ConfiguracionIumGrafo({
+  flujo,
+  onClickNodo,
+}: {
+  flujo: ProcesoConfiguracionIumFlujo[];
+  /** Mismo patrón que OrisTopologiaVisual.tsx: sin esta prop el grafo es
+   *  puramente visual; con ella, cada nodo se vuelve clicable y abre el
+   *  panel flotante del Ium correspondiente. */
+  onClickNodo?: (iumId: string) => void;
+}) {
+  // Partículas reales (A/T/S) y geometría real de cada Ium — mismo patrón
+  // que OrisEditor.tsx usa para alimentar OrisTopologiaVisual: cada nodo del
+  // grafo dibuja el Ium tal como es, no un rectángulo de texto genérico.
+  const { items: iums } = useIumsConParticulas();
+  const iumPorId = useMemo(
+    () => Object.fromEntries(iums.map((i) => [i.id, iumAFilaIum(i)])),
+    [iums],
+  );
+  const { geometriaDe } = useGeometriaIums();
+  const particulasDe = (iumId: string) => {
+    const fila = iumPorId[iumId];
+    return fila ? particulasDeIum(fila) : [];
+  };
+
+  const { columnas, aristas, nodoPos } = useMemo(() => {
+    const nombrePorId = new Map<string, string>();
+    const rolPorId = new Map<string, string>();
+    const salidas = new Map<string, Set<string>>();
+    const entradas = new Map<string, Set<string>>();
+
+    for (const f of flujo) {
+      nombrePorId.set(f.ium_origen_id, f.ium_origen);
+      nombrePorId.set(f.ium_destino_id, f.ium_destino);
+      if (f.participacion_origen) rolPorId.set(f.ium_origen_id, f.participacion_origen);
+      if (f.participacion_destino) rolPorId.set(f.ium_destino_id, f.participacion_destino);
+      if (!salidas.has(f.ium_origen_id)) salidas.set(f.ium_origen_id, new Set());
+      salidas.get(f.ium_origen_id)!.add(f.ium_destino_id);
+      if (!entradas.has(f.ium_destino_id)) entradas.set(f.ium_destino_id, new Set());
+      entradas.get(f.ium_destino_id)!.add(f.ium_origen_id);
+    }
+
+    const ids = Array.from(nombrePorId.keys());
+    const nivelPorId = new Map<string, number>();
+    const fuentes = ids.filter((id) => !entradas.has(id) || entradas.get(id)!.size === 0);
+    const cola = (fuentes.length > 0 ? fuentes : ids).map((id) => ({ id, nivel: 0 }));
+    for (const { id } of cola) nivelPorId.set(id, 0);
+
+    let cursor = 0;
+    while (cursor < cola.length) {
+      const { id, nivel } = cola[cursor++];
+      for (const destinoId of salidas.get(id) ?? []) {
+        const nivelActual = nivelPorId.get(destinoId);
+        const nivelPropuesto = nivel + 1;
+        if (nivelActual === undefined || nivelPropuesto > nivelActual) {
+          nivelPorId.set(destinoId, nivelPropuesto);
+          cola.push({ id: destinoId, nivel: nivelPropuesto });
+        }
+      }
+    }
+    // Cualquier nodo que el BFS no haya alcanzado (ciclo puro, sin fuente
+    // clara) igual necesita una posición — cae en la columna 0.
+    for (const id of ids) if (!nivelPorId.has(id)) nivelPorId.set(id, 0);
+
+    const porColumna = new Map<number, string[]>();
+    for (const id of ids) {
+      const nivel = nivelPorId.get(id)!;
+      if (!porColumna.has(nivel)) porColumna.set(nivel, []);
+      porColumna.get(nivel)!.push(id);
+    }
+    const columnasOrdenadas = Array.from(porColumna.keys()).sort((a, b) => a - b);
+
+    // El glifo real necesita más espacio horizontal que un rect+label; con
+    // el nombre del Ium + la etiqueta de rol debajo del nodo (mismo diseño
+    // de dos líneas que OrisTopologiaVisual.tsx), la fila necesita más
+    // alto que la versión que solo mostraba el rol.
+    const ANCHO_COL = 130;
+    const ALTO_FILA = 90;
+    const PAD_X = 40;
+    const PAD_Y = 15;
+
+    const pos = new Map<string, { x: number; y: number }>();
+    columnasOrdenadas.forEach((nivel, colIdx) => {
+      const idsDeColumna = porColumna.get(nivel)!;
+      idsDeColumna.forEach((id, filaIdx) => {
+        pos.set(id, {
+          x: PAD_X + colIdx * ANCHO_COL,
+          y: PAD_Y + filaIdx * ALTO_FILA,
+        });
+      });
+    });
+
+    const columnas = columnasOrdenadas.map((nivel) =>
+      (porColumna.get(nivel) ?? []).map((id) => ({
+        id,
+        nombre: nombrePorId.get(id) ?? id.slice(0, 8),
+        rol: rolPorId.get(id) ?? null,
+        pos: pos.get(id)!,
+      })),
+    );
+
+    const aristas = flujo.map((f, idx) => ({
+      key: `${f.ium_origen_id}-${f.ium_destino_id}-${idx}`,
+      desde: pos.get(f.ium_origen_id)!,
+      hasta: pos.get(f.ium_destino_id)!,
+      tipo: f.tipo_union,
+      idOrigen: f.ium_origen_id,
+      idDestino: f.ium_destino_id,
+    }));
+
+    return { columnas, aristas, nodoPos: pos };
+  }, [flujo]);
+
+  // Radio del glifo (mismo orden de magnitud que R_NODO en
+  // OrisTopologiaVisual.tsx) y el centro de cada nodo dentro de su celda.
+  // Nombre + rol debajo del nodo, mismo diseño de dos líneas que
+  // OrisTopologiaVisual.tsx.
+  const R_NODO = 22;
+  const CENTRO_X = R_NODO + 4;
+  const CENTRO_Y = R_NODO + 4;
+  const ALTO_LEYENDA = 20;
+  const anchoTotal = columnas.length * 130 + 40;
+  const altoTotal = Math.max(...columnas.map((c) => c.length), 1) * 90 + 30 + ALTO_LEYENDA;
+
+  // Mismos colores/trazos que OrisTopologiaVisual.tsx, para que "dirigida",
+  // "recíproca" y "acoplamiento" se lean igual en toda la app.
+  const TRAZO_UNION = "color-mix(in srgb, var(--primary) 70%, transparent)";
+  const TRAZO_RECIPROCA = "var(--primary)";
+  const TEXTOS_TIPO: Record<string, string> = {
+    dirigida: "dirigida",
+    reciproca: "recíproca",
+    acoplamiento: "acoplamiento",
+  };
+  const tiposUsados = useMemo(
+    () => Array.from(new Set(aristas.map((a) => a.tipo).filter((t): t is string => !!t))),
+    [aristas],
+  );
+
+  return (
+    <svg
+      viewBox={`0 0 ${anchoTotal} ${altoTotal}`}
+      className="w-full h-auto"
+      style={{ minHeight: Math.min(altoTotal, 220) }}
+    >
+      <defs>
+        <marker id="flecha-config-ium" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M2 1L8 5L2 9" fill="none" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" style={{ stroke: TRAZO_UNION }} />
+        </marker>
+        <marker id="flecha-config-ium-rec" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M2 1L8 5L2 9" fill="none" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ stroke: TRAZO_RECIPROCA }} />
+        </marker>
+      </defs>
+      {/* Mismo hover que OrisTopologiaVisual.tsx: el disco de fondo baja
+          opacidad al pasar el mouse, para que el nodo se lea interactivo. */}
+      {onClickNodo && (
+        <style>{`
+          .oris-nodo-clicable circle { transition: opacity 120ms ease; }
+          .oris-nodo-clicable:hover circle { opacity: 0.7; }
+        `}</style>
+      )}
+
+      {aristas.map((a) => {
+        const esRec = a.tipo === "reciproca";
+        const esAcop = a.tipo === "acoplamiento";
+        const x1 = a.desde.x + CENTRO_X + R_NODO;
+        const y1 = a.desde.y + CENTRO_Y;
+        const x2 = a.hasta.x + CENTRO_X - R_NODO;
+        const y2 = a.hasta.y + CENTRO_Y;
+        const mismaColumna = a.desde.x === a.hasta.x;
+        const path = mismaColumna
+          ? `M ${a.desde.x + CENTRO_X} ${a.desde.y + CENTRO_Y + R_NODO} C ${a.desde.x + CENTRO_X + 36} ${y1 + 20}, ${a.hasta.x + CENTRO_X + 36} ${y2 - 20}, ${a.hasta.x + CENTRO_X} ${a.hasta.y + CENTRO_Y - R_NODO}`
+          : `M ${x1} ${y1} C ${(x1 + x2) / 2} ${y1}, ${(x1 + x2) / 2} ${y2}, ${x2} ${y2}`;
+        return (
+          <path
+            key={a.key}
+            d={path}
+            fill="none"
+            strokeWidth={esRec ? 2 : 1.6}
+            strokeLinecap="round"
+            strokeDasharray={esAcop ? "4 4" : undefined}
+            style={{ stroke: esRec ? TRAZO_RECIPROCA : TRAZO_UNION }}
+            markerEnd={esAcop ? undefined : `url(#${esRec ? "flecha-config-ium-rec" : "flecha-config-ium"})`}
+            markerStart={esRec ? `url(#flecha-config-ium-rec)` : undefined}
+          />
+        );
+      })}
+
+      {columnas.map((columna) =>
+        columna.map((nodo) => {
+          const cx = nodo.pos.x + CENTRO_X;
+          const cy = nodo.pos.y + CENTRO_Y;
+          const clicable = !!onClickNodo;
+          return (
+            <g
+              key={nodo.id}
+              onClick={clicable ? () => onClickNodo!(nodo.id) : undefined}
+              style={clicable ? { cursor: "pointer" } : undefined}
+              className={clicable ? "oris-nodo-clicable" : undefined}
+            >
+              <title>{`${nodo.nombre}${nodo.rol ? ` — ${nodo.rol.replace(/_/g, " ")}` : ""}`}</title>
+              <circle
+                cx={cx}
+                cy={cy}
+                r={R_NODO + 2}
+                strokeWidth={0.8}
+                style={{
+                  fill: "var(--bg-main)",
+                  stroke: "color-mix(in srgb, var(--primary) 30%, transparent)",
+                }}
+              />
+              <IumGlifo
+                cx={cx}
+                cy={cy}
+                r={R_NODO * 0.78}
+                particulas={particulasDe(nodo.id)}
+                geometria={geometriaDe(nodo.id).geometria}
+              />
+              {/* Mismo diseño exacto que el nodo de OrisTopologiaVisual.tsx:
+                  nombre del Ium debajo con acento (fill: var(--primary),
+                  fontWeight 700) y el rol debajo de eso en texto normal
+                  (color atenuado). El strokeWidth={3} con
+                  stroke: var(--bg-main) en ambos no es un borde — es el
+                  halo del color de fondo que separa la letra de las líneas
+                  del grafo que pasan detrás. */}
+              <text
+                x={cx}
+                y={cy + R_NODO + 12}
+                textAnchor="middle"
+                fontSize={9.5}
+                fontWeight={700}
+                paintOrder="stroke"
+                strokeWidth={3}
+                strokeLinejoin="round"
+                style={{ fill: "var(--primary)", stroke: "var(--bg-main)" }}
+              >
+                {nodo.nombre}
+              </text>
+              {nodo.rol && (
+                <text
+                  x={cx}
+                  y={cy + R_NODO + 22}
+                  textAnchor="middle"
+                  fontSize={7.5}
+                  paintOrder="stroke"
+                  strokeWidth={3}
+                  strokeLinejoin="round"
+                  style={{ fill: "color-mix(in srgb, var(--primary) 60%, transparent)", stroke: "var(--bg-main)" }}
+                >
+                  {nodo.rol.replace(/_/g, " ")}
+                </text>
+              )}
+            </g>
+          );
+        }),
+      )}
+
+      {tiposUsados.length > 1 &&
+        tiposUsados.map((tipo, i) => (
+          <g key={tipo} transform={`translate(${8 + i * 90}, ${altoTotal - ALTO_LEYENDA / 2})`}>
+            <line
+              x1={0}
+              y1={0}
+              x2={16}
+              y2={0}
+              strokeWidth={tipo === "reciproca" ? 2 : 1.5}
+              strokeLinecap="round"
+              strokeDasharray={tipo === "acoplamiento" ? "3 3" : undefined}
+              style={{ stroke: tipo === "reciproca" ? TRAZO_RECIPROCA : TRAZO_UNION }}
+            />
+            <text x={21} y={2.5} fontSize={7.5} style={{ fill: "color-mix(in srgb, var(--primary) 55%, transparent)" }}>
+              {TEXTOS_TIPO[tipo] ?? tipo}
+            </text>
+          </g>
+        ))}
+    </svg>
+  );
+}
+
+/**
+ * Sección "Configuración IUM" (spec secciones 7/8): intervención mediante
+ * IUM que manipula este proceso natural — visualmente separada de la
+ * información propia del fenómeno. Solo lectura acá (la config en sí se
+ * arma en Física/Oris — spec sección 7: no editar ni proponer valores
+ * desde esta ficha, solo reflejar el estado real).
+ *
+ * Estados posibles, todos derivados del dato real (spec sección 11 — nunca
+ * "[Pendiente]"): "Sin configuración IUM" si no hay ninguna fila en
+ * proceso_configuraciones_ium_v1 para este proceso; si la hay, se muestra
+ * el `estado` real de Supabase (ej. "propuesta" → "Configuración en
+ * revisión", cualquier otro valor se muestra tal cual, capitalizado).
+ */
+function ConfiguracionIumBloque({ procesoId }: { procesoId: string }) {
+  const { configuracion, flujo, loading } = useProcesoConfiguracionIum(procesoId);
+
+  // Panel flotante del Ium al hacer click en un nodo del grafo — mismo
+  // patrón que OrisEditor.tsx (onAbrirIum → setPanelFisicaActivo en
+  // FisicaPage.tsx), pero acá el catálogo y el panel se resuelven en el
+  // propio bloque porque ProcesosPage no tiene ese estado compartido.
+  const [iumAbiertoId, setIumAbiertoId] = useState<string | null>(null);
+  const { items: iumsCatalogo, setItems: setIumsCatalogo } = useIumsConParticulas();
+  const { geometriaDe } = useGeometriaIums();
+  const iumAbierto = iumsCatalogo.find((i) => i.id === iumAbiertoId) ?? null;
+
+  if (loading) return null;
+
+  return (
+    <div className="flex flex-col gap-1.5 min-w-0 p-2.5 rounded-lg border border-primary/10">
+      <div className="flex items-center gap-1.5">
+        <Cpu size={13} className="text-primary/40 shrink-0" />
+        <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
+          Configuración IUM · Intervención
+        </span>
+      </div>
+
+      {!configuracion ? (
+        <p className="py-1 text-micro text-primary/30">Sin configuración IUM</p>
+      ) : (
+        <div className="flex flex-col gap-2 mt-1">
+          <div className="flex items-center justify-between gap-1.5 flex-wrap">
+            <span className="text-micro font-bold text-primary/70">
+              {configuracion.configuracion ?? "Configuración sin nombre"}
+            </span>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span
+                title="Estado real registrado en Supabase — nunca se presenta como canónica si no lo es"
+                className={`px-1.5 py-0.5 rounded text-xs font-bold border capitalize ${
+                  configuracion.estado === "canonica"
+                    ? "text-emerald-500/70 border-emerald-500/20 bg-emerald-500/5"
+                    : configuracion.estado === "propuesta"
+                      ? "text-amber-500/70 border-amber-500/20 bg-amber-500/5"
+                      : "text-primary/50 border-primary/15 bg-primary/5"
+                }`}
+              >
+                {configuracion.estado === "propuesta"
+                  ? "Configuración en revisión"
+                  : configuracion.estado.replace(/_/g, " ")}
+              </span>
+              <span className="text-xs text-primary/35">v{configuracion.version}</span>
+            </div>
+          </div>
+
+          {flujo.length > 0 && (
+            <div className="flex flex-col gap-1">
+              <span className="text-xs font-bold text-primary/45">Enlaces</span>
+              <div className="rounded-md border border-primary/10 bg-primary/[0.02] p-2 overflow-x-auto">
+                <ConfiguracionIumGrafo flujo={flujo} onClickNodo={(iumId) => setIumAbiertoId(iumId)} />
+              </div>
+            </div>
+          )}
+
+          {configuracion.fundamento && (
+            <div className="flex flex-col gap-0.5">
+              <span className="text-xs font-bold text-primary/45">Fundamento</span>
+              <p className="text-micro text-primary/55 leading-relaxed whitespace-pre-wrap">
+                {configuracion.fundamento}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {iumAbierto ? (
+        <IumPanelFlotante
+          ium={iumAbierto}
+          geometriaDe={geometriaDe}
+          onCerrar={() => setIumAbiertoId(null)}
+          onActualizar={(id, cambios) => {
+            setIumsCatalogo((cur) =>
+              cur.map((item) => (item.id === id ? { ...item, ...cambios } : item)),
+            );
+          }}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * Editor completo de un Proceso — mismo patrón que ElementoEditor/
+ * CompuestoEditor/ReaccionPanelFlotante: publica sus controles de header
+ * (nombre editable, guardar, eliminar) hacia el contenedor si se lo piden,
+ * o muestra su propia EditorHeaderBar en uso standalone.
+ */
+function ProcesoEditor({
+  proceso,
+  onActualizar,
+  onEliminar,
+  onHeaderControlsChange,
+  onAbrirReaccion,
+  onAbrirOris,
+  onAbrirElemento,
+  onAbrirFenomeno,
+}: {
+  proceso: Proceso;
+  onActualizar: (id: string, cambios: Partial<Proceso>) => void;
+  onEliminar?: (id: string) => void;
+  onHeaderControlsChange?: OnHeaderControlsChange;
+  onAbrirReaccion?: (reaccionId: string) => void;
+  onAbrirOris?: (orisId: string) => void;
+  onAbrirElemento?: (elementoId: string) => void;
+  onAbrirFenomeno?: (fenomenoId: string) => void;
+}) {
+  const { confirm, ConfirmModal } = useConfirm();
+  const [local, setLocal] = useState(proceso);
+  const [saving, setSaving] = useState(false);
+  const { items: reacciones } = useReacciones();
+  const { items: oris } = useOris();
+  const { items: elementos } = useElementos();
+  const { items: fenomenos } = useFenomenos();
+
+  useEffect(() => setLocal(proceso), [proceso]);
+
+  async function persist(cambios: Partial<Proceso>) {
+    setSaving(true);
+    try {
+      const { error } = await supabase.from("procesos").update(cambios).eq("id", proceso.id);
+      if (error) throw error;
+      onActualizar(proceso.id, cambios);
+    } catch (e) {
+      console.error("[ProcesoEditor] error guardando:", e);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleEliminar() {
+    if (!onEliminar) return;
+    const ok = await confirm({
+      title: "Eliminar proceso",
+      message: `¿Eliminar "${local.nombre}"? Esta acción no se puede deshacer.`,
+    });
+    if (ok) onEliminar(proceso.id);
+  }
+
+  const status: SaveStatus = saving ? "saving" : "idle";
+
+  const headerControls = {
+    IconoFallback: Activity,
+    nombre: local.nombre ?? "",
+    placeholderNombre: "Nombre del proceso",
+    onChangeNombre: (nombre: string) => setLocal((p) => ({ ...p, nombre })),
+    onBlurNombre: () => persist({ nombre: local.nombre }),
+    status,
+    onGuardar: () =>
+      persist({
+        nombre: local.nombre,
+        dominio_fisico: local.dominio_fisico,
+        naturaleza_canonica: local.naturaleza_canonica,
+        descripcion: local.descripcion,
+        condiciones: local.condiciones,
+        notas: local.notas,
+        regla_clave: local.regla_clave,
+        entrada: local.entrada,
+        transformacion: local.transformacion,
+        salida: local.salida,
+        conservacion: local.conservacion,
+        estado_fundamento: local.estado_fundamento,
+      }),
+    onEliminar: handleEliminar,
+    extra: (
+      <>
+        <input
+          value={local.dominio_fisico ?? ""}
+          onChange={(e) => setLocal((p) => ({ ...p, dominio_fisico: e.target.value || null }))}
+          onBlur={() => persist({ dominio_fisico: local.dominio_fisico })}
+          placeholder="Dominio físico"
+          title="Rama física del fenómeno (ej. térmico, mecánico, lumínico). No es el Oris que lo conjura."
+          className="shrink-0 w-28 bg-primary/5 rounded-md px-1.5 py-0.5 text-micro font-bold text-primary outline-none border border-primary/10 focus:border-primary/30 placeholder:text-primary/25"
+        />
+        <select
+          value={local.estado_fundamento ?? "definida"}
+          onChange={(e) => {
+            const estado_fundamento = e.target.value;
+            setLocal((p) => ({ ...p, estado_fundamento }));
+            persist({ estado_fundamento });
+          }}
+          title="Estado del fundamento"
+          className="shrink-0 bg-primary/5 rounded-md px-1.5 h-6 text-micro font-bold text-primary outline-none border border-primary/10 focus:border-primary/30 capitalize"
+        >
+          {ESTADOS_FUNDAMENTO.map((e) => (
+            <option key={e} value={e} className="capitalize">
+              {e.replace("_", " ")}
+            </option>
+          ))}
+        </select>
+      </>
+    ),
+  };
+
+  usePublishHeaderControls(headerControls, onHeaderControlsChange);
+
+  const receta = [
+    ["regla_clave", "Regla clave", local.regla_clave] as const,
+    ["entrada", "Entrada", local.entrada] as const,
+    ["transformacion", "Transformación", local.transformacion] as const,
+    ["salida", "Salida", local.salida] as const,
+    ["conservacion", "Conservación", local.conservacion] as const,
+  ];
+
+  function campoBlur(campo: keyof Proceso) {
+    persist({ [campo]: local[campo] } as Partial<Proceso>);
+  }
+
+  return (
+    <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+      <ConfirmModal />
+      {!onHeaderControlsChange && <EditorHeaderBar controls={headerControls} />}
+
+      <div className="flex-1 min-h-0 p-3 flex flex-col gap-3 overflow-y-auto">
+        <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] gap-3 items-start">
+          <div className="flex flex-col gap-3 min-w-0">
+            <div className="flex flex-col gap-1.5 min-w-0 p-2.5 rounded-lg border border-primary/10">
+              <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
+                Descripción
+              </span>
+              <textarea
+                className="w-full min-h-[5rem] bg-transparent px-0 py-1 text-sm leading-relaxed text-primary/70 resize-none outline-none transition-colors placeholder:text-primary/25"
+                placeholder="Qué es este proceso, en qué contexto ocurre…"
+                value={local.descripcion ?? ""}
+                onChange={(e) => setLocal((p) => ({ ...p, descripcion: e.target.value }))}
+                onBlur={() => campoBlur("descripcion")}
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5 min-w-0 p-2.5 rounded-lg border border-primary/10">
+              <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
+                Condiciones
+              </span>
+              <textarea
+                className="w-full min-h-[6rem] bg-transparent px-0 py-1 text-micro leading-relaxed text-primary/55 resize-none outline-none transition-colors placeholder:text-primary/25 whitespace-pre-wrap"
+                placeholder="Bajo qué condiciones ocurre este proceso…"
+                value={local.condiciones ?? ""}
+                onChange={(e) => setLocal((p) => ({ ...p, condiciones: e.target.value }))}
+                onBlur={() => campoBlur("condiciones")}
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-1.5 min-w-0 p-2.5 rounded-lg border border-primary/10">
+            <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
+              Receta del proceso
+            </span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {receta.map(([campo, label, value]) => (
+                <div key={campo} className="min-w-0">
+                  <span className="text-xs font-bold text-primary/45">{label}</span>
+                  <textarea
+                    className="mt-0.5 w-full min-h-[3rem] bg-transparent px-0 py-0.5 text-sm leading-relaxed text-primary/65 resize-none outline-none transition-colors placeholder:text-primary/25"
+                    placeholder={`${label}…`}
+                    value={value ?? ""}
+                    onChange={(e) =>
+                      setLocal((p) => ({ ...p, [campo]: e.target.value }) as Proceso)
+                    }
+                    onBlur={() => campoBlur(campo)}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-start">
+          <ReaccionesVinculadasBloque
+            procesoId={proceso.id}
+            reacciones={reacciones}
+            onAbrirReaccion={onAbrirReaccion}
+          />
+
+          <OrisCompatiblesBloque procesoId={proceso.id} oris={oris} onAbrirOris={onAbrirOris} />
+
+          <ElementosRelacionadosBloque
+            procesoId={proceso.id}
+            elementos={elementos}
+            onAbrirElemento={onAbrirElemento}
+          />
+
+          <FenomenosRelacionadosBloque
+            procesoId={proceso.id}
+            fenomenos={fenomenos}
+            onAbrirFenomeno={onAbrirFenomeno}
+          />
+        </div>
+
+        {/* Separación visual y conceptual explícita del nivel de
+            "Intervención mediante IUM" respecto al proceso natural de
+            arriba (spec sección 8) — nunca mezclados en la misma columna. */}
+        <ConfiguracionIumBloque procesoId={proceso.id} />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Panel flotante centrado del detalle de un Proceso — mismo comportamiento
+ * visual que ReaccionPanelFlotante/CompuestoPanelFlotante: modal centrado
+ * con backdrop blur, cierra con click en el backdrop, Escape, o el botón X.
+ * Apila el panel flotante de una Reacción vinculada, si se abre una — mismo
+ * patrón de apilado que celulaAbierta/materialAbierto en CompuestoEditor.
+ */
+/** Exportado para que fisica/FisicaPage.tsx pueda abrirlo directamente
+ *  como fallback interno de "click en un proceso compatible desde el
+ *  editor de Oris" — mismo patrón inverso que OrisPanelFlotanteInline
+ *  acá abajo. */
+export function ProcesoPanelFlotante({
+  proceso,
+  onCerrar,
+  onActualizar,
+  onEliminar,
+  onAbrirOris,
+}: {
+  proceso: Proceso;
+  onCerrar: () => void;
+  onActualizar: (id: string, cambios: Partial<Proceso>) => void;
+  onEliminar?: (id: string) => void;
+  /** Ver spec sección 4/10: al abrir un Oris compatible desde acá, el
+   *  caller (ElementosPage/FisicaPage, quien conecta ambos catálogos)
+   *  decide cómo mostrarlo — este panel no asume esa navegación. Sin
+   *  callback, el bloque de Oris compatibles queda de solo lectura para
+   *  la navegación (el vínculo en sí sigue siendo editable). */
+  onAbrirOris?: (orisId: string) => void;
+}) {
+  const [reaccionAbiertaId, setReaccionAbiertaId] = useState<string | null>(null);
+  const { items: reacciones, setItems: setReacciones } = useReacciones();
+  const reaccionAbierta = reacciones.find((r) => r.id === reaccionAbiertaId) ?? null;
+
+  // Mismo patrón que reaccionAbiertaId: elemento/fenómeno vinculado
+  // abierto encima de este panel, sin depender del caller externo.
+  const [elementoAbiertoId, setElementoAbiertoId] = useState<string | null>(null);
+  const { items: elementosTodos, setItems: setElementosTodos } = useElementos();
+  const elementoAbierto = elementosTodos.find((e) => e.id === elementoAbiertoId) ?? null;
+
+  const [fenomenoAbiertoId, setFenomenoAbiertoId] = useState<string | null>(null);
+  const { items: fenomenosTodos, setItems: setFenomenosTodos, renombrarFenomeno, eliminarFenomeno } =
+    useFenomenos();
+  const fenomenoAbierto = fenomenosTodos.find((f) => f.id === fenomenoAbiertoId) ?? null;
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        if (elementoAbiertoId) setElementoAbiertoId(null);
+        else if (fenomenoAbiertoId) setFenomenoAbiertoId(null);
+        else if (reaccionAbiertaId) setReaccionAbiertaId(null);
+        else onCerrar();
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = previous;
+    };
+  }, [onCerrar, reaccionAbiertaId, elementoAbiertoId, fenomenoAbiertoId]);
+
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
+    <>
+      <div
+        className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-6"
+        style={{ background: "color-mix(in srgb, var(--primary) 35%, transparent)", backdropFilter: "blur(8px)" }}
+        onMouseDown={(event) => {
+          if (event.target === event.currentTarget) onCerrar();
+        }}
+      >
+        <div
+          className="w-full h-full max-w-6xl rounded-2xl overflow-hidden shadow-2xl flex flex-col"
+          style={{
+            background: "var(--bg-main)",
+            border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
+            animation: "popIn 160ms cubic-bezier(0.34, 1.56, 0.64, 1)",
+          }}
+          onMouseDown={(event) => event.stopPropagation()}
+        >
+          <ProcesoEditor
+            key={proceso.id}
+            proceso={proceso}
+            onActualizar={onActualizar}
+            onEliminar={onEliminar}
+            onAbrirReaccion={setReaccionAbiertaId}
+            onAbrirOris={onAbrirOris}
+            onAbrirElemento={setElementoAbiertoId}
+            onAbrirFenomeno={setFenomenoAbiertoId}
+          />
+        </div>
+      </div>
+
+      {reaccionAbierta && (
+        <ReaccionPanelFlotante
+          reaccion={reaccionAbierta}
+          compuestos={[]}
+          elementos={[]}
+          onCerrar={() => setReaccionAbiertaId(null)}
+          onActualizar={(id, cambios) =>
+            setReacciones((prev) => prev.map((r) => (r.id === id ? { ...r, ...cambios } : r)))
+          }
+        />
+      )}
+
+      {elementoAbierto && (
+        <ElementoPanelFlotante
+          elemento={elementoAbierto}
+          todosLosElementos={elementosTodos}
+          onCerrar={() => setElementoAbiertoId(null)}
+          onActualizar={async (id, cambios) => {
+            try {
+              const { error } = await supabase.from("elementos").update(cambios).eq("id", id);
+              if (error) throw error;
+              setElementosTodos((prev) => prev.map((e) => (e.id === id ? { ...e, ...cambios } : e)));
+            } catch (e) {
+              console.error("[ProcesosPage] error actualizando elemento:", e);
+            }
+          }}
+        />
+      )}
+
+      {fenomenoAbierto && (
+        <FenomenoPanelFlotante
+          fenomeno={fenomenoAbierto}
+          onClose={() => setFenomenoAbiertoId(null)}
+          onRename={(nuevoNombre) => renombrarFenomeno(fenomenoAbierto.id, nuevoNombre)}
+          onDelete={async () => {
+            await eliminarFenomeno(fenomenoAbierto.id);
+            setFenomenoAbiertoId(null);
+          }}
+        />
+      )}
+    </>,
+    document.body,
+  );
+}
+
+/**
+ * OrisPanelFlotanteInline — versión mínima del panel flotante de Oris
+ * (calcado de OrisPanelFlotante en fisica/FisicaPage.tsx, que no está
+ * exportado), usada como fallback interno de ProcesosPage cuando el
+ * caller externo no conecta `onAbrirOris`: permite que "click en un Oris
+ * compatible" abra su editor sin depender de FisicaPage.
+ *
+ * Update/eliminar van directo contra Supabase (mismo patrón que
+ * handleCrearLocal/handleEliminarLocal de acá arriba) porque useOris()
+ * solo expone `setItems` local, no una función de escritura real.
+ */
+function OrisPanelFlotanteInline({
+  oris,
+  onCerrar,
+  onActualizarLocal,
+  onAbrirProceso,
+}: {
+  oris: Oris;
+  onCerrar: () => void;
+  onActualizarLocal: (id: string, cambios: Partial<Oris>) => void;
+  onAbrirProceso?: (procesoId: string) => void;
+}) {
+  const { confirm, ConfirmModal } = useConfirm();
+  const [nombre, setNombre] = useState(oris.nombre);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => setNombre(oris.nombre), [oris.id, oris.nombre]);
+
+  // Mismo patrón que ProcesoPanelFlotante/FenomenoPanelFlotante: Esc
+  // cierra, y se bloquea el scroll del fondo mientras está abierto.
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onCerrar();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = previous;
+    };
+  }, [onCerrar]);
+
+  async function guardarNombre() {
+    if (nombre === oris.nombre) return;
+    setSaving(true);
+    try {
+      const { error } = await supabase.from("oris").update({ nombre }).eq("id", oris.id);
+      if (error) throw error;
+      onActualizarLocal(oris.id, { nombre });
+    } catch (e) {
+      console.error("[ProcesosPage] error actualizando oris:", e);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleActualizarCampo(id: string, cambios: Partial<Oris>) {
+    try {
+      const { error } = await supabase.from("oris").update(cambios).eq("id", id);
+      if (error) throw error;
+      onActualizarLocal(id, cambios);
+    } catch (e) {
+      console.error("[ProcesosPage] error actualizando oris:", e);
+    }
+  }
+
+  async function handleEliminar() {
+    const ok = await confirm({
+      title: "¿Eliminar este Oris?",
+      message: `Se eliminará "${oris.nombre}" permanentemente.`,
+    });
+    if (!ok) return;
+    try {
+      const { error } = await supabase.from("oris").delete().eq("id", oris.id);
+      if (error) throw error;
+      onCerrar();
+    } catch (e) {
+      console.error("[ProcesosPage] error eliminando oris:", e);
+    }
+  }
+
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-6"
+      style={{ background: "color-mix(in srgb, var(--primary) 35%, transparent)", backdropFilter: "blur(8px)" }}
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onCerrar();
+      }}
+    >
+      <div
+        className="w-full h-full max-w-6xl rounded-2xl overflow-hidden shadow-2xl flex flex-col"
+        style={{
+          background: "var(--bg-main)",
+          border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
+          animation: "popIn 160ms cubic-bezier(0.34, 1.56, 0.64, 1)",
+        }}
+        onMouseDown={(event) => event.stopPropagation()}
+      >
+        <div
+          className="shrink-0 flex items-center gap-1.5 px-3 py-2 border-b"
+          style={{
+            borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
+            background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+          }}
+        >
+          <input
+            value={nombre}
+            onChange={(e) => setNombre(e.target.value)}
+            onBlur={guardarNombre}
+            className="flex-1 min-w-0 bg-transparent text-sm font-black text-primary outline-none placeholder:text-primary/25"
+            placeholder="Nombre del Oris"
+          />
+          <div className="shrink-0 flex items-center gap-1.5">
+            {saving && <Loader2 size={14} className="animate-spin text-primary/40" />}
+            <button
+              type="button"
+              onClick={handleEliminar}
+              title="Eliminar Oris"
+              className="flex items-center gap-1 px-2 py-1 rounded-lg text-micro font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all"
+            >
+              <Trash2 size={10} />
+            </button>
+          </div>
+          <button
+            type="button"
+            onClick={onCerrar}
+            title="Cerrar (Esc)"
+            className="shrink-0 p-1.5 rounded-lg text-primary/40 hover:text-primary hover:bg-primary/8 transition-colors"
+          >
+            <X size={16} />
+          </button>
+        </div>
+        <div className="flex-1 min-h-0 overflow-y-auto p-2.5">
+          <OrisEditor
+            oris={oris}
+            onBack={onCerrar}
+            embedded
+            hideHeader
+            nombreExterno={nombre}
+            onActualizar={handleActualizarCampo}
+            onAbrirProceso={onAbrirProceso}
+          />
+        </div>
+      </div>
+      <ConfirmModal />
+    </div>,
+    document.body,
+  );
+}
+
+interface ProcesosPageProps {
+  /** Opcionales — mismo patrón que ReaccionesPage: si el caller (ver
+   *  ElementosPage.tsx, header de sección vía CabeceraSeccionConMenu) ya
+   *  conecta crear/eliminar al hook real, se usan esos. Si no se pasan,
+   *  ProcesosPage sigue siendo usable standalone con sus propios handlers
+   *  internos (mismo fallback que tenía antes de la migración). */
+  creating?: boolean;
+  onCreate?: () => void;
+  onEliminar?: (id: string) => void;
+  /** Ver ProcesoPanelFlotante — opcional, para cuando el caller conecta la
+   *  navegación hacia el catálogo de Oris (spec sección 4/10). */
+  onAbrirOris?: (orisId: string) => void;
+}
+
+export default function ProcesosPage({
+  creating: creatingProp,
+  onCreate,
+  onEliminar: onEliminarProp,
+  onAbrirOris,
+}: ProcesosPageProps = {}) {
+  const { items, setItems, loading } = useProcesos();
+  const [selected, setSelected] = useState<Proceso | null>(null);
+  const [creatingLocal, setCreatingLocal] = useState(false);
+  const creating = creatingProp ?? creatingLocal;
+
+  // Fallback interno de "abrir Oris": si el caller (FisicaPage vía padre
+  // común) no pasa onAbrirOris, este panel se abre solo con
+  // OrisPanelFlotanteInline — ver comentario ahí arriba.
+  const { items: orisItems, setItems: setOrisItems } = useOris();
+  const [orisAbiertoId, setOrisAbiertoId] = useState<string | null>(null);
+  const orisAbierto = orisAbiertoId ? orisItems.find((o) => o.id === orisAbiertoId) ?? null : null;
+
+  const handleAbrirOris =
+    onAbrirOris ??
+    ((orisId: string) => {
+      setSelected(null);
+      setOrisAbiertoId(orisId);
+    });
+
+  function actualizarOrisLocal(id: string, cambios: Partial<Oris>) {
+    setOrisItems((prev) => prev.map((o) => (o.id === id ? { ...o, ...cambios } : o)));
+  }
+
+  // Inverso: dentro del OrisEditor embebido, "click en un proceso
+  // compatible" cierra el panel de Oris y abre el de Proceso.
+  function handleAbrirProcesoDesdeOris(procesoId: string) {
+    setOrisAbiertoId(null);
+    const proceso = items.find((p) => p.id === procesoId) ?? null;
+    if (proceso) setSelected(proceso);
+  }
+
+  // Mismo layout tipo "biblioteca" que Materiales/Estructuras/Compuestos:
+  // grupos por categoría (acá "tipo") repartidos en columnas responsivas
+  // tipo mampostería, cada uno con un grid de casillas estilo tabla
+  // periódica — reemplaza la lista plana de chips que tenía antes.
+  const grupos = useMemo(() => agruparPorTipo(items), [items]);
+  const mampContainerRef = useRef<HTMLDivElement>(null);
+  const numColumnas = useResponsiveColumnCount(mampContainerRef, 260, 16);
+  const columnasDeGrupos = useMemo(
+    () => distribuirEnColumnas(grupos, numColumnas, (g) => g.items.length),
+    [grupos, numColumnas],
+  );
+
+  async function handleCrearLocal() {
+    setCreatingLocal(true);
+    try {
+      const { data, error } = await supabase
+        .from("procesos")
+        .insert([{ nombre: "Nuevo proceso" }])
+        .select()
+        .single();
+      if (error) throw error;
+      setItems((prev) => [...prev, data as Proceso]);
+      setSelected(data as Proceso);
+    } catch (e) {
+      console.error("[ProcesosPage] error creando proceso:", e);
+    } finally {
+      setCreatingLocal(false);
+    }
+  }
+
+  async function handleEliminarLocal(id: string) {
+    try {
+      const { error } = await supabase.from("procesos").delete().eq("id", id);
+      if (error) throw error;
+      setItems((prev) => prev.filter((p) => p.id !== id));
+      setSelected(null);
+    } catch (e) {
+      console.error("[ProcesosPage] error eliminando proceso:", e);
+    }
+  }
+
+  const handleEliminar = onEliminarProp ?? handleEliminarLocal;
+
+  function actualizar(id: string, cambios: Partial<Proceso>) {
+    setItems((prev) => prev.map((p) => (p.id === id ? { ...p, ...cambios } : p)));
+    setSelected((prev) => (prev && prev.id === id ? { ...prev, ...cambios } : prev));
+  }
+
+  return (
+    <div className="px-3 pb-4 pt-2">
+      {loading ? (
+        <p className="py-5 text-center text-micro text-primary/35">Cargando…</p>
+      ) : grupos.length === 0 ? (
+        <div className="py-6 text-micro text-primary/25 text-center">
+          Todavía no hay procesos creados.
+        </div>
+      ) : (
+        <div ref={mampContainerRef} className="flex w-full items-start gap-4">
+          {columnasDeGrupos.map((columna, colIdx) => (
+            <div key={colIdx} className="flex min-w-0 flex-1 flex-col">
+              {columna.map((grupo) => (
+                <div key={grupo.id} className="mb-4">
+                  <ChipGrupoProcesos
+                    titulo={grupo.nombre}
+                    items={grupo.items}
+                    seleccionadoId={selected?.id ?? null}
+                    onSeleccionar={(id) => {
+                      const proceso = items.find((p) => p.id === id) ?? null;
+                      setSelected(proceso);
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Botón "Nuevo" propio solo cuando no hay onCreate del caller (uso
+          standalone) — mismo criterio: si el header de sección ya ofrece
+          "Añadir" (CabeceraSeccionConMenu), no lo duplicamos acá abajo. */}
+      {!onCreate && (
+        <button
+          type="button"
+          onClick={handleCrearLocal}
+          disabled={creating}
+          title="Nuevo proceso"
+          className="mt-3 inline-flex items-center gap-1 rounded-full border border-dashed border-primary/20 px-2.5 py-1 text-micro font-bold tracking-wide text-primary/40 transition-colors hover:border-primary/40 hover:text-primary hover:bg-primary/5 disabled:opacity-40"
+        >
+          {creating ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />}
+          Nuevo
+        </button>
+      )}
+
+      {selected && (
+        <ProcesoPanelFlotante
+          proceso={selected}
+          onCerrar={() => setSelected(null)}
+          onActualizar={actualizar}
+          onEliminar={handleEliminar}
+          onAbrirOris={handleAbrirOris}
+        />
+      )}
+
+      {orisAbierto && (
+        <OrisPanelFlotanteInline
+          oris={orisAbierto}
+          onCerrar={() => setOrisAbiertoId(null)}
+          onActualizarLocal={actualizarOrisLocal}
+          onAbrirProceso={handleAbrirProcesoDesdeOris}
+        />
+      )}
+    </div>
+  );
+}
