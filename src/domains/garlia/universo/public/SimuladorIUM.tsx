@@ -564,17 +564,25 @@ function IumMergedCanvas({
           });
         }
 
-        // Todas las animFn apiladas en el centro — mezcla real
-        const S = 260;
-        const alpha = Math.min(1, ftS * 1.2);
+        // Todas las animFn apiladas en el centro — mezcla real, crecen desde el punto de convergencia
+        const GROW_DUR = 1.4; // segundos hasta tamaño máximo
+        const scaleRaw = Math.min(1, ftS / GROW_DUR);
+        const scale    = _easeInOut(scaleRaw);       // 0→1 con easing
+        const S_MIN    = 80;
+        const S_MAX    = 320;
+        const S        = S_MIN + (S_MAX - S_MIN) * scale;
+        const alpha    = Math.min(1, ftS * 1.5);
         nodes.forEach((node) => {
           const key    = IUM_ANIM_KEY[node.nombre];
           const animFn = key ? IUM_ANIM[key] : null;
           if (!animFn) return;
           ctx!.save();
           ctx!.globalAlpha = alpha;
-          ctx!.translate(destX - S / 2, destY - S / 2);
-          animFn(ctx!, S, S, ftS);
+          // Escalar centrado en destX/destY
+          ctx!.translate(destX, destY);
+          ctx!.scale(scale < 0.001 ? 0.001 : scale, scale < 0.001 ? 0.001 : scale);
+          ctx!.translate(-S_MAX / 2, -S_MAX / 2);
+          animFn(ctx!, S_MAX, S_MAX, ftS);
           ctx!.restore();
         });
 
