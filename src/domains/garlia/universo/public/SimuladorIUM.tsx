@@ -622,21 +622,7 @@ function IumMergedCanvas({
         return;
       }
 
-      // ── FASE IDLE: cada nodo anima en su posición fija ───────────────────────
-      nodes.forEach((node, i) => {
-        const activatedAt = nodeStartRef.current[i];
-        if (now < activatedAt) return;
-        const localT = (now - activatedAt) / 1000;
-        const key    = IUM_ANIM_KEY[node.nombre];
-        const animFn = key ? IUM_ANIM[key] : null;
-        if (!animFn) return;
-
-        const S = 200;
-        ctx!.save();
-        ctx!.translate(node.cx - S / 2, node.cy - S / 2);
-        animFn(ctx!, S, S, localT);
-        ctx!.restore();
-      });
+      // ── FASE IDLE: el canvas no pinta nada — IumVisual ya muestra la animación en cada nodo ──
 
       rafRef.current = requestAnimationFrame(frame);
     }
