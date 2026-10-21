@@ -1993,6 +1993,51 @@ function ConnectionLine({
 
 // ─── Nodo IUM draggable ───────────────────────────────────────────────────────
 
+// ─── E: Mini-canvas animado por nodo en IDLE ─────────────────────────────────
+// Reemplaza IumVisual estático con la animación procedural de traits del IUM
+function IumTraitCanvas({
+  animTraits,
+  size,
+}: {
+  animTraits: AnimTrait[];
+  size: number;
+}) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const rafRef    = useRef<number>(0);
+  const startRef  = useRef<number>(performance.now());
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !animTraits.length) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width  = Math.round(size * dpr);
+    canvas.height = Math.round(size * dpr);
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.scale(dpr, dpr);
+    startRef.current = performance.now();
+    const animFn = buildTraitAnimFn(animTraits);
+
+    function frame() {
+      const t = (performance.now() - startRef.current) / 1000;
+      ctx!.clearRect(0, 0, size, size);
+      animFn(ctx!, size, size, t);
+      rafRef.current = requestAnimationFrame(frame);
+    }
+    rafRef.current = requestAnimationFrame(frame);
+    return () => cancelAnimationFrame(rafRef.current);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [size, animTraits.map(t => `${t.tipo}:${t.densidad}:${t.velocidad}`).join("|")]);
+
+  if (!animTraits.length) return null;
+  return (
+    <canvas
+      ref={canvasRef}
+      style={{ width: size, height: size, pointerEvents: "none", display: "block" }}
+    />
+  );
+}
+
 function IumNodeSVG({
   comp,
   iumData,
@@ -2107,12 +2152,16 @@ function IumNodeSVG({
           opacity: reaccion ? 0 : 1,
           transition: `opacity 0.35s ease ${animDelay}s`,
         }}>
-          <IumVisual
-            particulas={particulas}
-            geometria={iumData?.geometria}
-            size={VIS_SIZE}
-            showToggle={false}
-          />
+          {iumData?.animTraits?.length ? (
+            <IumTraitCanvas animTraits={iumData.animTraits} size={VIS_SIZE} />
+          ) : (
+            <IumVisual
+              particulas={particulas}
+              geometria={iumData?.geometria}
+              size={VIS_SIZE}
+              showToggle={false}
+            />
+          )}
         </div>
       </foreignObject>
 
@@ -4619,6 +4668,15 @@ export default function SimuladorIUM() {
                 };
               });
 
+              // D: calcular reacciones activas para mostrar nombres en overlay
+              const nombresParticulasActivas = new Set<string>(
+                nodes.flatMap(n => n.composicion.map(c => c.particula))
+              );
+              const reaccionesActivasNombres = reacciones.filter(r =>
+                nombresParticulasActivas.has(r.particula_a) && nombresParticulasActivas.has(r.particula_b)
+              );
+              const mostrarOverlay = (faseAnimacion === "explosion" || faseAnimacion === "efecto") && reaccionesActivasNombres.length > 0;
+
               return (
                 <div style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 15, overflow: "visible" }}>
                   <IumMergedCanvas
@@ -4628,6 +4686,46 @@ export default function SimuladorIUM() {
                     fase={faseAnimacion ?? "idle"}
                     reaccionesDisponibles={reacciones}
                   />
+                  {/* D: nombres de reacciones activas — fade-in tardío sobre el canvas */}
+                  {mostrarOverlay && (
+                    <div style={{
+                      position: "absolute",
+                      bottom: 28,
+                      left: "50%",
+                      transform: "translateX(-50%)",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      gap: 4,
+                      animation: "reaccNombres 0.7s ease 0.6s both",
+                      pointerEvents: "none",
+                    }}>
+                      <style>{`
+                        @keyframes reaccNombres {
+                          from { opacity: 0; transform: translateX(-50%) translateY(8px); }
+                          to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+                        }
+                      `}</style>
+                      {reaccionesActivasNombres.map((r, i) => (
+                        <span key={i} style={{
+                          fontSize: 9,
+                          fontWeight: 700,
+                          letterSpacing: "0.1em",
+                          textTransform: "uppercase",
+                          color: r.efecto?.color ?? "var(--primary)",
+                          background: "color-mix(in srgb, var(--bg-main) 72%, transparent)",
+                          padding: "2px 8px",
+                          borderRadius: 99,
+                          border: `1px solid color-mix(in srgb, ${r.efecto?.color ?? "var(--primary)"} 30%, transparent)`,
+                          whiteSpace: "nowrap",
+                          backdropFilter: "blur(4px)",
+                          opacity: 0.92,
+                        }}>
+                          {r.nombre_reaccion}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               );
             })()}
