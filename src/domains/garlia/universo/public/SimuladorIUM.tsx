@@ -459,41 +459,68 @@ const IUM_ANIM_KEY: Record<string, string> = {
 // ─── Componente canvas animado para el panel de IUMs ─────────────────────────
 
 // ─── Canvas unificado — todas las animaciones IUM en un solo canvas compartido ─
-// Cada nodo contribuye con su animFn pintada sobre el canvas completo,
-// trasladada al centro del nodo. Las partículas se mezclan libremente.
+// Fases internas:
+//   "idle"   → cada nodo anima en su posición original
+//   "moving" → cada nodo viaja hacia el centro (easing cubic), animFn sigue centrada en él
+//   "final"  → todos convergieron; animación de explosión + mezcla de efectos en el centro
 
 interface IumNodeAnim {
-  nombre: string;   // nombre del IUM
-  cx: number;       // X en pantalla relativa al div padre
-  cy: number;       // Y en pantalla relativa al div padre
-  delay: number;    // segundos hasta activarse
+  nombre: string;
+  cx: number;       // X pantalla relativa al div padre
+  cy: number;       // Y pantalla relativa al div padre
+  delay: number;    // segundos hasta activarse (orden topológico)
+  color: string;    // color TASI del nodo
 }
+
+const _easeInOut = (t: number) => t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2;
 
 function IumMergedCanvas({
   nodes,
   width,
   height,
+  fase,           // fase del simulador — "combinando" dispara moving
 }: {
   nodes: IumNodeAnim[];
   width: number;
   height: number;
+  fase: "idle" | "combinando" | "explosion" | "efecto" | null;
 }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const rafRef    = useRef<number>(0);
-  const tRef      = useRef<number>(0);
-  // startTime por nodo (null = aún no activado)
-  const startRef  = useRef<(number | null)[]>([]);
+  const canvasRef    = useRef<HTMLCanvasElement>(null);
+  const rafRef       = useRef<number>(0);
+  const tRef         = useRef<number>(0);          // tiempo global en ticks
+  const startRef     = useRef<(number | null)[]>([]); // tick en que cada nodo se activó
+  const moveStartRef = useRef<number | null>(null);   // tick en que empezó "moving"
+  const finalStartRef= useRef<number | null>(null);   // tick en que empezó "final"
 
-  // Resetear startRef cuando cambian los nodos
+  const MOVE_TICKS   = 80;   // duración del viaje al centro en ticks (~2 s a 0.025/tick)
+  const FINAL_DELAY  = 10;   // ticks de pausa antes de la explosión final
+
+  // Clave de identidad de nodes — resetea estado cuando cambia la composición
+  const nodesKey = nodes.map(n => `${n.nombre}:${Math.round(n.cx)},${Math.round(n.cy)}`).join("|");
+
   useEffect(() => {
-    startRef.current = nodes.map(() => null);
-    // Programar activación de cada nodo según su delay
+    tRef.current       = 0;
+    startRef.current   = nodes.map(() => null);
+    moveStartRef.current  = null;
+    finalStartRef.current = null;
+
     const ids = nodes.map((n, i) =>
       setTimeout(() => { startRef.current[i] = tRef.current; }, n.delay * 1000)
     );
     return () => ids.forEach(clearTimeout);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nodes.map(n => n.nombre + n.cx + n.cy + n.delay).join("|")]);
+  }, [nodesKey]);
+
+  // Cuando la fase externa pasa a "combinando", iniciamos el movimiento
+  useEffect(() => {
+    if (fase === "combinando") {
+      moveStartRef.current  = tRef.current;
+      finalStartRef.current = null;
+    } else if (fase === null || fase === "idle") {
+      moveStartRef.current  = null;
+      finalStartRef.current = null;
+    }
+  }, [fase]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -505,20 +532,109 @@ function IumMergedCanvas({
     if (!ctx) return;
     ctx.scale(dpr, dpr);
 
+    const destX = width  / 2;
+    const destY = height / 2;
+
     function tick() {
       ctx!.clearRect(0, 0, width, height);
-      const t = tRef.current;
+      const t     = tRef.current;
+      const mStart = moveStartRef.current;
+      const fStart = finalStartRef.current;
 
+      // ── Fase FINAL: explosión + mezcla de todas las animFn en el centro ──────
+      if (fStart !== null) {
+        const ft = t - fStart;
+        const ftS = ft * 0.025; // segundos locales
+
+        // Destellos radiales de cada color
+        if (ft < 30) {
+          nodes.forEach((node) => {
+            const g = ctx!.createRadialGradient(destX, destY, 0, destX, destY, 60 + ft * 2);
+            g.addColorStop(0, node.color.replace(")", ",0.35)").replace("rgb","rgba"));
+            g.addColorStop(1, "transparent");
+            ctx!.fillStyle = g;
+            ctx!.beginPath(); ctx!.arc(destX, destY, 60 + ft * 2, 0, Math.PI * 2); ctx!.fill();
+          });
+        }
+
+        // Todas las animFn centradas en el mismo punto — mezcla real
+        const S = 240;
+        nodes.forEach((node) => {
+          const key    = IUM_ANIM_KEY[node.nombre];
+          const animFn = key ? IUM_ANIM[key] : null;
+          if (!animFn) return;
+          ctx!.save();
+          ctx!.globalAlpha = Math.min(1, ftS * 0.8);
+          ctx!.translate(destX - S / 2, destY - S / 2);
+          animFn(ctx!, S, S, ftS);
+          ctx!.restore();
+        });
+
+        // Anillo exterior pulsante
+        const pulse = Math.sin(ftS * 3) * 8;
+        ctx!.beginPath();
+        ctx!.arc(destX, destY, 55 + pulse, 0, Math.PI * 2);
+        ctx!.strokeStyle = `rgba(255,255,255,${0.08 + Math.sin(ftS*2)*0.04})`;
+        ctx!.lineWidth = 1.5;
+        ctx!.stroke();
+
+        tRef.current += 0.025;
+        rafRef.current = requestAnimationFrame(tick);
+        return;
+      }
+
+      // ── Fase MOVING: nodos viajan al centro ──────────────────────────────────
+      if (mStart !== null) {
+        const elapsed = t - mStart;
+
+        // Comprobar si todos terminaron → activar final
+        if (elapsed > MOVE_TICKS + FINAL_DELAY && finalStartRef.current === null) {
+          finalStartRef.current = t;
+        }
+
+        nodes.forEach((node, i) => {
+          const start = startRef.current[i];
+          if (start === null) return;
+          const key    = IUM_ANIM_KEY[node.nombre];
+          const animFn = key ? IUM_ANIM[key] : null;
+          if (!animFn) return;
+
+          // Progreso del viaje: cada nodo empieza a moverse en su propio offset topológico
+          // (nodos con delay mayor empiezan a moverse antes porque ya llevan más tiempo activos)
+          const nodeElapsed = elapsed + (node.delay * 40); // delay topológico inverso
+          const raw  = Math.min(1, nodeElapsed / MOVE_TICKS);
+          const prog = _easeInOut(raw);
+
+          // Posición interpolada origen → centro
+          const curX = node.cx + (destX - node.cx) * prog;
+          const curY = node.cy + (destY - node.cy) * prog;
+
+          // Opacidad: fade out al llegar
+          const alpha = raw < 0.85 ? 1 : 1 - ((raw - 0.85) / 0.15);
+
+          const localT = (t - start) * 0.025;
+          const S = 180;
+          ctx!.save();
+          ctx!.globalAlpha = alpha;
+          ctx!.translate(curX - S / 2, curY - S / 2);
+          animFn(ctx!, S, S, localT);
+          ctx!.restore();
+        });
+
+        tRef.current += 0.025;
+        rafRef.current = requestAnimationFrame(tick);
+        return;
+      }
+
+      // ── Fase IDLE: cada nodo anima en su posición ────────────────────────────
       nodes.forEach((node, i) => {
         const start = startRef.current[i];
-        if (start === null) return; // aún no activado
-        const localT = t - start;
+        if (start === null) return;
+        const localT = (t - start) * 0.025;
         const key    = IUM_ANIM_KEY[node.nombre];
         const animFn = key ? IUM_ANIM[key] : null;
         if (!animFn) return;
 
-        // Trasladar el origen al centro del nodo,
-        // pintar en un área de 200×200 centrada ahí
         const S = 200;
         ctx!.save();
         ctx!.translate(node.cx - S / 2, node.cy - S / 2);
@@ -529,10 +645,11 @@ function IumMergedCanvas({
       tRef.current += 0.025;
       rafRef.current = requestAnimationFrame(tick);
     }
+
     rafRef.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafRef.current);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [width, height, nodes.map(n => n.nombre + n.cx + n.cy).join("|")]);
+  }, [width, height, nodesKey]);
 
   return (
     <canvas
@@ -3218,7 +3335,7 @@ export default function SimuladorIUM() {
                     key={comp.uid}
                     data-ium-node="true"
                     style={{
-                      display: (faseAnimacion === "explosion" || faseAnimacion === "efecto") ? "none" : undefined,
+                      display: faseAnimacion ? "none" : undefined,
                       opacity: 1,
                       transition: "opacity 0.3s ease",
                       pointerEvents: faseAnimacion ? "none" : undefined,
@@ -3903,7 +4020,7 @@ export default function SimuladorIUM() {
                 : (resultado.ambiguo || (resultado.procesos_candidatos?.length ?? 0) > 0) ? "inestable"
                 : null;
 
-              if (!reaccionActual || !svgRef.current || faseAnimacion === "explosion" || faseAnimacion === "efecto") return null;
+              if (!reaccionActual || !svgRef.current) return null;
 
               const svgEl   = svgRef.current;
               const ctm     = svgEl.getScreenCTM();
@@ -3939,11 +4056,9 @@ export default function SimuladorIUM() {
               }
               const maxDistOv = Math.max(...Array.from(distOv.values()), 0);
 
-              // Construir lista de nodos con posición en pantalla relativa al div
               const nodes: IumNodeAnim[] = componentes.map((comp) => {
                 const svgPt = svgEl.createSVGPoint();
-                svgPt.x = comp.x;
-                svgPt.y = comp.y;
+                svgPt.x = comp.x; svgPt.y = comp.y;
                 const screenPt = svgPt.matrixTransform(ctm!);
                 const distVal  = distOv.get(comp.uid) ?? 0;
                 return {
@@ -3951,6 +4066,7 @@ export default function SimuladorIUM() {
                   cx:     screenPt.x - divRect.left,
                   cy:     screenPt.y - divRect.top,
                   delay:  (maxDistOv - distVal) * 0.22,
+                  color:  colorTASIdeIum(iumMap.get(comp.ium_id)),
                 };
               });
 
@@ -3960,6 +4076,7 @@ export default function SimuladorIUM() {
                     nodes={nodes}
                     width={divRect.width}
                     height={divRect.height}
+                    fase={faseAnimacion ?? "idle"}
                   />
                 </div>
               );
