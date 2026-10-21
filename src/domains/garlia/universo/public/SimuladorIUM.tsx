@@ -494,7 +494,7 @@ function IumMergedCanvas({
   const finalStartRef = useRef<number | null>(null); // ms en que empezó final
 
   const MOVE_MS    = 2000; // duración del viaje al centro
-  const FINAL_WAIT = 300;  // ms de pausa después de que llegan todos
+  const FINAL_WAIT = 0;    // sin pausa — la superposición arranca al llegar
 
   const nodesKey = nodes.map(n => `${n.nombre}:${Math.round(n.cx)},${Math.round(n.cy)}`).join("|");
 
@@ -549,11 +549,9 @@ function IumMergedCanvas({
       if (fStart !== null && now >= fStart) {
         const ftS = (now - fStart) / 1000;
 
-        // Solo las animFn de los IUMs superpuestas, creciendo desde el centro
-        const scale    = _easeInOut(Math.min(1, ftS / 1.2));
-        const sc       = Math.max(0.001, scale);
-        const S        = 320;
-        const perAlpha = Math.min(1, (1 / nodes.length) * 2.2) * Math.min(1, ftS * 2);
+        // Tamaño completo desde el primer frame, solo fade-in suave de alpha
+        const S        = 560;
+        const perAlpha = Math.min(1, (1 / nodes.length) * 2.2) * Math.min(1, ftS / 0.4);
 
         nodes.forEach((node) => {
           const key    = IUM_ANIM_KEY[node.nombre];
@@ -561,9 +559,7 @@ function IumMergedCanvas({
           if (!animFn) return;
           ctx!.save();
           ctx!.globalAlpha = perAlpha;
-          ctx!.translate(destX, destY);
-          ctx!.scale(sc, sc);
-          ctx!.translate(-S / 2, -S / 2);
+          ctx!.translate(destX - S / 2, destY - S / 2);
           animFn(ctx!, S, S, ftS);
           ctx!.restore();
         });
