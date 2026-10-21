@@ -458,72 +458,90 @@ const IUM_ANIM_KEY: Record<string, string> = {
 
 // ─── Componente canvas animado para el panel de IUMs ─────────────────────────
 
-// Canvas de animación libre — se posiciona en coordenadas de pantalla sobre el overlay
-// El canvas es AURA_SIZE × AURA_SIZE centrado en (cx, cy), sin ningún clip.
-const AURA_SIZE = 220; // px en pantalla — espacio libre alrededor del nodo
+// ─── Canvas unificado — todas las animaciones IUM en un solo canvas compartido ─
+// Cada nodo contribuye con su animFn pintada sobre el canvas completo,
+// trasladada al centro del nodo. Las partículas se mezclan libremente.
 
-function IumAnimCanvas({
-  iumNombre,
-  cx,
-  cy,
-  visible,
-  delay = 0,
+interface IumNodeAnim {
+  nombre: string;   // nombre del IUM
+  cx: number;       // X en pantalla relativa al div padre
+  cy: number;       // Y en pantalla relativa al div padre
+  delay: number;    // segundos hasta activarse
+}
+
+function IumMergedCanvas({
+  nodes,
+  width,
+  height,
 }: {
-  iumNombre: string;
-  cx: number;  // coordenada X de pantalla (centro del nodo)
-  cy: number;  // coordenada Y de pantalla (centro del nodo)
-  visible: boolean;
-  delay?: number; // segundos antes de aparecer
+  nodes: IumNodeAnim[];
+  width: number;
+  height: number;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rafRef    = useRef<number>(0);
   const tRef      = useRef<number>(0);
-  const [opacity, setOpacity] = useState(0);
+  // startTime por nodo (null = aún no activado)
+  const startRef  = useRef<(number | null)[]>([]);
 
-  // Aparece con delay cuando visible=true, desaparece inmediatamente
+  // Resetear startRef cuando cambian los nodos
   useEffect(() => {
-    if (!visible) { setOpacity(0); return; }
-    const id = setTimeout(() => setOpacity(1), delay * 1000);
-    return () => clearTimeout(id);
-  }, [visible, delay]);
+    startRef.current = nodes.map(() => null);
+    // Programar activación de cada nodo según su delay
+    const ids = nodes.map((n, i) =>
+      setTimeout(() => { startRef.current[i] = tRef.current; }, n.delay * 1000)
+    );
+    return () => ids.forEach(clearTimeout);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nodes.map(n => n.nombre + n.cx + n.cy + n.delay).join("|")]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const S = AURA_SIZE;
-    canvas.width  = Math.round(S * dpr);
-    canvas.height = Math.round(S * dpr);
+    canvas.width  = Math.round(width  * dpr);
+    canvas.height = Math.round(height * dpr);
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     ctx.scale(dpr, dpr);
 
-    const key    = IUM_ANIM_KEY[iumNombre];
-    const animFn = key ? IUM_ANIM[key] : null;
-
     function tick() {
-      ctx!.clearRect(0, 0, S, S);
-      if (animFn) animFn(ctx!, S, S, tRef.current);
+      ctx!.clearRect(0, 0, width, height);
+      const t = tRef.current;
+
+      nodes.forEach((node, i) => {
+        const start = startRef.current[i];
+        if (start === null) return; // aún no activado
+        const localT = t - start;
+        const key    = IUM_ANIM_KEY[node.nombre];
+        const animFn = key ? IUM_ANIM[key] : null;
+        if (!animFn) return;
+
+        // Trasladar el origen al centro del nodo,
+        // pintar en un área de 200×200 centrada ahí
+        const S = 200;
+        ctx!.save();
+        ctx!.translate(node.cx - S / 2, node.cy - S / 2);
+        animFn(ctx!, S, S, localT);
+        ctx!.restore();
+      });
+
       tRef.current += 0.025;
       rafRef.current = requestAnimationFrame(tick);
     }
     rafRef.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafRef.current);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [iumNombre]);
+  }, [width, height, nodes.map(n => n.nombre + n.cx + n.cy).join("|")]);
 
-  const half = AURA_SIZE / 2;
   return (
     <canvas
       ref={canvasRef}
       style={{
         position: "absolute",
-        left: cx - half,
-        top:  cy - half,
-        width:  AURA_SIZE,
-        height: AURA_SIZE,
-        opacity,
-        transition: `opacity 0.35s ease`,
+        inset: 0,
+        width,
+        height,
         pointerEvents: "none",
       }}
     />
@@ -3878,7 +3896,7 @@ export default function SimuladorIUM() {
               })()}
             </svg>
 
-            {/* ── Overlay de animaciones libres (fuera del SVG, sin clip) ──────── */}
+            {/* ── Overlay unificado — un solo canvas para todas las animaciones ── */}
             {(() => {
               const reaccionActual = !resultado || resultado.estado !== "simulado" ? null
                 : (resultado.proceso_principal || resultado.conjuracion_principal) ? "exito"
@@ -3887,14 +3905,13 @@ export default function SimuladorIUM() {
 
               if (!reaccionActual || !svgRef.current || faseAnimacion === "explosion" || faseAnimacion === "efecto") return null;
 
-              // Convertir coordenadas SVG → pantalla relativa al div padre (position:relative)
               const svgEl   = svgRef.current;
               const ctm     = svgEl.getScreenCTM();
-              const divRect = svgEl.parentElement!.getBoundingClientRect();
-
+              const divEl   = svgEl.parentElement!;
+              const divRect = divEl.getBoundingClientRect();
               if (!ctm) return null;
 
-              // Calcular animDelay por topología (mismo BFS que en los nodos)
+              // BFS topológico → delay por nodo
               const inDegOv = new Map<string, number>();
               for (const c of componentes) inDegOv.set(c.uid, 0);
               for (const e of enlaces) inDegOv.set(e.destino_uid, (inDegOv.get(e.destino_uid) ?? 0) + 1);
@@ -3921,33 +3938,29 @@ export default function SimuladorIUM() {
                 }
               }
               const maxDistOv = Math.max(...Array.from(distOv.values()), 0);
-              const DELAY_STEP_OV = 0.22;
+
+              // Construir lista de nodos con posición en pantalla relativa al div
+              const nodes: IumNodeAnim[] = componentes.map((comp) => {
+                const svgPt = svgEl.createSVGPoint();
+                svgPt.x = comp.x;
+                svgPt.y = comp.y;
+                const screenPt = svgPt.matrixTransform(ctm!);
+                const distVal  = distOv.get(comp.uid) ?? 0;
+                return {
+                  nombre: iumMap.get(comp.ium_id)?.nombre ?? "",
+                  cx:     screenPt.x - divRect.left,
+                  cy:     screenPt.y - divRect.top,
+                  delay:  (maxDistOv - distVal) * 0.22,
+                };
+              });
 
               return (
                 <div style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 15, overflow: "visible" }}>
-                  {componentes.map((comp) => {
-                    // Punto SVG → pantalla absoluta → relativa al div padre
-                    const svgPt = svgEl.createSVGPoint();
-                    svgPt.x = comp.x;
-                    svgPt.y = comp.y;
-                    const screenPt = svgPt.matrixTransform(ctm);
-                    const relX = screenPt.x - divRect.left;
-                    const relY = screenPt.y - divRect.top;
-
-                    const distVal = distOv.get(comp.uid) ?? 0;
-                    const delay   = (maxDistOv - distVal) * DELAY_STEP_OV;
-
-                    return (
-                      <IumAnimCanvas
-                        key={comp.uid}
-                        iumNombre={iumMap.get(comp.ium_id)?.nombre ?? ""}
-                        cx={relX}
-                        cy={relY}
-                        visible={true}
-                        delay={delay}
-                      />
-                    );
-                  })}
+                  <IumMergedCanvas
+                    nodes={nodes}
+                    width={divRect.width}
+                    height={divRect.height}
+                  />
                 </div>
               );
             })()}
