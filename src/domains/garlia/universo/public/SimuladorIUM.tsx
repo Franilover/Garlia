@@ -98,6 +98,426 @@ interface ReaccionVisual {
   } | null;
 }
 
+// Combinación emergente — reacción única entre exactamente 2 IUMs
+interface CombiEmergente {
+  nombre_conjuro: string;
+  tipo_emergente: string; // lattice|resonance_burst|cascade|crystallize|explosion_radial|nova|temporal_rift|echo_storm|collapse|consume|vortice_dual|void_pulse
+  color_emergente: string;
+  intensidad: number;
+  descripcion?: string;
+  params?: Record<string, unknown>;
+}
+
+// Renderiza el efecto emergente único (capa superior — encima de traits y reacciones)
+function renderEmergente(
+  ctx: CanvasRenderingContext2D,
+  W: number,
+  H: number,
+  t: number,
+  e: CombiEmergente,
+): void {
+  const cx = W / 2, cy = H / 2;
+  const R  = Math.min(W, H) * 0.42;
+  const col = e.color_emergente;
+  const hex = (a: number) => Math.round(Math.max(0, Math.min(1, a)) * 255).toString(16).padStart(2, "0");
+
+  ctx.save();
+
+  switch (e.tipo_emergente) {
+
+    case "lattice": {
+      // Red de nodos que vibran y se reconectan — orden emergente
+      const n = 8;
+      const pts: [number, number][] = Array.from({ length: n }, (_, i) => {
+        const ang = (i / n) * Math.PI * 2 + t * 0.18;
+        const r = R * 0.62 + Math.sin(t * 1.1 + i * 0.7) * R * 0.12;
+        return [cx + Math.cos(ang) * r, cy + Math.sin(ang) * r];
+      });
+      // Líneas de red
+      for (let i = 0; i < n; i++) {
+        for (let j = i + 1; j < n; j++) {
+          const dist = Math.hypot(pts[i][0] - pts[j][0], pts[i][1] - pts[j][1]);
+          if (dist < R * 0.75) {
+            const a = (1 - dist / (R * 0.75)) * 0.55;
+            ctx.beginPath();
+            ctx.moveTo(pts[i][0], pts[i][1]);
+            ctx.lineTo(pts[j][0], pts[j][1]);
+            ctx.strokeStyle = col + hex(a);
+            ctx.lineWidth = 1;
+            ctx.stroke();
+          }
+        }
+      }
+      // Nodos
+      for (const [px, py] of pts) {
+        const g = ctx.createRadialGradient(px, py, 0, px, py, 8);
+        g.addColorStop(0, col + "cc");
+        g.addColorStop(1, col + "00");
+        ctx.fillStyle = g;
+        ctx.beginPath(); ctx.arc(px, py, 8, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = col + "ee";
+        ctx.beginPath(); ctx.arc(px, py, 2.5, 0, Math.PI * 2); ctx.fill();
+      }
+      // Nodo central
+      const cg = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 0.15);
+      cg.addColorStop(0, col + "99"); cg.addColorStop(1, col + "00");
+      ctx.fillStyle = cg;
+      ctx.beginPath(); ctx.arc(cx, cy, R * 0.15, 0, Math.PI * 2); ctx.fill();
+      break;
+    }
+
+    case "resonance_burst": {
+      // Anillos de resonancia que se emiten en ráfagas sincronizadas
+      const bursts = 5;
+      for (let b = 0; b < bursts; b++) {
+        const phase = (t * 0.7 + b / bursts) % 1;
+        const r = phase * R * 1.1;
+        const a = Math.pow(1 - phase, 1.4) * 0.75;
+        const lw = (1 - phase) * 4 + 1;
+        ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.strokeStyle = col + hex(a);
+        ctx.lineWidth = lw; ctx.stroke();
+      }
+      // Líneas radiales en ráfaga
+      const numRays = 12;
+      for (let i = 0; i < numRays; i++) {
+        const ang = (i / numRays) * Math.PI * 2 + t * 0.3;
+        const phase = (t * 0.9 + i * 0.07) % 1;
+        const len = phase * R * 0.9;
+        const a = (1 - phase) * 0.6;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(cx + Math.cos(ang) * len, cy + Math.sin(ang) * len);
+        ctx.strokeStyle = col + hex(a); ctx.lineWidth = 1.2; ctx.stroke();
+      }
+      // Flash central
+      const flash = 0.4 + 0.6 * Math.abs(Math.sin(t * 2.1));
+      const fg = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 0.2);
+      fg.addColorStop(0, col + hex(flash * 0.85));
+      fg.addColorStop(1, col + "00");
+      ctx.fillStyle = fg;
+      ctx.beginPath(); ctx.arc(cx, cy, R * 0.2, 0, Math.PI * 2); ctx.fill();
+      break;
+    }
+
+    case "cascade": {
+      // Partículas que caen en cascada siguiendo campos curvos
+      const n = 22;
+      for (let i = 0; i < n; i++) {
+        const seed = i * 137.508;
+        const life = (t * 0.65 + i / n) % 1;
+        const ang = seed * 0.017 + Math.sin(t * 0.4 + i * 0.3) * 0.5;
+        const r = life * R * 1.05;
+        const px = cx + Math.cos(ang) * r * Math.sin(life * Math.PI);
+        const py = cy - R * 0.3 + life * R * 1.2;
+        const a = Math.sin(life * Math.PI) * 0.8;
+        const sz = 2 + (1 - life) * 2;
+        const g = ctx.createRadialGradient(px, py, 0, px, py, sz * 2.5);
+        g.addColorStop(0, col + hex(a));
+        g.addColorStop(1, col + "00");
+        ctx.fillStyle = g;
+        ctx.beginPath(); ctx.arc(px, py, sz * 2.5, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = col + hex(Math.min(1, a * 1.3));
+        ctx.beginPath(); ctx.arc(px, py, sz * 0.6, 0, Math.PI * 2); ctx.fill();
+      }
+      break;
+    }
+
+    case "crystallize": {
+      // Cristal que crece desde el centro — aristas angulares
+      const lados = 6;
+      const crecimiento = Math.min(1, t * 0.35 + 0.1);
+      for (let capa = 1; capa <= 3; capa++) {
+        const rc = R * 0.22 * capa * crecimiento;
+        ctx.beginPath();
+        for (let i = 0; i <= lados; i++) {
+          const ang = (i / lados) * Math.PI * 2 - Math.PI / 6;
+          const jitter = 1 + 0.06 * Math.sin(t * 1.5 + i + capa);
+          const px = cx + Math.cos(ang) * rc * jitter;
+          const py = cy + Math.sin(ang) * rc * jitter;
+          i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+        const a = 0.6 - capa * 0.12;
+        ctx.strokeStyle = col + hex(a); ctx.lineWidth = 2 - capa * 0.4; ctx.stroke();
+        ctx.fillStyle = col + hex(a * 0.12); ctx.fill();
+      }
+      // Aristas internas
+      for (let i = 0; i < lados; i++) {
+        const ang = (i / lados) * Math.PI * 2 - Math.PI / 6;
+        const rc = R * 0.65 * crecimiento;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(cx + Math.cos(ang) * rc, cy + Math.sin(ang) * rc);
+        ctx.strokeStyle = col + hex(0.22); ctx.lineWidth = 1; ctx.stroke();
+      }
+      // Brillo central
+      const cg = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 0.18);
+      cg.addColorStop(0, col + "aa"); cg.addColorStop(1, col + "00");
+      ctx.fillStyle = cg;
+      ctx.beginPath(); ctx.arc(cx, cy, R * 0.18, 0, Math.PI * 2); ctx.fill();
+      break;
+    }
+
+    case "explosion_radial": {
+      // Explosión con fragmentos radiales y onda de choque
+      const numFrag = 18;
+      for (let i = 0; i < numFrag; i++) {
+        const ang = (i / numFrag) * Math.PI * 2 + i * 0.21;
+        const life = ((t * 0.8 + i * 0.05) % 1);
+        const r1 = life * R * 0.4;
+        const r2 = life * R * 1.1;
+        const a = Math.pow(1 - life, 1.3) * 0.75;
+        ctx.beginPath();
+        ctx.moveTo(cx + Math.cos(ang) * r1, cy + Math.sin(ang) * r1);
+        ctx.lineTo(cx + Math.cos(ang) * r2, cy + Math.sin(ang) * r2);
+        ctx.strokeStyle = col + hex(a); ctx.lineWidth = 1.5 + (1 - life) * 2; ctx.stroke();
+      }
+      // Onda de choque
+      const shockPhase = (t * 0.5) % 1;
+      ctx.beginPath(); ctx.arc(cx, cy, shockPhase * R * 1.15, 0, Math.PI * 2);
+      ctx.strokeStyle = col + hex(Math.pow(1 - shockPhase, 2) * 0.8);
+      ctx.lineWidth = (1 - shockPhase) * 5 + 1; ctx.stroke();
+      // Flash central
+      const flash2 = Math.pow(Math.max(0, 1 - t * 0.5), 2);
+      const fg2 = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 0.3 + flash2 * R * 0.2);
+      fg2.addColorStop(0, col + hex(flash2 * 0.9));
+      fg2.addColorStop(1, col + "00");
+      ctx.fillStyle = fg2;
+      ctx.beginPath(); ctx.arc(cx, cy, R * 0.5, 0, Math.PI * 2); ctx.fill();
+      break;
+    }
+
+    case "nova": {
+      // Supernova — destello pulsante con corona de filamentos
+      const corona = 14;
+      const pulsoNova = 0.75 + 0.25 * Math.sin(t * 1.8);
+      for (let i = 0; i < corona; i++) {
+        const ang = (i / corona) * Math.PI * 2 + t * 0.12;
+        const len = R * (0.6 + 0.25 * Math.abs(Math.sin(t * 1.3 + i)));
+        const a = 0.5 + 0.5 * Math.abs(Math.sin(t * 2.1 + i * 0.4));
+        const g2 = ctx.createLinearGradient(cx, cy, cx + Math.cos(ang) * len, cy + Math.sin(ang) * len);
+        g2.addColorStop(0, col + hex(0.7));
+        g2.addColorStop(1, col + "00");
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(cx + Math.cos(ang) * len, cy + Math.sin(ang) * len);
+        ctx.strokeStyle = g2; ctx.lineWidth = 1 + a; ctx.stroke();
+      }
+      // Corona interior
+      const innerR = R * 0.35 * pulsoNova;
+      const gradNova = ctx.createRadialGradient(cx, cy, 0, cx, cy, innerR * 2.5);
+      gradNova.addColorStop(0,   col + "ff");
+      gradNova.addColorStop(0.3, col + hex(0.65));
+      gradNova.addColorStop(1,   col + "00");
+      ctx.fillStyle = gradNova;
+      ctx.beginPath(); ctx.arc(cx, cy, innerR * 2.5, 0, Math.PI * 2); ctx.fill();
+      break;
+    }
+
+    case "temporal_rift": {
+      // Grieta temporal — distorsión espacial con abertura central
+      const abertura = 0.3 + 0.25 * Math.sin(t * 0.9);
+      // Grieta principal
+      ctx.beginPath();
+      const steps = 60;
+      for (let s = 0; s <= steps; s++) {
+        const frac = s / steps;
+        const y = cy - R * 0.7 + frac * R * 1.4;
+        const xOff = Math.sin(frac * Math.PI) * R * abertura * (1 + 0.15 * Math.sin(t * 3.2 + frac * 8));
+        if (s === 0) ctx.moveTo(cx - xOff, y); else ctx.lineTo(cx - xOff, y);
+      }
+      for (let s = steps; s >= 0; s--) {
+        const frac = s / steps;
+        const y = cy - R * 0.7 + frac * R * 1.4;
+        const xOff = Math.sin(frac * Math.PI) * R * abertura * (1 + 0.15 * Math.sin(t * 3.2 + frac * 8));
+        ctx.lineTo(cx + xOff, y);
+      }
+      ctx.closePath();
+      const gradRift = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 0.5);
+      gradRift.addColorStop(0, col + "55");
+      gradRift.addColorStop(0.5, col + "22");
+      gradRift.addColorStop(1, col + "00");
+      ctx.fillStyle = gradRift; ctx.fill();
+      ctx.strokeStyle = col + "99"; ctx.lineWidth = 1.5; ctx.stroke();
+      // Energía en el borde de la grieta
+      for (let s = 0; s < 20; s++) {
+        const frac = s / 20;
+        const y = cy - R * 0.7 + frac * R * 1.4;
+        const xOff = Math.sin(frac * Math.PI) * R * abertura;
+        const jitterX = (Math.random() - 0.5) * 4;
+        const jitterY = (Math.random() - 0.5) * 4;
+        const a = 0.5 + 0.5 * Math.random();
+        ctx.fillStyle = col + hex(a);
+        ctx.beginPath(); ctx.arc(cx + xOff + jitterX, y + jitterY, 1.2, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(cx - xOff + jitterX, y + jitterY, 1.2, 0, Math.PI * 2); ctx.fill();
+      }
+      break;
+    }
+
+    case "echo_storm": {
+      // Ecos del mismo efecto desplazados en tiempo y espacio
+      const echos = 5;
+      for (let e2 = 0; e2 < echos; e2++) {
+        const delay = e2 / echos;
+        const tE = (t + delay) % 1;
+        const rE = tE * R;
+        const aE = (1 - tE) * 0.45;
+        ctx.beginPath(); ctx.arc(cx, cy, rE, 0, Math.PI * 2);
+        ctx.strokeStyle = col + hex(aE); ctx.lineWidth = 1.5; ctx.stroke();
+        // Puntos de eco en los ecos
+        const numPts = 6;
+        for (let p = 0; p < numPts; p++) {
+          const ang = (p / numPts) * Math.PI * 2 + tE * 1.5;
+          const px = cx + Math.cos(ang) * rE;
+          const py = cy + Math.sin(ang) * rE;
+          ctx.fillStyle = col + hex(aE * 1.4);
+          ctx.beginPath(); ctx.arc(px, py, 1.5, 0, Math.PI * 2); ctx.fill();
+        }
+      }
+      // Patrón de eco central
+      const echoFlash = 0.2 + 0.8 * Math.abs(Math.sin(t * 3.5));
+      const eg = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 0.22);
+      eg.addColorStop(0, col + hex(echoFlash * 0.7));
+      eg.addColorStop(1, col + "00");
+      ctx.fillStyle = eg;
+      ctx.beginPath(); ctx.arc(cx, cy, R * 0.22, 0, Math.PI * 2); ctx.fill();
+      break;
+    }
+
+    case "collapse": {
+      // Todo colapsa al centro — gravedad emergente
+      const numPart = 28;
+      for (let i = 0; i < numPart; i++) {
+        const seed = i * 137.5;
+        const life = (t * 0.55 + i / numPart) % 1;
+        const inv = 1 - life;
+        const ang = seed * 0.017 + t * 0.3;
+        const r = inv * R * 1.0;
+        const px = cx + Math.cos(ang) * r;
+        const py = cy + Math.sin(ang) * r;
+        const sz = 1.5 + inv * 2.5;
+        const a = Math.sin(life * Math.PI * 0.8) * 0.85;
+        const g = ctx.createRadialGradient(px, py, 0, px, py, sz * 2);
+        g.addColorStop(0, col + hex(a));
+        g.addColorStop(1, col + "00");
+        ctx.fillStyle = g;
+        ctx.beginPath(); ctx.arc(px, py, sz * 2, 0, Math.PI * 2); ctx.fill();
+      }
+      // Singularidad central pulsante
+      const sing = 0.6 + 0.4 * Math.sin(t * 4.1);
+      const sg = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 0.18 * sing);
+      sg.addColorStop(0, col + "ff"); sg.addColorStop(0.4, col + "66"); sg.addColorStop(1, col + "00");
+      ctx.fillStyle = sg;
+      ctx.beginPath(); ctx.arc(cx, cy, R * 0.18 * sing, 0, Math.PI * 2); ctx.fill();
+      break;
+    }
+
+    case "consume": {
+      // Absorción vorticosa — espiral que aspira hacia el centro
+      const numSpiral = 32;
+      for (let i = 0; i < numSpiral; i++) {
+        const life = (t * 0.6 + i / numSpiral) % 1;
+        const ang = life * Math.PI * 6 + (i / numSpiral) * Math.PI * 2;
+        const r = (1 - life) * R * 1.0;
+        const px = cx + Math.cos(ang) * r;
+        const py = cy + Math.sin(ang) * r;
+        const a = Math.sin(life * Math.PI) * 0.7;
+        const sz = 1.8 + (1 - life) * 1.5;
+        ctx.fillStyle = col + hex(a);
+        ctx.beginPath(); ctx.arc(px, py, sz, 0, Math.PI * 2); ctx.fill();
+      }
+      // Vórtice interior
+      ctx.beginPath();
+      for (let i = 0; i <= 200; i++) {
+        const frac = i / 200;
+        const ang = frac * Math.PI * 8 + t * 1.5;
+        const r2 = frac * R * 0.55;
+        const px = cx + Math.cos(ang) * r2;
+        const py = cy + Math.sin(ang) * r2;
+        if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+      }
+      ctx.strokeStyle = col + "44"; ctx.lineWidth = 1; ctx.stroke();
+      // Centro oscuro
+      const cg2 = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 0.12);
+      cg2.addColorStop(0, col + "11"); cg2.addColorStop(0.5, col + "66"); cg2.addColorStop(1, col + "00");
+      ctx.fillStyle = cg2;
+      ctx.beginPath(); ctx.arc(cx, cy, R * 0.12, 0, Math.PI * 2); ctx.fill();
+      break;
+    }
+
+    case "vortice_dual": {
+      // Dos vórtices que se entrelazan — efecto dual
+      const colors = [col, col + "bb"];
+      for (let v = 0; v < 2; v++) {
+        const dir = v === 0 ? 1 : -0.7;
+        const offset = v === 0 ? 0 : Math.PI;
+        const numV = 16;
+        for (let i = 0; i < numV; i++) {
+          const life = (t * 0.7 + i / numV + v * 0.5) % 1;
+          const frac = i / numV;
+          const ang = t * 1.5 * dir + frac * Math.PI * 4 + offset;
+          const r2 = (0.15 + life * 0.85) * R * 0.88;
+          const px = cx + Math.cos(ang) * r2;
+          const py = cy + Math.sin(ang) * r2;
+          const a = Math.sin(life * Math.PI) * (v === 0 ? 0.65 : 0.45);
+          ctx.fillStyle = col + hex(a);
+          ctx.beginPath(); ctx.arc(px, py, 2.2 - v * 0.5, 0, Math.PI * 2); ctx.fill();
+        }
+      }
+      // Figura de ocho central
+      ctx.beginPath();
+      for (let i = 0; i <= 120; i++) {
+        const tt = (i / 120) * Math.PI * 2 + t * 0.4;
+        const px = cx + Math.cos(tt) * R * 0.28;
+        const py = cy + Math.sin(tt * 2) * R * 0.16;
+        if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+      }
+      ctx.strokeStyle = col + "44"; ctx.lineWidth = 1.2; ctx.stroke();
+      break;
+    }
+
+    case "void_pulse": {
+      // Pulso del vacío — ausencia que vibra
+      const numVoid = 4;
+      for (let v = 0; v < numVoid; v++) {
+        const phase = (t * 0.55 + v / numVoid) % 1;
+        const r2 = phase * R * 1.1;
+        const a = Math.pow(1 - phase, 1.8) * 0.65;
+        // Anillo con vacío interior
+        ctx.beginPath(); ctx.arc(cx, cy, r2, 0, Math.PI * 2);
+        ctx.strokeStyle = col + hex(a); ctx.lineWidth = 2 + (1 - phase) * 3; ctx.stroke();
+      }
+      // Interior oscuro
+      const rVoid = R * 0.28 * (1 + 0.12 * Math.sin(t * 2.3));
+      ctx.beginPath(); ctx.arc(cx, cy, rVoid, 0, Math.PI * 2);
+      ctx.fillStyle = col + "08"; ctx.fill();
+      ctx.strokeStyle = col + "33"; ctx.lineWidth = 2; ctx.stroke();
+      // Perturbaciones en el borde del vacío
+      const numPerturb = 10;
+      for (let p = 0; p < numPerturb; p++) {
+        const ang = (p / numPerturb) * Math.PI * 2 + t * 0.7;
+        const r3 = rVoid * (1 + 0.2 * Math.abs(Math.sin(t * 2.5 + p * 0.8)));
+        ctx.fillStyle = col + hex(0.55);
+        ctx.beginPath(); ctx.arc(cx + Math.cos(ang) * r3, cy + Math.sin(ang) * r3, 2, 0, Math.PI * 2); ctx.fill();
+      }
+      break;
+    }
+
+    default: {
+      // Fallback: nova básica
+      const fb = 0.6 + 0.4 * Math.sin(t * 1.9);
+      const fg3 = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 0.45);
+      fg3.addColorStop(0, col + hex(fb * 0.7));
+      fg3.addColorStop(1, col + "00");
+      ctx.fillStyle = fg3;
+      ctx.beginPath(); ctx.arc(cx, cy, R * 0.45, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+
+  ctx.restore();
+}
+
 // Dado un array de reacciones activas, renderiza sus efectos en el canvas (capa encima de traits base)
 function renderReacciones(
   ctx: CanvasRenderingContext2D,
@@ -1279,12 +1699,14 @@ function IumMergedCanvas({
   height,
   fase,
   reaccionesDisponibles,
+  combiEmergente,
 }: {
   nodes: IumNodeAnim[];
   width: number;
   height: number;
   fase: "idle" | "combinando" | "explosion" | "efecto" | null;
   reaccionesDisponibles: ReaccionVisual[];
+  combiEmergente?: CombiEmergente | null;
 }) {
   const canvasRef     = useRef<HTMLCanvasElement>(null);
   const rafRef        = useRef<number>(0);
@@ -1433,6 +1855,17 @@ function IumMergedCanvas({
             if (reacFade > 0) {
               ctx!.globalAlpha = fadeIn * reacFade;
               renderReacciones(ctx!, S, S, ftS, reaccionesRender, reacFade);
+            }
+          }
+          // Efecto emergente — capa superior, fade-in más tardío (≥ 1.2s)
+          if (combiEmergente) {
+            const emergFade = Math.min(1, Math.max(0, (ftS - 1.2) / 0.8));
+            if (emergFade > 0) {
+              const intensidad = (combiEmergente.intensidad ?? 1) * emergFade * fadeIn;
+              ctx!.save();
+              ctx!.globalAlpha = intensidad;
+              renderEmergente(ctx!, S, S, ftS, combiEmergente);
+              ctx!.restore();
             }
           }
           ctx!.restore();
@@ -2935,6 +3368,31 @@ export default function SimuladorIUM() {
     setFaseAnimacion("combinando");
     // explosion y efecto eliminados — el canvas IumMergedCanvas maneja el resultado final
   }, [resultado, componentes, enlaces]);
+  // ── F+G: Efecto emergente por combinación de exactamente 2 IUMs ─────────────
+  const [combiEmergente, setCombiEmergente] = useState<CombiEmergente | null>(null);
+  useEffect(() => {
+    const exitoso = resultado?.estado === "simulado" &&
+      (resultado.proceso_principal || resultado.conjuracion_principal);
+    if (!exitoso || componentes.length !== 2) { setCombiEmergente(null); return; }
+    let vivo = true;
+    const iumNombres = componentes
+      .map(c => iumMap.get(c.ium_id)?.nombre ?? "")
+      .filter(Boolean)
+      .sort();
+    if (iumNombres.length !== 2) { setCombiEmergente(null); return; }
+    const [a, b] = iumNombres;
+    supabase
+      .from("iums_combinaciones_emergentes")
+      .select("nombre_conjuro, tipo_emergente, color_emergente, intensidad, descripcion, params")
+      .eq("ium_a", a)
+      .eq("ium_b", b)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (vivo) setCombiEmergente(data ? (data as CombiEmergente) : null);
+      });
+    return () => { vivo = false; };
+  }, [resultado, componentes, iumMap]);
+
   const [avisoTopo, setAvisoTopo] = useState<string | null>(null);
   // Slot resaltado mientras arrastra en modo topología
   const [dragSlotPreview, setDragSlotPreview] = useState<{ key: string; x: number; y: number } | null>(null);
@@ -4997,7 +5455,61 @@ export default function SimuladorIUM() {
                     height={divRect.height}
                     fase={faseAnimacion ?? "idle"}
                     reaccionesDisponibles={reacciones}
+                    combiEmergente={combiEmergente}
                   />
+                  {/* G: nombre del conjuro emergente — overlay dramático (aparece último) */}
+                  {combiEmergente && (faseAnimacion === "explosion" || faseAnimacion === "efecto") && (
+                    <div style={{
+                      position: "absolute",
+                      top: 22,
+                      left: "50%",
+                      transform: "translateX(-50%)",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      gap: 3,
+                      animation: "conjuroNombre 0.9s cubic-bezier(0.22,1,0.36,1) 1.3s both",
+                      pointerEvents: "none",
+                      zIndex: 20,
+                    }}>
+                      <style>{`
+                        @keyframes conjuroNombre {
+                          from { opacity: 0; transform: translateX(-50%) scale(0.72); filter: blur(6px); }
+                          60%  { filter: blur(0px); }
+                          to   { opacity: 1; transform: translateX(-50%) scale(1); filter: blur(0px); }
+                        }
+                      `}</style>
+                      <span style={{
+                        fontSize: 13,
+                        fontWeight: 800,
+                        letterSpacing: "0.16em",
+                        textTransform: "uppercase",
+                        color: combiEmergente.color_emergente,
+                        textShadow: `0 0 18px ${combiEmergente.color_emergente}99, 0 0 6px ${combiEmergente.color_emergente}66`,
+                        whiteSpace: "nowrap",
+                        background: `color-mix(in srgb, var(--bg-main) 65%, transparent)`,
+                        padding: "4px 14px",
+                        borderRadius: 99,
+                        border: `1px solid color-mix(in srgb, ${combiEmergente.color_emergente} 40%, transparent)`,
+                        backdropFilter: "blur(6px)",
+                      }}>
+                        {combiEmergente.nombre_conjuro}
+                      </span>
+                      {combiEmergente.tipo_emergente && (
+                        <span style={{
+                          fontSize: 7,
+                          fontWeight: 600,
+                          letterSpacing: "0.14em",
+                          textTransform: "uppercase",
+                          color: `color-mix(in srgb, ${combiEmergente.color_emergente} 55%, transparent)`,
+                          whiteSpace: "nowrap",
+                        }}>
+                          {combiEmergente.tipo_emergente.replace(/_/g, " ")}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
                   {/* D: nombres de reacciones activas — fade-in tardío sobre el canvas */}
                   {mostrarOverlay && (
                     <div style={{
