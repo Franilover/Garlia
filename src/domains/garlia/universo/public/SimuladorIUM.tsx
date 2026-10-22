@@ -986,12 +986,13 @@ const IUM_ANIM: Record<string, AnimFn> = {
 
 interface IumNodeAnim {
   nombre: string;
-  cx: number;       // X pantalla relativa al div padre
-  cy: number;       // Y pantalla relativa al div padre
-  delay: number;    // segundos hasta activarse (orden topológico)
-  color: string;    // color TASI del nodo
-  animTraits: AnimTrait[]; // traits procedurales de las partículas de este IUM
-  composicion: { particula: string; cantidad: number }[]; // para calcular reacciones activas
+  cx: number;
+  cy: number;
+  delay: number;
+  color: string;
+  animTraits: AnimTrait[];
+  composicion: { particula: string; cantidad: number }[];
+  animConfig?: AnimConfig | null;
 }
 
 const _easeInOut = (t: number) => t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2;
@@ -1096,14 +1097,61 @@ function IumMergedCanvas({
         });
 
         if (allTraits.length > 0) {
-          const S = 560;
-          const animFn = buildTraitAnimFn(allTraits);
+          // Recoger config del primer nodo que tenga animConfig (todos deberían tenerlo)
+          // Combinamos: si hay varios IUMs, promediar escala y velocidad
+          const configs = nodes.map(n => n.animConfig).filter(Boolean) as AnimConfig[];
+          const cfg: AnimConfig | null = configs.length > 0 ? {
+            color_primario: configs[0].color_primario,
+            color_blend:    configs.reduce((s, c) => s + c.color_blend,    0) / configs.length,
+            escala:         configs.reduce((s, c) => s + c.escala,         0) / configs.length,
+            velocidad_mult: configs.reduce((s, c) => s + c.velocidad_mult, 0) / configs.length,
+            campo:          configs[0].campo,
+            aura_color:     configs[0].aura_color,
+            aura_opacidad:  configs.reduce((s, c) => s + c.aura_opacidad, 0) / configs.length,
+            aura_radio:     configs.reduce((s, c) => s + c.aura_radio,    0) / configs.length,
+            campo_pulso_hz: configs.reduce((s, c) => s + c.campo_pulso_hz,0) / configs.length,
+            campo_rotacion: configs.reduce((s, c) => s + c.campo_rotacion, 0) / configs.length,
+          } : null;
+
+          // Modificar traits con velocidad_mult de la config
+          const scaledTraits: AnimTrait[] = cfg
+            ? allTraits.map(t => ({ ...t, velocidad: t.velocidad * cfg.velocidad_mult }))
+            : allTraits;
+
+          const S = 560 * (cfg?.escala ?? 1);
+          const animFn = buildTraitAnimFn(scaledTraits);
+
+          // ── Aura de fondo — el halo característico del IUM ──────────────────
+          if (cfg?.aura_color && cfg.aura_opacidad > 0) {
+            const auraR = cfg.aura_radio * (cfg.escala ?? 1);
+            // Pulso del campo si campo_pulso_hz > 0
+            const pulsoMult = cfg.campo_pulso_hz > 0
+              ? 1 + 0.18 * Math.sin(ftS * cfg.campo_pulso_hz * Math.PI * 2)
+              : 1;
+            const grad = ctx!.createRadialGradient(destX, destY, 0, destX, destY, auraR * pulsoMult);
+            grad.addColorStop(0,   cfg.aura_color + Math.round(cfg.aura_opacidad * 255 * 0.85).toString(16).padStart(2, "0"));
+            grad.addColorStop(0.5, cfg.aura_color + Math.round(cfg.aura_opacidad * 255 * 0.40).toString(16).padStart(2, "0"));
+            grad.addColorStop(1,   cfg.aura_color + "00");
+            ctx!.save();
+            ctx!.globalAlpha = fadeIn;
+            ctx!.fillStyle = grad;
+            ctx!.beginPath();
+            ctx!.arc(destX, destY, auraR * pulsoMult, 0, Math.PI * 2);
+            ctx!.fill();
+            ctx!.restore();
+          }
+
+          // ── Render principal con rotación del campo ──────────────────────────
           ctx!.save();
           ctx!.globalAlpha = fadeIn;
-          ctx!.translate(destX - S / 2, destY - S / 2);
-          // Base: traits individuales
+          ctx!.translate(destX, destY);
+          // Rotación del campo (grados/s → radianes)
+          if (cfg?.campo_rotacion) {
+            ctx!.rotate((ftS * cfg.campo_rotacion * Math.PI) / 180);
+          }
+          ctx!.translate(-S / 2, -S / 2);
           animFn(ctx!, S, S, ftS);
-          // Reacciones: capa encima, con fade-in más tardío para que se vean aparecer
+          // Reacciones: fade-in tardío
           if (reaccionesRender.length > 0) {
             const reacFade = Math.min(1, Math.max(0, (ftS - 0.5) / 0.6));
             if (reacFade > 0) {
@@ -1153,13 +1201,24 @@ function IumMergedCanvas({
           const curY  = node.cy + (destY - node.cy) * prog;
           const alpha = raw < 0.85 ? 1 : 1 - (raw - 0.85) / 0.15;
 
-          // localT en segundos desde que el nodo se activó
           const localT = Math.max(0, (now - nodeStartRef.current[i])) / 1000;
-          const S = 180;
+          const cfg = node.animConfig;
+          const nodeS = 180 * (cfg?.escala ?? 1);
+          const scaledT = cfg?.velocidad_mult ? localT * cfg.velocidad_mult : localT;
           ctx!.save();
           ctx!.globalAlpha = alpha;
-          ctx!.translate(curX - S / 2, curY - S / 2);
-          animFn(ctx!, S, S, localT);
+          // Aura del nodo mientras viaja
+          if (cfg?.aura_color && cfg.aura_opacidad > 0) {
+            const gr = ctx!.createRadialGradient(curX, curY, 0, curX, curY, nodeS * 0.55);
+            gr.addColorStop(0,   cfg.aura_color + Math.round(cfg.aura_opacidad * 200).toString(16).padStart(2,"0"));
+            gr.addColorStop(1,   cfg.aura_color + "00");
+            ctx!.fillStyle = gr;
+            ctx!.beginPath();
+            ctx!.arc(curX, curY, nodeS * 0.55, 0, Math.PI * 2);
+            ctx!.fill();
+          }
+          ctx!.translate(curX - nodeS / 2, curY - nodeS / 2);
+          animFn(ctx!, nodeS, nodeS, scaledT);
           ctx!.restore();
         });
 
@@ -1193,6 +1252,19 @@ function IumMergedCanvas({
 
 // ─── Tipos ───────────────────────────────────────────────────────────────────
 
+interface AnimConfig {
+  color_primario: string;
+  color_blend: number;
+  escala: number;
+  velocidad_mult: number;
+  campo: "circular" | "lineal" | "diagonal" | "espiral" | "caos";
+  aura_color?: string | null;
+  aura_opacidad: number;
+  aura_radio: number;
+  campo_pulso_hz: number;
+  campo_rotacion: number;
+}
+
 interface IumCatalogo {
   id: string;
   orden: number;
@@ -1201,8 +1273,8 @@ interface IumCatalogo {
   extra?: string | null;
   composicion: { particula: string; cantidad: number }[];
   geometria: GeometriaIum | undefined;
-  // Traits de animación procedural derivados de anim_traits de cada partícula
   animTraits: AnimTrait[];
+  animConfig?: AnimConfig | null;
 }
 
 interface IumSalidaFuncional {
@@ -1396,6 +1468,10 @@ function useIumsCatalogo() {
         .from("reacciones_visuales_particulas")
         .select("particula_a, particula_b, nombre_reaccion, efecto, modificadores");
 
+      const { data: configData } = await supabase
+        .from("iums_anim_config")
+        .select("ium_id, color_primario, color_blend, escala, velocidad_mult, campo, aura_color, aura_opacidad, aura_radio, campo_pulso_hz, campo_rotacion");
+
       if (!vivo) return;
 
       // Mapa id → { nombre, anim_traits }
@@ -1430,6 +1506,10 @@ function useIumsCatalogo() {
         ]),
       );
 
+      const configPorIum = new Map<string, AnimConfig>(
+        (configData ?? []).map((c: AnimConfig & { ium_id: string }) => [c.ium_id, c])
+      );
+
       const result: IumCatalogo[] = (baseData ?? []).map((i) => ({
         id: i.id,
         orden: i.orden,
@@ -1439,6 +1519,7 @@ function useIumsCatalogo() {
         composicion: composPorIum.get(i.id) ?? [],
         geometria: geoPorIum.get(i.id),
         animTraits: traitsPorIum.get(i.id) ?? [],
+        animConfig: configPorIum.get(i.id) ?? null,
       }));
 
       setIums(result);
@@ -1997,9 +2078,11 @@ function ConnectionLine({
 // Reemplaza IumVisual estático con la animación procedural de traits del IUM
 function IumTraitCanvas({
   animTraits,
+  animConfig,
   size,
 }: {
   animTraits: AnimTrait[];
+  animConfig?: AnimConfig | null;
   size: number;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -2016,18 +2099,57 @@ function IumTraitCanvas({
     if (!ctx) return;
     ctx.scale(dpr, dpr);
     startRef.current = performance.now();
-    const animFn = buildTraitAnimFn(animTraits);
+
+    // Aplicar velocidad_mult de la config
+    const scaledTraits: AnimTrait[] = animConfig?.velocidad_mult
+      ? animTraits.map(t => ({ ...t, velocidad: t.velocidad * animConfig.velocidad_mult }))
+      : animTraits;
+    const animFn = buildTraitAnimFn(scaledTraits);
+
+    // Escala del render dentro del canvas
+    const renderScale = animConfig?.escala ?? 1;
+    const S = size * renderScale;
+    const offsetX = (size - S) / 2;
+    const offsetY = (size - S) / 2;
+    const cx = size / 2;
+    const cy = size / 2;
 
     function frame() {
       const t = (performance.now() - startRef.current) / 1000;
       ctx!.clearRect(0, 0, size, size);
-      animFn(ctx!, size, size, t);
+
+      // Aura de fondo (IDLE, suave)
+      if (animConfig?.aura_color && animConfig.aura_opacidad > 0) {
+        const pulso = animConfig.campo_pulso_hz > 0
+          ? 1 + 0.12 * Math.sin(t * animConfig.campo_pulso_hz * Math.PI * 2)
+          : 1;
+        const aR = (size * 0.45) * pulso;
+        const gr = ctx!.createRadialGradient(cx, cy, 0, cx, cy, aR);
+        const op = Math.round(animConfig.aura_opacidad * 180);
+        gr.addColorStop(0,   animConfig.aura_color + op.toString(16).padStart(2,"0"));
+        gr.addColorStop(1,   animConfig.aura_color + "00");
+        ctx!.fillStyle = gr;
+        ctx!.beginPath();
+        ctx!.arc(cx, cy, aR, 0, Math.PI * 2);
+        ctx!.fill();
+      }
+
+      // Rotación del campo
+      ctx!.save();
+      ctx!.translate(cx, cy);
+      if (animConfig?.campo_rotacion) {
+        ctx!.rotate((t * animConfig.campo_rotacion * Math.PI) / 180);
+      }
+      ctx!.translate(-S / 2, -S / 2);
+      animFn(ctx!, S, S, t);
+      ctx!.restore();
+
       rafRef.current = requestAnimationFrame(frame);
     }
     rafRef.current = requestAnimationFrame(frame);
     return () => cancelAnimationFrame(rafRef.current);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [size, animTraits.map(t => `${t.tipo}:${t.densidad}:${t.velocidad}`).join("|")]);
+  }, [size, animConfig?.velocidad_mult, animConfig?.escala, animConfig?.campo_rotacion, animTraits.map(t => `${t.tipo}:${t.densidad}:${t.velocidad}`).join("|")]);
 
   if (!animTraits.length) return null;
   return (
@@ -2153,7 +2275,7 @@ function IumNodeSVG({
           transition: `opacity 0.35s ease ${animDelay}s`,
         }}>
           {iumData?.animTraits?.length ? (
-            <IumTraitCanvas animTraits={iumData.animTraits} size={VIS_SIZE} />
+            <IumTraitCanvas animTraits={iumData.animTraits} animConfig={iumData.animConfig} size={VIS_SIZE} />
           ) : (
             <IumVisual
               particulas={particulas}
@@ -3318,32 +3440,22 @@ export default function SimuladorIUM() {
       {/* ── Centro: canvas libre ────────────────────────────────────────────── */}
       </>
 
-      <div style={{ display: "flex", flexDirection: "column", overflow: "hidden", borderRight: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)" }}>
-        {componentes.length === 0 && !topoSeleccionada ? (
-          <div style={{ flex: 1, position: "relative", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
-            <FlaskConical size={32} style={{ color: "color-mix(in srgb, var(--primary) 14%, transparent)" }} />
-            <p style={{ fontSize: 10, color: "color-mix(in srgb, var(--primary) 25%, transparent)", textAlign: "center", maxWidth: 200, margin: 0, lineHeight: 1.6 }}>
-              Agrega IUMs desde el panel izquierdo.<br />
-              <span style={{ fontSize: 9 }}>Arrastra para mover · click derecho para unir</span>
-            </p>
-          </div>
-        ) : (
-          <div style={{ flex: 1, position: "relative", display: "flex", flexDirection: "column" }}>
-            {/* Badge de Eterium */}
-            <EteriumBadge
-              saldo={eterium.saldo}
-              saldoMaximo={eterium.saldo_maximo}
-              ultimoCosto={ultimoCosto}
-              esAdmin={esAdmin}
-              onReinicio={async () => {
-                if (!perfilId) return;
-                await supabase.rpc("admin_reiniciar_eterium" as never, { p_perfil_id: perfilId } as never);
-                await recargarEterium();
-              }}
-            />
+      <div style={{ display: "flex", flexDirection: "column", overflow: "hidden", borderRight: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)", position: "relative" }}>
+        {/* Badge de Eterium — siempre visible */}
+        <EteriumBadge
+          saldo={eterium.saldo}
+          saldoMaximo={eterium.saldo_maximo}
+          ultimoCosto={ultimoCosto}
+          esAdmin={esAdmin}
+          onReinicio={async () => {
+            if (!perfilId) return;
+            await supabase.rpc("admin_reiniciar_eterium" as never, { p_perfil_id: perfilId } as never);
+            await recargarEterium();
+          }}
+        />
 
-            {/* Grupo de botones flotantes: Descubrimientos + Probar */}
-            <div style={{ position: "absolute", top: 12, right: 12, zIndex: 10, display: "flex", alignItems: "center", gap: 6 }}>
+        {/* Grupo de botones flotantes: Descubrimientos + Probar — siempre visibles */}
+        <div style={{ position: "absolute", top: 12, right: 12, zIndex: 10, display: "flex", alignItems: "center", gap: 6 }}>
 
               {/* Botón Descubrimientos */}
               <div style={{ position: "relative" }}>
@@ -3645,6 +3757,18 @@ export default function SimuladorIUM() {
                   : <><Play size={10} /> Probar</>}
               </button>
             </div>
+
+            {/* Canvas/SVG área — placeholder si no hay nada aún */}
+            {componentes.length === 0 && !topoSeleccionada ? (
+              <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                <FlaskConical size={32} style={{ color: "color-mix(in srgb, var(--primary) 14%, transparent)" }} />
+                <p style={{ fontSize: 10, color: "color-mix(in srgb, var(--primary) 25%, transparent)", textAlign: "center", maxWidth: 200, margin: 0, lineHeight: 1.6 }}>
+                  Agrega IUMs desde el panel izquierdo.<br />
+                  <span style={{ fontSize: 9 }}>Arrastra para mover · click derecho para unir</span>
+                </p>
+              </div>
+            ) : (
+            <div style={{ flex: 1, position: "relative", display: "flex", flexDirection: "column" }}>
             <svg
               ref={svgRef}
               style={{ flex: 1, display: "block", cursor: linkingFrom ? "crosshair" : "default", userSelect: "none" }}
@@ -4665,6 +4789,7 @@ export default function SimuladorIUM() {
                   color:      colorTASIdeIum(iumData),
                   animTraits: iumData?.animTraits ?? [],
                   composicion: iumData?.composicion ?? [],
+                  animConfig: iumData?.animConfig ?? null,
                 };
               });
 
@@ -4730,7 +4855,8 @@ export default function SimuladorIUM() {
               );
             })()}
           </div>
-        )}
+            </div>
+            )}
       </div>
 
       {/* ── Derecha: resultados ─────────────────────────────────────────────── */}
