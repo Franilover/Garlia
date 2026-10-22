@@ -2354,91 +2354,6 @@ function ConnectionLine({
 
 // ─── Nodo IUM draggable ───────────────────────────────────────────────────────
 
-// ─── E: Mini-canvas animado por nodo en IDLE ─────────────────────────────────
-// Reemplaza IumVisual estático con la animación procedural de traits del IUM
-function IumTraitCanvas({
-  animTraits,
-  animConfig,
-  size,
-}: {
-  animTraits: AnimTrait[];
-  animConfig?: AnimConfig | null;
-  size: number;
-}) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const rafRef    = useRef<number>(0);
-  const startRef  = useRef<number>(performance.now());
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas || !animTraits.length) return;
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    canvas.width  = Math.round(size * dpr);
-    canvas.height = Math.round(size * dpr);
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    ctx.scale(dpr, dpr);
-    startRef.current = performance.now();
-
-    // Aplicar velocidad_mult de la config
-    const scaledTraits: AnimTrait[] = animConfig?.velocidad_mult
-      ? animTraits.map(t => ({ ...t, velocidad: t.velocidad * animConfig.velocidad_mult }))
-      : animTraits;
-    const animFn = buildTraitAnimFn(scaledTraits);
-
-    // Escala del render dentro del canvas
-    const renderScale = animConfig?.escala ?? 1;
-    const S = size * renderScale;
-    const offsetX = (size - S) / 2;
-    const offsetY = (size - S) / 2;
-    const cx = size / 2;
-    const cy = size / 2;
-
-    function frame() {
-      const t = (performance.now() - startRef.current) / 1000;
-      ctx!.clearRect(0, 0, size, size);
-
-      // Aura de fondo (IDLE, suave)
-      if (animConfig?.aura_color && animConfig.aura_opacidad > 0) {
-        const pulso = animConfig.campo_pulso_hz > 0
-          ? 1 + 0.12 * Math.sin(t * animConfig.campo_pulso_hz * Math.PI * 2)
-          : 1;
-        const aR = (size * 0.45) * pulso;
-        const gr = ctx!.createRadialGradient(cx, cy, 0, cx, cy, aR);
-        const op = Math.round(animConfig.aura_opacidad * 180);
-        gr.addColorStop(0,   animConfig.aura_color + op.toString(16).padStart(2,"0"));
-        gr.addColorStop(1,   animConfig.aura_color + "00");
-        ctx!.fillStyle = gr;
-        ctx!.beginPath();
-        ctx!.arc(cx, cy, aR, 0, Math.PI * 2);
-        ctx!.fill();
-      }
-
-      // Rotación del campo
-      ctx!.save();
-      ctx!.translate(cx, cy);
-      if (animConfig?.campo_rotacion) {
-        ctx!.rotate((t * animConfig.campo_rotacion * Math.PI) / 180);
-      }
-      ctx!.translate(-S / 2, -S / 2);
-      animFn(ctx!, S, S, t);
-      ctx!.restore();
-
-      rafRef.current = requestAnimationFrame(frame);
-    }
-    rafRef.current = requestAnimationFrame(frame);
-    return () => cancelAnimationFrame(rafRef.current);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [size, animConfig?.velocidad_mult, animConfig?.escala, animConfig?.campo_rotacion, animTraits.map(t => `${t.tipo}:${t.densidad}:${t.velocidad}`).join("|")]);
-
-  if (!animTraits.length) return null;
-  return (
-    <canvas
-      ref={canvasRef}
-      style={{ width: size, height: size, pointerEvents: "none", display: "block" }}
-    />
-  );
-}
 
 function IumNodeSVG({
   comp,
@@ -2554,16 +2469,12 @@ function IumNodeSVG({
           opacity: reaccion ? 0 : 1,
           transition: `opacity 0.35s ease ${animDelay}s`,
         }}>
-          {iumData?.animTraits?.length ? (
-            <IumTraitCanvas animTraits={iumData.animTraits} animConfig={iumData.animConfig} size={VIS_SIZE} />
-          ) : (
-            <IumVisual
-              particulas={particulas}
-              geometria={iumData?.geometria}
-              size={VIS_SIZE}
-              showToggle={false}
-            />
-          )}
+          <IumVisual
+            particulas={particulas}
+            geometria={iumData?.geometria}
+            size={VIS_SIZE}
+            showToggle={false}
+          />
         </div>
       </foreignObject>
 
