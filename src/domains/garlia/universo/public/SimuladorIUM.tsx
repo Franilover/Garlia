@@ -61,7 +61,7 @@ const _lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 const _ease = (t: number) => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
 const _rand = (a: number, b: number) => a + (b - a) * Math.random();
 
-type AnimFn = (ctx: CanvasRenderingContext2D, W: number, H: number, t: number) => void;
+type AnimFn = (ctx: CanvasRenderingContext2D, W: number, H: number, t: number, alphaMult?: number) => void;
 
 // Traits que vienen de Supabase columna particulas.anim_traits
 interface AnimTrait {
@@ -115,13 +115,16 @@ function renderEmergente(
   H: number,
   t: number,
   e: CombiEmergente,
+  alpha: number = 1,
 ): void {
   const cx = W / 2, cy = H / 2;
   const R  = Math.min(W, H) * 0.42;
   const col = e.color_emergente;
+  // hex bakes color alpha; multiplied by ctx.globalAlpha (= alpha) → final opacity
   const hex = (a: number) => Math.round(Math.max(0, Math.min(1, a)) * 255).toString(16).padStart(2, "0");
 
   ctx.save();
+  ctx.globalAlpha = Math.min(1, alpha);
 
   switch (e.tipo_emergente) {
 
@@ -683,7 +686,7 @@ function buildTraitAnimFn(traits: AnimTrait[]): AnimFn {
   const caosBase = Math.max(0, agitacionGlobal);
   const TIPOS_INMUNES_CAOS = new Set(["simetria", "nucleo", "convergencia", "malla", "scan"]);
 
-  return function traitAnimFn(ctx, W, H, t) {
+  return function traitAnimFn(ctx, W, H, t, alphaMult = 1) {
     const cx = W / 2, cy = H / 2;
     const R = Math.min(W, H) * 0.4;
 
@@ -696,7 +699,7 @@ function buildTraitAnimFn(traits: AnimTrait[]): AnimFn {
       const amp  = tr.amplitud * ampQ;
       const dens = Math.round(tr.densidad * q);
       const col  = tr.color;
-      const alpha = Math.min(0.95, (tr.peso_visual / Math.max(1, traits.length * 0.4)) * 1.8);
+      const alpha = Math.min(0.95, (tr.peso_visual / Math.max(1, traits.length * 0.4)) * 1.8) * alphaMult;
 
       ctx.save();
       ctx.globalAlpha = alpha;
@@ -1839,36 +1842,48 @@ function IumMergedCanvas({
             ctx!.restore();
           }
 
-          // ── Render principal con rotación del campo ──────────────────────────
+          // ── Crossfade orquestado: traits → reacciones → emergente ───────────
+          // emergFade: 0 si no hay combiEmergente, sube de 0→1 entre t=1.0s y t=2.2s
+          const emergFade = combiEmergente
+            ? Math.min(1, Math.max(0, (ftS - 1.0) / 1.2))
+            : 0;
+          // A medida que el efecto emergente toma el escenario, las capas base se atenúan
+          const traitMult = Math.max(0.18, 1 - emergFade * 0.80); // traits bajan a 18%
+          const reacMult  = Math.max(0.08, 1 - emergFade * 0.90); // reacciones casi desaparecen
+
+          // ── Render principal (traits base) ───────────────────────────────────
           ctx!.save();
           ctx!.globalAlpha = fadeIn;
           ctx!.translate(destX, destY);
-          // Rotación del campo (grados/s → radianes)
           if (cfg?.campo_rotacion) {
             ctx!.rotate((ftS * cfg.campo_rotacion * Math.PI) / 180);
           }
           ctx!.translate(-S / 2, -S / 2);
-          animFn(ctx!, S, S, ftS);
-          // Reacciones: fade-in tardío
+          animFn(ctx!, S, S, ftS, traitMult);   // alphaMult controla intensidad base
+          // Reacciones: fade-in tardío, se atenúan junto a los traits
           if (reaccionesRender.length > 0) {
             const reacFade = Math.min(1, Math.max(0, (ftS - 0.5) / 0.6));
             if (reacFade > 0) {
-              ctx!.globalAlpha = fadeIn * reacFade;
-              renderReacciones(ctx!, S, S, ftS, reaccionesRender, reacFade);
-            }
-          }
-          // Efecto emergente — capa superior, fade-in más tardío (≥ 1.2s)
-          if (combiEmergente) {
-            const emergFade = Math.min(1, Math.max(0, (ftS - 1.2) / 0.8));
-            if (emergFade > 0) {
-              const intensidad = (combiEmergente.intensidad ?? 1) * emergFade * fadeIn;
-              ctx!.save();
-              ctx!.globalAlpha = intensidad;
-              renderEmergente(ctx!, S, S, ftS, combiEmergente);
-              ctx!.restore();
+              ctx!.globalAlpha = fadeIn * reacFade * reacMult;
+              renderReacciones(ctx!, S, S, ftS, reaccionesRender, reacFade * reacMult);
             }
           }
           ctx!.restore();
+
+          // ── Efecto emergente — protagonista final ─────────────────────────────
+          // Aparece solo cuando hay exactamente 2 IUMs; fade-in suave de 1.2s
+          if (combiEmergente && emergFade > 0) {
+            const emerAlpha = (combiEmergente.intensidad ?? 1) * emergFade * fadeIn;
+            ctx!.save();
+            ctx!.translate(destX, destY);
+            if (cfg?.campo_rotacion) {
+              // Rotación opuesta para diferenciar la capa emergente visualmente
+              ctx!.rotate((-ftS * cfg.campo_rotacion * Math.PI) / 360);
+            }
+            ctx!.translate(-S / 2, -S / 2);
+            renderEmergente(ctx!, S, S, ftS, combiEmergente, emerAlpha);
+            ctx!.restore();
+          }
         }
 
         rafRef.current = requestAnimationFrame(frame);
