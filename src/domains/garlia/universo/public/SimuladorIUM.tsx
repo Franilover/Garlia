@@ -235,26 +235,42 @@ function renderReacciones(
 }
 
 // Dado un array de traits (todas las partículas de todos los IUMs), genera una AnimFn compuesta
+// Helper: dibuja una partícula con glow suave
+function _glowDot(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, col: string, a: number) {
+  const g = ctx.createRadialGradient(x, y, 0, x, y, r * 3.5);
+  g.addColorStop(0,    col + Math.round(a * 255).toString(16).padStart(2,"0"));
+  g.addColorStop(0.35, col + Math.round(a * 160).toString(16).padStart(2,"0"));
+  g.addColorStop(1,    col + "00");
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.arc(x, y, r * 3.5, 0, PI2); ctx.fill();
+  ctx.fillStyle = col + Math.round(Math.min(1, a * 1.4) * 255).toString(16).padStart(2,"0");
+  ctx.beginPath(); ctx.arc(x, y, r, 0, PI2); ctx.fill();
+}
+
+// Helper: estela con gradiente entre dos puntos
+function _trailLine(ctx: CanvasRenderingContext2D, x1: number, y1: number, x2: number, y2: number, col: string, w: number, a: number) {
+  const g = ctx.createLinearGradient(x1, y1, x2, y2);
+  g.addColorStop(0, col + "00");
+  g.addColorStop(1, col + Math.round(a * 200).toString(16).padStart(2,"0"));
+  ctx.strokeStyle = g; ctx.lineWidth = w; ctx.globalAlpha = 1;
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+}
+
 function buildTraitAnimFn(traits: AnimTrait[]): AnimFn {
-  // Calcular agitación global como suma clampada de todas las agitaciones
   const agitacionGlobal = Math.max(-0.3,
     Math.min(1.5, traits.reduce((s, tr) => s + tr.agitacion * (tr.cantidad ?? 1), 0))
   );
   const caosBase = Math.max(0, agitacionGlobal);
-
-  // Tipos que no deben acelerarse por caos externo — son estables por naturaleza
   const TIPOS_INMUNES_CAOS = new Set(["simetria", "nucleo", "convergencia", "malla", "scan"]);
 
   return function traitAnimFn(ctx, W, H, t) {
     const cx = W / 2, cy = H / 2;
-    const R = Math.min(W, H) * 0.4; // radio base del área de animación
+    const R = Math.min(W, H) * 0.4;
 
     for (const tr of traits) {
       const q    = tr.cantidad ?? 1;
-      // cantidad amplifica velocidad (sqrt) y amplitud (lineal suave)
       const spdQ = q > 1 ? Math.sqrt(q) : 1;
       const ampQ = 1 + (q - 1) * 0.3;
-      // caosBase solo afecta tipos cinéticos/caóticos — los tipos estables son inmunes
       const caosEfectivo = TIPOS_INMUNES_CAOS.has(tr.tipo) ? 0 : caosBase;
       const spd  = tr.velocidad * spdQ * (1 + caosEfectivo * 0.3);
       const amp  = tr.amplitud * ampQ;
@@ -268,317 +284,568 @@ function buildTraitAnimFn(traits: AnimTrait[]): AnimFn {
       switch (tr.tipo) {
 
         case "orbital": {
-          // Puntos girando en órbita a diferente radio
-          for (let i = 0; i < dens; i++) {
-            const ang  = (t * spd + i * (PI2 / dens));
-            const r    = R * 0.35 * amp * (0.6 + (i % 3) * 0.25);
-            const px   = cx + Math.cos(ang) * r;
-            const py   = cy + Math.sin(ang) * r;
-            const sz   = 2.5 + Math.sin(t * 2 + i) * 1.2;
-            if (tr.estela) {
-              const ang2 = ang - 0.3;
-              ctx.beginPath(); ctx.moveTo(cx + Math.cos(ang2) * r, cy + Math.sin(ang2) * r); ctx.lineTo(px, py);
-              ctx.strokeStyle = col + "55"; ctx.lineWidth = sz * 0.7; ctx.stroke();
+          // Múltiples capas de órbita — cada tercio en radio diferente
+          const capas = Math.ceil(dens / 4);
+          for (let c = 0; c < capas; c++) {
+            const rOrbit = R * amp * (0.22 + c * 0.18);
+            const nInLayer = Math.min(4, dens - c * 4);
+            const rotDir = c % 2 === 0 ? 1 : -0.65; // capas alternas en dirección opuesta
+            for (let i = 0; i < nInLayer; i++) {
+              const ang = t * spd * rotDir + (i / nInLayer) * PI2 + c * 1.1;
+              const wobble = 1 + 0.06 * Math.sin(t * 1.8 + i + c);
+              const px = cx + Math.cos(ang) * rOrbit * wobble;
+              const py = cy + Math.sin(ang) * rOrbit * wobble;
+              const sz = 2.8 - c * 0.4 + Math.sin(t * 2.5 + i) * 0.8;
+              const pAlpha = 0.75 + 0.25 * Math.sin(t * 3 + i * 1.3);
+              if (tr.estela) {
+                const steps = 8;
+                for (let s = 1; s <= steps; s++) {
+                  const angS = ang - rotDir * (s / steps) * 0.55;
+                  const wobS = 1 + 0.06 * Math.sin(t * 1.8 + i + c - s * 0.1);
+                  const sx = cx + Math.cos(angS) * rOrbit * wobS;
+                  const sy = cy + Math.sin(angS) * rOrbit * wobS;
+                  const sa = pAlpha * (1 - s / steps) * 0.55;
+                  ctx.fillStyle = col + Math.round(sa * 255).toString(16).padStart(2,"0");
+                  ctx.beginPath(); ctx.arc(sx, sy, sz * (1 - s / steps * 0.7), 0, PI2); ctx.fill();
+                }
+              }
+              _glowDot(ctx, px, py, sz, col, pAlpha);
             }
-            ctx.fillStyle = col;
-            ctx.beginPath(); ctx.arc(px, py, sz, 0, PI2); ctx.fill();
           }
+          // aro de referencia tenue
+          ctx.beginPath(); ctx.arc(cx, cy, R * amp * 0.28, 0, PI2);
+          ctx.strokeStyle = col + "1a"; ctx.lineWidth = 1; ctx.stroke();
           break;
         }
 
         case "pulso": {
-          // Anillos que pulsan hacia afuera
+          // Anillos que se expanden desde el centro — múltiples con grosor y fade
           for (let i = 0; i < dens; i++) {
-            const phase = (t * spd * 0.5 + i / dens) % 1;
-            const r     = phase * R * amp;
-            const a     = (1 - phase) * 0.7;
+            const phase = (t * spd * 0.42 + i / dens) % 1;
+            const eased = _ease(phase);
+            const r     = eased * R * amp * 1.05;
+            const lw    = (3.5 + (1 - phase) * 4) * amp * 0.5;
+            const a     = Math.pow(1 - phase, 1.6) * 0.75;
             ctx.beginPath(); ctx.arc(cx, cy, r, 0, PI2);
-            ctx.strokeStyle = col + Math.round(a * 255).toString(16).padStart(2, "0");
-            ctx.lineWidth = 2 + (1 - phase) * 3; ctx.stroke();
+            ctx.strokeStyle = col; ctx.lineWidth = lw;
+            ctx.globalAlpha = alpha * a; ctx.stroke();
           }
-          // núcleo pulsante
-          const pulse = 0.85 + Math.sin(t * spd) * 0.15;
-          const gc = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 0.18 * amp * pulse);
-          gc.addColorStop(0, col + "dd"); gc.addColorStop(1, col + "00");
-          ctx.fillStyle = gc; ctx.beginPath(); ctx.arc(cx, cy, R * 0.2 * amp * pulse, 0, PI2); ctx.fill();
+          // Núcleo con doble glow
+          const pulse = 0.82 + Math.sin(t * spd * 0.9) * 0.18;
+          const nucR  = R * 0.22 * amp * pulse;
+          const g1 = ctx.createRadialGradient(cx, cy, 0, cx, cy, nucR * 2.8);
+          g1.addColorStop(0,   col + "ee"); g1.addColorStop(0.4, col + "77");
+          g1.addColorStop(1,   col + "00");
+          ctx.fillStyle = g1; ctx.globalAlpha = alpha;
+          ctx.beginPath(); ctx.arc(cx, cy, nucR * 2.8, 0, PI2); ctx.fill();
+          ctx.fillStyle = col + "ff"; ctx.globalAlpha = alpha;
+          ctx.beginPath(); ctx.arc(cx, cy, nucR * 0.55, 0, PI2); ctx.fill();
           break;
         }
 
         case "carga": {
-          // Puntos que convergen al centro acelerando
+          // Partículas que aceleran hacia el centro (más grandes al llegar)
           for (let i = 0; i < dens; i++) {
-            const baseAng = (i / dens) * PI2;
-            const frac    = ((t * spd * 0.4 + i * 0.17) % 1);
-            const r       = (1 - frac) * R * amp * 0.9;
+            const baseAng = (i / dens) * PI2 + i * 0.4;
+            const frac    = ((t * spd * 0.38 + i * 0.19) % 1);
+            const eased   = _ease(frac);
+            const r       = (1 - eased) * R * amp * 0.92;
             const px      = cx + Math.cos(baseAng) * r;
             const py      = cy + Math.sin(baseAng) * r;
-            ctx.fillStyle = col;
-            ctx.beginPath(); ctx.arc(px, py, 2 + frac * 2, 0, PI2); ctx.fill();
+            const sz      = 1.8 + eased * 3.2;
+            const a       = 0.5 + eased * 0.5;
+            if (tr.estela && frac > 0.05) {
+              const frac2   = Math.max(0, frac - 0.12);
+              const eased2  = _ease(frac2);
+              const r2      = (1 - eased2) * R * amp * 0.92;
+              _trailLine(ctx, cx + Math.cos(baseAng) * r2, cy + Math.sin(baseAng) * r2, px, py, col, sz * 0.5, a * 0.5);
+            }
+            _glowDot(ctx, px, py, sz, col, a);
           }
-          const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 0.25);
-          glow.addColorStop(0, col + "88"); glow.addColorStop(1, col + "00");
-          ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(cx, cy, R * 0.28, 0, PI2); ctx.fill();
+          // acumulación brillante en el centro
+          const charge = 0.5 + 0.5 * Math.sin(t * spd * 1.1);
+          const gc = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 0.3 * amp);
+          gc.addColorStop(0, col + Math.round(charge * 180).toString(16).padStart(2,"0"));
+          gc.addColorStop(1, col + "00");
+          ctx.fillStyle = gc; ctx.globalAlpha = alpha;
+          ctx.beginPath(); ctx.arc(cx, cy, R * 0.3 * amp, 0, PI2); ctx.fill();
           break;
         }
 
         case "stream": {
-          // Flujo de puntos horizontales tipo datos
+          // Streams de datos en filas — puntos con cola corta y brillo variable
+          const filas = Math.max(2, Math.round(dens / 3));
           for (let i = 0; i < dens; i++) {
-            const frac = ((t * spd * 0.4 + i / dens) % 1);
-            const px   = (frac - 0.5) * W * 0.9 + cx;
-            const row  = (i % 4) - 1.5;
-            const py   = cy + row * R * 0.18 * amp;
-            const sz   = 2 + Math.sin(t * 3 + i) * 0.8;
-            ctx.fillStyle = col;
-            ctx.globalAlpha = alpha * (0.4 + frac * 0.6);
-            ctx.beginPath(); ctx.arc(px, py, sz, 0, PI2); ctx.fill();
+            const fila  = i % filas;
+            const frac  = ((t * spd * 0.38 + i / dens * 1.4) % 1);
+            const px    = (frac - 0.5) * W * 0.88 + cx;
+            const py    = cy + (fila - (filas - 1) / 2) * R * amp * 0.22;
+            const sz    = 2.2 + Math.sin(t * 4 + i * 0.9) * 0.7;
+            const a     = 0.35 + frac * 0.65;
+            // cola
+            if (frac > 0.06) {
+              const tailLen = W * 0.055;
+              ctx.strokeStyle = col; ctx.lineWidth = sz * 0.6;
+              ctx.globalAlpha = alpha * a * 0.35;
+              ctx.beginPath(); ctx.moveTo(px - tailLen, py); ctx.lineTo(px, py); ctx.stroke();
+            }
+            _glowDot(ctx, px, py, sz, col, a);
           }
           break;
         }
 
         case "rayo": {
-          // Rayos que parten del centro hacia afuera
-          const flicker = 0.6 + Math.abs(Math.sin(t * 7)) * 0.4;
-          ctx.globalAlpha = alpha * flicker;
-          for (let i = 0; i < dens; i++) {
-            const ang = (i / dens) * PI2 + t * spd * 0.3;
-            const len = R * amp * (0.5 + Math.random() * 0.5);
+          // Rayos con ramificaciones y brillo en el núcleo
+          const n = Math.max(1, dens);
+          for (let i = 0; i < n; i++) {
+            const seed  = i * 1.618 + Math.floor(t * spd * 2.5) * 0.3;
+            const ang   = (i / n) * PI2 + t * spd * 0.18 + seed * 0.05;
+            const len   = R * amp * (0.55 + ((seed * 73.1) % 1) * 0.45);
+            const flick = 0.55 + 0.45 * Math.abs(Math.sin(t * 9.3 + i * 2.1));
+            ctx.globalAlpha = alpha * flick;
+            // tronco principal
             ctx.beginPath(); ctx.moveTo(cx, cy);
-            // rayo dentado
             let x = cx, y = cy;
-            const segs = 5;
+            const segs = 6;
+            const jitter = len * 0.13;
             for (let s = 1; s <= segs; s++) {
-              const f = s / segs;
-              x = cx + Math.cos(ang) * len * f + (s < segs ? _rand(-8, 8) : 0);
-              y = cy + Math.sin(ang) * len * f + (s < segs ? _rand(-8, 8) : 0);
+              const f  = s / segs;
+              const jx = s < segs ? (Math.sin(seed * 13.7 + s * 7.1 + t * 15) * jitter) : 0;
+              const jy = s < segs ? (Math.cos(seed * 11.3 + s * 5.7 + t * 12) * jitter) : 0;
+              x = cx + Math.cos(ang) * len * f + jx;
+              y = cy + Math.sin(ang) * len * f + jy;
               ctx.lineTo(x, y);
             }
-            ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.stroke();
+            ctx.strokeStyle = col; ctx.lineWidth = 1.8; ctx.stroke();
+            // ramificación en la mitad
+            if (n <= 4) {
+              const branchAng = ang + 0.45;
+              const bLen = len * 0.38;
+              const bx0 = cx + Math.cos(ang) * len * 0.5;
+              const by0 = cy + Math.sin(ang) * len * 0.5;
+              ctx.beginPath(); ctx.moveTo(bx0, by0);
+              ctx.lineTo(bx0 + Math.cos(branchAng) * bLen, by0 + Math.sin(branchAng) * bLen);
+              ctx.lineWidth = 0.9; ctx.stroke();
+            }
+            // punta brillante
+            _glowDot(ctx, x, y, 2.5, col, flick * 0.9);
           }
+          // núcleo de emisión
+          const cGlow = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 0.18);
+          cGlow.addColorStop(0, col + "cc"); cGlow.addColorStop(1, col + "00");
+          ctx.fillStyle = cGlow; ctx.globalAlpha = alpha * 0.7;
+          ctx.beginPath(); ctx.arc(cx, cy, R * 0.18, 0, PI2); ctx.fill();
           break;
         }
 
         case "scan": {
-          // Anillos que se expanden como sonar
+          // Sonar con aro barredor y destellos de detección
+          const barrerAng = t * spd * 0.9;
+          // Ondas de ping
           for (let i = 0; i < dens; i++) {
-            const phase = ((t * spd * 0.35 + i / dens) % 1);
-            const r     = phase * R * 1.1 * amp;
-            const a     = (1 - phase) * 0.6;
+            const phase = ((t * spd * 0.32 + i / dens) % 1);
+            const r     = phase * R * 1.15 * amp;
+            const a     = Math.pow(1 - phase, 1.4) * 0.55;
             ctx.beginPath(); ctx.arc(cx, cy, r, 0, PI2);
-            ctx.strokeStyle = col; ctx.lineWidth = 1.2;
+            ctx.strokeStyle = col; ctx.lineWidth = 1.1;
             ctx.globalAlpha = alpha * a; ctx.stroke();
           }
+          // Aro barredor con estela
+          ctx.globalAlpha = alpha;
+          const sweepR = R * amp * 0.88;
+          const sweepGrad = ctx.createConicalGradient
+            ? null // no existe, usamos aproximación
+            : null;
+          void sweepGrad;
+          for (let s = 0; s < 22; s++) {
+            const sa  = barrerAng - (s / 22) * 1.2;
+            const sAlpha = (1 - s / 22) * 0.45;
+            ctx.strokeStyle = col + Math.round(sAlpha * 255).toString(16).padStart(2,"0");
+            ctx.lineWidth = 1.4 - s * 0.04;
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.arc(cx, cy, sweepR, sa, sa + 0.07);
+            ctx.closePath(); ctx.stroke();
+          }
+          // Punto de barrido
+          _glowDot(ctx, cx + Math.cos(barrerAng) * sweepR, cy + Math.sin(barrerAng) * sweepR, 3, col, 0.9);
           break;
         }
 
         case "morph": case "adaptacion": {
-          // Polígono que cambia número de lados suavemente
-          const lados = 3 + Math.round(Math.abs(Math.sin(t * spd * 0.3)) * 4);
+          // Forma orgánica que interpola suavemente entre polígonos
+          const ladosBase = 3 + Math.abs(Math.sin(t * spd * 0.18)) * 4.5;
+          const ladosA = Math.floor(ladosBase), ladosB = ladosA + 1;
+          const blend  = ladosBase - ladosA;
+          const nPts   = Math.max(ladosA, ladosB) * 6;
           ctx.beginPath();
-          for (let i = 0; i <= lados; i++) {
-            const ang = (i / lados) * PI2 + t * spd * 0.2;
-            const r   = R * amp * 0.45 * (0.8 + Math.sin(t * 2 + i * 0.7) * 0.2);
-            const px  = cx + Math.cos(ang) * r, py = cy + Math.sin(ang) * r;
+          for (let i = 0; i <= nPts; i++) {
+            const frac = i / nPts;
+            const ang  = frac * PI2 + t * spd * 0.15;
+            const rA   = R * amp * 0.44 * (0.82 + 0.18 * Math.cos(ladosA * ang + t * 0.7));
+            const rB   = R * amp * 0.44 * (0.82 + 0.18 * Math.cos(ladosB * ang + t * 0.7));
+            const r    = _lerp(rA, rB, blend) * (1 + 0.06 * Math.sin(t * 2.2 + i * 0.5));
+            const px = cx + Math.cos(ang) * r, py = cy + Math.sin(ang) * r;
             i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
           }
-          ctx.closePath(); ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.stroke();
+          ctx.closePath();
+          ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.globalAlpha = alpha * 0.85; ctx.stroke();
+          // relleno sutil
+          ctx.fillStyle = col + "12"; ctx.globalAlpha = alpha; ctx.fill();
+          // partículas flotando en la superficie
+          for (let i = 0; i < Math.min(5, dens); i++) {
+            const fa  = ((t * spd * 0.5 + i * 0.4) % PI2);
+            const rr  = R * amp * 0.38 * (0.82 + 0.18 * Math.cos(ladosA * fa));
+            _glowDot(ctx, cx + Math.cos(fa) * rr, cy + Math.sin(fa) * rr, 2.2, col, 0.7);
+          }
           break;
         }
 
         case "caos": {
-          // Partículas dispersas con movimiento aleatorio basado en seno
+          // Partículas con trayectorias caóticas Lissajous — predecibles pero complejas
           for (let i = 0; i < dens; i++) {
-            const seed = i * 137.5;
-            const px = cx + Math.sin(t * spd * 0.7 + seed) * R * amp * 0.85;
-            const py = cy + Math.cos(t * spd * 0.5 + seed * 1.3) * R * amp * 0.85;
-            ctx.fillStyle = col;
-            ctx.globalAlpha = alpha * (0.4 + Math.abs(Math.sin(t + i)) * 0.6);
-            ctx.beginPath(); ctx.arc(px, py, 2 + Math.sin(t * 3 + i) * 1.5, 0, PI2); ctx.fill();
+            const s1 = i * 137.508 * 0.017;
+            const s2 = i * 97.33  * 0.017;
+            const fx = 1.3 + (i % 3) * 0.47;
+            const fy = 1.7 + (i % 5) * 0.31;
+            const px = cx + Math.sin(t * spd * fx + s1) * R * amp * 0.82;
+            const py = cy + Math.cos(t * spd * fy + s2) * R * amp * 0.82;
+            const sz = 2.2 + 1.2 * Math.abs(Math.sin(t * 4.1 + i));
+            const a  = 0.45 + 0.55 * Math.abs(Math.sin(t * 2.3 + i * 0.8));
+            _glowDot(ctx, px, py, sz, col, a);
           }
+          // nebulosa de fondo
+          const nebG = ctx.createRadialGradient(cx, cy, R * 0.1, cx, cy, R * amp);
+          nebG.addColorStop(0,   col + "00");
+          nebG.addColorStop(0.5, col + "0a");
+          nebG.addColorStop(1,   col + "00");
+          ctx.fillStyle = nebG; ctx.globalAlpha = alpha * 0.5;
+          ctx.beginPath(); ctx.arc(cx, cy, R * amp, 0, PI2); ctx.fill();
           break;
         }
 
         case "chispa": {
-          // Destellos que aparecen y desaparecen rápido
+          // Chispas con vida corta, trayectoria y fade real
           for (let i = 0; i < dens; i++) {
-            const lifeT = ((t * spd + i * 0.31) % 1);
-            if (lifeT > 0.5) break;
-            const ang  = (i / dens) * PI2 + i * 0.8;
-            const r    = R * amp * 0.6 * lifeT * 2;
-            const px   = cx + Math.cos(ang) * r, py = cy + Math.sin(ang) * r;
-            const a    = Math.sin(lifeT * PI2) * 0.9;
-            ctx.fillStyle = col; ctx.globalAlpha = alpha * a;
-            ctx.beginPath(); ctx.arc(px, py, 2.5, 0, PI2); ctx.fill();
+            const offset = i * (1 / dens) + i * 0.23;
+            const lifeT  = (t * spd + offset) % 1;
+            const born   = lifeT < 0.55;
+            const life   = born ? lifeT / 0.55 : (1 - (lifeT - 0.55) / 0.45);
+            const a      = Math.pow(life, 0.7) * 0.95;
+            const ang    = (i / dens) * PI2 + i * 0.73 + Math.floor(t * spd + offset) * 1.61;
+            const spread = R * amp * 0.68;
+            const r      = lifeT * spread;
+            const px     = cx + Math.cos(ang) * r;
+            const py     = cy + Math.sin(ang) * r;
+            const sz     = 2.8 * (1 - lifeT * 0.6);
             if (tr.estela) {
-              ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(px, py);
-              ctx.strokeStyle = col; ctx.lineWidth = 1; ctx.globalAlpha = alpha * a * 0.4; ctx.stroke();
+              const r2 = Math.max(0, r - spread * 0.18);
+              _trailLine(ctx, cx + Math.cos(ang) * r2, cy + Math.sin(ang) * r2, px, py, col, sz * 0.8, a * 0.55);
             }
+            _glowDot(ctx, px, py, sz, col, a);
           }
+          // Flash en el origen
+          const flash = 0.3 + 0.7 * Math.abs(Math.sin(t * spd * 3.1));
+          const fg = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 0.18);
+          fg.addColorStop(0, col + Math.round(flash * 160).toString(16).padStart(2,"0"));
+          fg.addColorStop(1, col + "00");
+          ctx.fillStyle = fg; ctx.globalAlpha = alpha;
+          ctx.beginPath(); ctx.arc(cx, cy, R * 0.18, 0, PI2); ctx.fill();
           break;
         }
 
         case "simetria": {
-          // Patrón simétrico estable — flores geométricas
-          for (let p = 0; p < dens; p++) {
-            const ang = (p / dens) * PI2 + t * spd * 0.1;
-            const r   = R * amp * 0.5;
-            const px  = cx + Math.cos(ang) * r, py = cy + Math.sin(ang) * r;
-            // línea radial suave
-            ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(px, py);
-            ctx.strokeStyle = col; ctx.lineWidth = 1; ctx.globalAlpha = alpha * 0.3; ctx.stroke();
-            ctx.fillStyle = col; ctx.globalAlpha = alpha * 0.7;
-            ctx.beginPath(); ctx.arc(px, py, 3, 0, PI2); ctx.fill();
+          // Mandala geométrico que rota muy lento — pétalos con glow
+          const simetrias = Math.max(3, Math.round(dens * 0.9));
+          const rot = t * spd * 0.08;
+          for (let p = 0; p < simetrias; p++) {
+            const ang = (p / simetrias) * PI2 + rot;
+            const r1  = R * amp * 0.48;
+            const r2  = R * amp * 0.22;
+            const px1 = cx + Math.cos(ang) * r1;
+            const py1 = cy + Math.sin(ang) * r1;
+            // línea radial con gradiente
+            _trailLine(ctx, cx, cy, px1, py1, col, 1.2, alpha * 0.45);
+            // nodo exterior con glow
+            _glowDot(ctx, px1, py1, 3.2, col, 0.8);
+            // arco entre nodos adyacentes
+            const angN = ((p + 1) / simetrias) * PI2 + rot;
+            const px2  = cx + Math.cos(angN) * r1;
+            const py2  = cy + Math.sin(angN) * r1;
+            ctx.beginPath(); ctx.moveTo(px1, py1); ctx.lineTo(px2, py2);
+            ctx.strokeStyle = col + "30"; ctx.lineWidth = 1; ctx.stroke();
+            // círculo interior
+            const px3 = cx + Math.cos(ang + Math.PI / simetrias) * r2;
+            const py3 = cy + Math.sin(ang + Math.PI / simetrias) * r2;
+            _glowDot(ctx, px3, py3, 1.8, col, 0.5);
           }
-          // anillo central
-          ctx.beginPath(); ctx.arc(cx, cy, R * amp * 0.2, 0, PI2);
-          ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.globalAlpha = alpha * 0.4; ctx.stroke();
+          // anillo exterior pulsante tenue
+          const pulsoS = 1 + 0.04 * Math.sin(t * spd * 0.5);
+          ctx.beginPath(); ctx.arc(cx, cy, R * amp * 0.52 * pulsoS, 0, PI2);
+          ctx.strokeStyle = col + "22"; ctx.lineWidth = 1.5; ctx.stroke();
+          // núcleo central
+          _glowDot(ctx, cx, cy, 3.5, col, 0.6);
           break;
         }
 
         case "enlace": {
-          // Líneas que van de un borde al otro pasando por el centro
-          for (let i = 0; i < dens; i++) {
-            const ang  = (i / dens) * PI2 + t * spd * 0.15;
-            const px1  = cx + Math.cos(ang) * R * amp * 0.85;
-            const py1  = cy + Math.sin(ang) * R * amp * 0.85;
-            const px2  = cx + Math.cos(ang + Math.PI) * R * amp * 0.85;
-            const py2  = cy + Math.sin(ang + Math.PI) * R * amp * 0.85;
+          // Pulsos viajando entre nodos opuestos — tipo señal de red
+          const n = Math.max(2, Math.round(dens * 0.8));
+          for (let i = 0; i < n; i++) {
+            const ang  = (i / n) * PI2 + t * spd * 0.12;
+            const px1  = cx + Math.cos(ang) * R * amp * 0.82;
+            const py1  = cy + Math.sin(ang) * R * amp * 0.82;
+            const px2  = cx + Math.cos(ang + Math.PI) * R * amp * 0.82;
+            const py2  = cy + Math.sin(ang + Math.PI) * R * amp * 0.82;
+            // línea de conexión tenue
             ctx.beginPath(); ctx.moveTo(px1, py1); ctx.lineTo(px2, py2);
-            ctx.strokeStyle = col; ctx.lineWidth = 1; ctx.globalAlpha = alpha * 0.35; ctx.stroke();
+            ctx.strokeStyle = col + "1e"; ctx.lineWidth = 1; ctx.stroke();
+            // nodos
+            _glowDot(ctx, px1, py1, 2.8, col, 0.7);
+            _glowDot(ctx, px2, py2, 2.8, col, 0.7);
+            // pulso viajando por la línea
+            const frac = (t * spd * 0.55 + i * 0.37) % 1;
+            const px = _lerp(px1, px2, frac);
+            const py = _lerp(py1, py2, frac);
+            const pA = Math.sin(frac * Math.PI) * 0.95;
+            _glowDot(ctx, px, py, 3.5, col, pA);
           }
           break;
         }
 
         case "convergencia": {
-          // Puntos moviéndose hacia el centro
+          // Partículas convergiendo con aceleración easeIn y estela
           for (let i = 0; i < dens; i++) {
-            const ang  = (i / dens) * PI2 + i * 0.4;
-            const frac = 1 - ((t * spd * 0.35 + i * 0.13) % 1);
-            const r    = frac * R * amp * 0.9;
-            const px   = cx + Math.cos(ang) * r, py = cy + Math.sin(ang) * r;
-            const sz   = 2 + (1 - frac) * 2;
-            ctx.fillStyle = col; ctx.globalAlpha = alpha * frac;
-            ctx.beginPath(); ctx.arc(px, py, sz, 0, PI2); ctx.fill();
+            const ang  = (i / dens) * PI2 + i * 0.53;
+            const raw  = ((t * spd * 0.38 + i * 0.15) % 1);
+            const frac = 1 - _ease(raw);           // entra rápido, llega despacio
+            const r    = frac * R * amp * 0.92;
+            const px   = cx + Math.cos(ang) * r;
+            const py   = cy + Math.sin(ang) * r;
+            const sz   = 2.2 + (1 - frac) * 2.5;
+            const a    = 0.4 + frac * 0.6;
+            if (tr.estela) {
+              const raw2  = Math.max(0, raw - 0.15);
+              const frac2 = 1 - _ease(raw2);
+              const r2    = frac2 * R * amp * 0.92;
+              _trailLine(ctx, cx + Math.cos(ang) * r2, cy + Math.sin(ang) * r2, px, py, col, sz * 0.55, a * 0.5);
+            }
+            _glowDot(ctx, px, py, sz, col, a);
           }
+          // acumulación en destino — pulso central creciente
+          const accum = 0.45 + 0.55 * Math.abs(Math.sin(t * spd * 0.55));
+          const cg = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 0.22 * amp);
+          cg.addColorStop(0, col + Math.round(accum * 200).toString(16).padStart(2,"0"));
+          cg.addColorStop(1, col + "00");
+          ctx.fillStyle = cg; ctx.globalAlpha = alpha;
+          ctx.beginPath(); ctx.arc(cx, cy, R * 0.22 * amp, 0, PI2); ctx.fill();
           break;
         }
 
         case "radial_out": {
-          // Puntos expandiéndose desde el centro
+          // Emisión radial con variación angular y fade elegante
           for (let i = 0; i < dens; i++) {
-            const ang  = (i / dens) * PI2 + i * 0.3 + t * spd * 0.05;
-            const frac = ((t * spd * 0.35 + i * 0.13) % 1);
-            const r    = frac * R * amp * 1.1;
-            const px   = cx + Math.cos(ang) * r, py = cy + Math.sin(ang) * r;
-            ctx.fillStyle = col; ctx.globalAlpha = alpha * (1 - frac);
-            ctx.beginPath(); ctx.arc(px, py, 2.5 + frac * 1.5, 0, PI2); ctx.fill();
+            const ang  = (i / dens) * PI2 + i * 0.41 + t * spd * 0.06;
+            const raw  = ((t * spd * 0.38 + i * 0.15) % 1);
+            const frac = _ease(raw);
+            const r    = frac * R * amp * 1.08;
+            const px   = cx + Math.cos(ang) * r;
+            const py   = cy + Math.sin(ang) * r;
+            const sz   = 3.0 * (1 - frac * 0.55);
+            const a    = Math.pow(1 - frac, 1.3) * 0.9;
+            if (tr.estela && frac > 0.08) {
+              const raw2  = Math.max(0, raw - 0.12);
+              const frac2 = _ease(raw2);
+              const r2    = frac2 * R * amp * 1.08;
+              _trailLine(ctx, cx + Math.cos(ang) * r2, cy + Math.sin(ang) * r2, px, py, col, sz * 0.6, a * 0.5);
+            }
+            _glowDot(ctx, px, py, sz, col, a);
           }
+          // flash de origen
+          const orig = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 0.18 * amp);
+          orig.addColorStop(0, col + "99"); orig.addColorStop(1, col + "00");
+          ctx.fillStyle = orig; ctx.globalAlpha = alpha * 0.7;
+          ctx.beginPath(); ctx.arc(cx, cy, R * 0.18 * amp, 0, PI2); ctx.fill();
           break;
         }
 
         case "nucleo": {
-          // Glow pesado en el centro con anillos lentos
-          const pulse = 1 + Math.sin(t * spd * 0.5) * 0.12;
-          const glow  = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * amp * 0.55 * pulse);
-          glow.addColorStop(0, col + "cc"); glow.addColorStop(0.5, col + "44"); glow.addColorStop(1, col + "00");
-          ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(cx, cy, R * amp * 0.6 * pulse, 0, PI2); ctx.fill();
-          for (let i = 0; i < dens; i++) {
-            const r = R * amp * (0.15 + i * 0.12) * pulse;
-            ctx.beginPath(); ctx.arc(cx, cy, r, 0, PI2);
-            ctx.strokeStyle = col; ctx.lineWidth = 1; ctx.globalAlpha = alpha * (0.5 - i * 0.1); ctx.stroke();
+          // Núcleo denso multicapa — corazón pulsante con anillos
+          const beat = 0.5 * (1 + Math.sin(t * spd * 0.7));    // 0..1
+          const beatR = 1 + beat * 0.14;
+          // Capas de glow
+          for (let layer = 3; layer >= 0; layer--) {
+            const layerR = R * amp * (0.12 + layer * 0.14) * beatR;
+            const layerA = (0.7 - layer * 0.15) * alpha;
+            const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, layerR);
+            const hexA = Math.round(layerA * 255).toString(16).padStart(2,"0");
+            g.addColorStop(0,   col + hexA);
+            g.addColorStop(0.6, col + Math.round(layerA * 100).toString(16).padStart(2,"0"));
+            g.addColorStop(1,   col + "00");
+            ctx.fillStyle = g; ctx.globalAlpha = 1;
+            ctx.beginPath(); ctx.arc(cx, cy, layerR, 0, PI2); ctx.fill();
           }
+          // Anillos concéntricos lentos
+          for (let i = 0; i < dens; i++) {
+            const rr = R * amp * (0.18 + i * 0.13) * beatR;
+            const a  = Math.max(0, 0.45 - i * 0.1) * alpha;
+            ctx.beginPath(); ctx.arc(cx, cy, rr, 0, PI2);
+            ctx.strokeStyle = col + Math.round(a * 255).toString(16).padStart(2,"0");
+            ctx.lineWidth = 1.2 - i * 0.15; ctx.stroke();
+          }
+          // Corazón brillante
+          ctx.fillStyle = "#ffffff" + Math.round(beat * 0.5 * 255).toString(16).padStart(2,"0");
+          ctx.beginPath(); ctx.arc(cx, cy, R * 0.06 * amp, 0, PI2); ctx.fill();
           break;
         }
 
         case "malla": {
-          // Cuadrícula semitransparente
-          const step = R * amp * 0.28;
-          const shift = (t * spd * 8) % step;
-          ctx.strokeStyle = col; ctx.lineWidth = 0.8; ctx.globalAlpha = alpha * 0.25;
-          for (let x = cx - R - step + shift; x < cx + R + step; x += step) {
-            ctx.beginPath(); ctx.moveTo(x, cy - R); ctx.lineTo(x, cy + R); ctx.stroke();
+          // Red hexagonal en vez de cuadrícula — más orgánico y elegante
+          const step = R * amp * 0.32;
+          const drift = (t * spd * 6) % step;
+          const pulse = 0.18 + 0.07 * Math.sin(t * spd * 0.4);
+          ctx.strokeStyle = col; ctx.lineWidth = 0.9; ctx.globalAlpha = alpha * pulse;
+          // líneas verticales
+          for (let x = cx - R * 1.2 + drift; x < cx + R * 1.2 + step; x += step) {
+            ctx.beginPath(); ctx.moveTo(x, cy - R * 1.1); ctx.lineTo(x, cy + R * 1.1); ctx.stroke();
           }
-          for (let y = cy - R - step + shift; y < cy + R + step; y += step) {
-            ctx.beginPath(); ctx.moveTo(cx - R, y); ctx.lineTo(cx + R, y); ctx.stroke();
+          // líneas diagonales (60°)
+          for (let x = cx - R * 2 + drift; x < cx + R * 2 + step; x += step) {
+            ctx.beginPath();
+            ctx.moveTo(x - R * 1.1 / Math.tan(Math.PI / 3), cy - R * 1.1);
+            ctx.lineTo(x + R * 1.1 / Math.tan(Math.PI / 3), cy + R * 1.1);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(x + R * 1.1 / Math.tan(Math.PI / 3), cy - R * 1.1);
+            ctx.lineTo(x - R * 1.1 / Math.tan(Math.PI / 3), cy + R * 1.1);
+            ctx.stroke();
+          }
+          // nodos de intersección brillantes (pocos)
+          ctx.globalAlpha = alpha * 0.55;
+          for (let i = 0; i < 6; i++) {
+            const nx = cx + Math.cos((i / 6) * PI2 + drift * 0.1) * R * amp * 0.45;
+            const ny = cy + Math.sin((i / 6) * PI2 + drift * 0.1) * R * amp * 0.45;
+            _glowDot(ctx, nx, ny, 2, col, 0.6);
           }
           break;
         }
 
         case "flujo": {
-          // Líneas de flujo que barren horizontalmente
+          // Flujo laminar con curva senoidal suave — no solo recto
           for (let i = 0; i < dens; i++) {
-            const frac = ((t * spd * 0.4 + i / dens) % 1);
-            const px   = (frac - 0.5) * W * 0.9 + cx;
-            const py   = cy + (i - dens / 2) * R * amp * 0.18;
-            const len  = W * 0.08;
-            ctx.beginPath(); ctx.moveTo(px - len, py); ctx.lineTo(px, py);
-            ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.globalAlpha = alpha * (0.3 + frac * 0.7); ctx.stroke();
-            // punta del flujo
-            ctx.fillStyle = col; ctx.globalAlpha = alpha;
-            ctx.beginPath(); ctx.arc(px, py, 2.5, 0, PI2); ctx.fill();
+            const frac  = ((t * spd * 0.42 + i / dens) % 1);
+            const px    = (frac - 0.5) * W * 0.86 + cx;
+            const row   = i % Math.max(2, Math.round(dens * 0.6));
+            const rowY  = (row - (Math.round(dens * 0.6) - 1) / 2) * R * amp * 0.2;
+            // ondulación suave de cada fila
+            const wave  = Math.sin(frac * Math.PI * 2.5 + i * 0.8 + t * spd * 0.3) * R * amp * 0.06;
+            const py    = cy + rowY + wave;
+            const sz    = 2.5 + Math.sin(t * 3.5 + i * 1.1) * 0.7;
+            const a     = 0.3 + _ease(frac) * 0.7;
+            // cola con gradiente
+            if (frac > 0.08) {
+              const frac2 = Math.max(0, frac - 0.1);
+              const px2   = (frac2 - 0.5) * W * 0.86 + cx;
+              const wave2 = Math.sin(frac2 * Math.PI * 2.5 + i * 0.8 + t * spd * 0.3) * R * amp * 0.06;
+              const py2   = cy + rowY + wave2;
+              _trailLine(ctx, px2, py2, px, py, col, sz * 0.65, a * 0.5);
+            }
+            _glowDot(ctx, px, py, sz, col, a);
           }
           break;
         }
 
         case "onda": {
-          // Ondas expansivas — más dinámicas que scan
+          // Ondas con perfil senoidal real en el borde del anillo
           for (let i = 0; i < dens; i++) {
-            const phase = ((t * spd * 0.5 + i / dens) % 1);
-            const r     = phase * R * amp * 1.2;
-            const a     = Math.sin(phase * Math.PI) * 0.8;
-            ctx.beginPath(); ctx.arc(cx, cy, r, 0, PI2);
-            ctx.strokeStyle = col; ctx.lineWidth = 1.5 + (1 - phase) * 2;
-            ctx.globalAlpha = alpha * a; ctx.stroke();
+            const phase = ((t * spd * 0.48 + i / dens) % 1);
+            const r     = _ease(phase) * R * amp * 1.18;
+            const a     = Math.sin(phase * Math.PI) * 0.85;
+            const lw    = (2.5 + (1 - phase) * 3.5) * 0.7;
+            // arco con variación de opacidad por segmento
+            const segsW = 36;
+            for (let s = 0; s < segsW; s++) {
+              const angA = (s / segsW) * PI2;
+              const angB = ((s + 1) / segsW) * PI2;
+              // modulación de amplitud en el borde
+              const mod  = 1 + 0.08 * Math.sin(s * 6 + t * spd * 2.5 + i * 1.3);
+              ctx.beginPath();
+              ctx.arc(cx, cy, r * mod, angA, angB);
+              const segA = a * (0.6 + 0.4 * Math.sin(s * 3 + t * spd));
+              ctx.strokeStyle = col; ctx.lineWidth = lw;
+              ctx.globalAlpha = alpha * segA; ctx.stroke();
+            }
           }
+          // glow central si pulsa
           if (tr.pulsa) {
-            const pulse = 0.8 + Math.sin(t * spd) * 0.2;
-            const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 0.3);
-            g.addColorStop(0, col + "66"); g.addColorStop(1, col + "00");
-            ctx.fillStyle = g; ctx.globalAlpha = alpha * pulse;
-            ctx.beginPath(); ctx.arc(cx, cy, R * 0.32, 0, PI2); ctx.fill();
+            const beat = 0.7 + 0.3 * Math.sin(t * spd * 1.4);
+            const pg = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 0.32);
+            pg.addColorStop(0, col + Math.round(beat * 140).toString(16).padStart(2,"0"));
+            pg.addColorStop(1, col + "00");
+            ctx.fillStyle = pg; ctx.globalAlpha = alpha * beat;
+            ctx.beginPath(); ctx.arc(cx, cy, R * 0.35, 0, PI2); ctx.fill();
           }
           break;
         }
 
         case "vortice": {
-          // Espiral aspirante
-          for (let i = 0; i < dens; i++) {
-            const frac = 1 - ((t * spd * 0.4 + i / dens) % 1);
-            const ang  = frac * PI2 * 3 + t * spd * 0.5;
-            const r    = frac * R * amp * 0.95;
-            const px   = cx + Math.cos(ang) * r, py = cy + Math.sin(ang) * r;
-            ctx.fillStyle = col; ctx.globalAlpha = alpha * frac;
-            if (tr.estela && i > 0) {
-              const frac2 = 1 - ((t * spd * 0.4 + (i - 1) / dens) % 1);
-              const ang2  = frac2 * PI2 * 3 + t * spd * 0.5;
-              ctx.beginPath();
-              ctx.moveTo(cx + Math.cos(ang2) * frac2 * R * amp, cy + Math.sin(ang2) * frac2 * R * amp);
-              ctx.lineTo(px, py);
-              ctx.strokeStyle = col; ctx.lineWidth = 1.2; ctx.globalAlpha = alpha * frac * 0.5; ctx.stroke();
+          // Vórtice con múltiples brazos espirales aspirantes
+          const brazos = Math.max(2, Math.min(4, Math.round(dens / 3)));
+          for (let b = 0; b < brazos; b++) {
+            for (let i = 0; i < Math.ceil(dens / brazos); i++) {
+              const totalI = i / Math.ceil(dens / brazos);
+              const frac  = 1 - ((t * spd * 0.42 + totalI + b / brazos) % 1);
+              const ang   = frac * PI2 * 2.8 + (b / brazos) * PI2 + t * spd * 0.4;
+              const r     = frac * R * amp * 0.92;
+              const px    = cx + Math.cos(ang) * r;
+              const py    = cy + Math.sin(ang) * r;
+              const sz    = 2.2 + (1 - frac) * 2;
+              const a     = frac * 0.9;
+              if (tr.estela && i > 0) {
+                const frac2 = 1 - ((t * spd * 0.42 + Math.max(0, totalI - 0.08) + b / brazos) % 1);
+                const ang2  = frac2 * PI2 * 2.8 + (b / brazos) * PI2 + t * spd * 0.4;
+                const r2    = frac2 * R * amp * 0.92;
+                _trailLine(ctx, cx + Math.cos(ang2) * r2, cy + Math.sin(ang2) * r2, px, py, col, sz * 0.65, a * 0.6);
+              }
+              _glowDot(ctx, px, py, sz, col, a);
             }
-            ctx.globalAlpha = alpha * frac;
-            ctx.beginPath(); ctx.arc(px, py, 2.5 + (1 - frac) * 1.5, 0, PI2); ctx.fill();
           }
+          // sumidero central
+          const sinkG = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 0.2 * amp);
+          sinkG.addColorStop(0, col + "bb"); sinkG.addColorStop(1, col + "00");
+          ctx.fillStyle = sinkG; ctx.globalAlpha = alpha * 0.8;
+          ctx.beginPath(); ctx.arc(cx, cy, R * 0.2 * amp, 0, PI2); ctx.fill();
           break;
         }
 
         case "espiral": {
-          // Espiral expansiva
-          ctx.beginPath();
-          const vueltas = 2.5 + amp;
-          for (let i = 0; i <= 120; i++) {
-            const frac = i / 120;
-            const ang  = frac * PI2 * vueltas + t * spd * 0.4;
-            const r    = frac * R * amp * 0.9;
-            const px   = cx + Math.cos(ang) * r, py = cy + Math.sin(ang) * r;
-            i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+          // Espiral Arquímedes con grosor variable y partículas viajando sobre ella
+          const vueltas = 2.2 + amp * 0.6;
+          const nPts = 160;
+          // Dibujar la espiral con grosor degradado
+          for (let seg = 0; seg < nPts - 1; seg++) {
+            const f0 = seg / nPts, f1 = (seg + 1) / nPts;
+            const ang0 = f0 * PI2 * vueltas + t * spd * 0.35;
+            const ang1 = f1 * PI2 * vueltas + t * spd * 0.35;
+            const r0 = f0 * R * amp * 0.88, r1 = f1 * R * amp * 0.88;
+            ctx.beginPath();
+            ctx.moveTo(cx + Math.cos(ang0) * r0, cy + Math.sin(ang0) * r0);
+            ctx.lineTo(cx + Math.cos(ang1) * r1, cy + Math.sin(ang1) * r1);
+            ctx.strokeStyle = col; ctx.lineWidth = 1.2 + f0 * 1.4;
+            ctx.globalAlpha = alpha * (0.3 + f0 * 0.6); ctx.stroke();
           }
-          ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.globalAlpha = alpha * 0.8; ctx.stroke();
-          // punta brillante
-          const tipAng = PI2 * vueltas + t * spd * 0.4;
-          const tipR   = R * amp * 0.9;
-          ctx.fillStyle = col; ctx.globalAlpha = alpha;
-          ctx.beginPath(); ctx.arc(cx + Math.cos(tipAng) * tipR, cy + Math.sin(tipAng) * tipR, 3.5, 0, PI2); ctx.fill();
+          // Partículas viajando por el brazo
+          for (let i = 0; i < Math.min(5, dens); i++) {
+            const frac = ((t * spd * 0.55 + i / Math.min(5, dens)) % 1);
+            const travAng = frac * PI2 * vueltas + t * spd * 0.35;
+            const travR   = frac * R * amp * 0.88;
+            const tpx = cx + Math.cos(travAng) * travR;
+            const tpy = cy + Math.sin(travAng) * travR;
+            _glowDot(ctx, tpx, tpy, 3.2, col, 0.9);
+          }
+          // punta de la espiral
+          const tipAng = PI2 * vueltas + t * spd * 0.35;
+          _glowDot(ctx, cx + Math.cos(tipAng) * R * amp * 0.88, cy + Math.sin(tipAng) * R * amp * 0.88, 4, col, 1.0);
           break;
         }
 
@@ -589,16 +856,29 @@ function buildTraitAnimFn(traits: AnimTrait[]): AnimFn {
       ctx.restore();
     }
 
-    // Glow central suave — siempre presente, color del trait más pesado
-    const dominante = [...traits].sort((a, b) => b.peso_visual - a.peso_visual)[0];
+    // Glow central compuesto — mezcla los dos traits más pesados
+    const sorted = [...traits].sort((a, b) => b.peso_visual - a.peso_visual);
+    const dominante = sorted[0];
+    const secundario = sorted[1];
     if (dominante) {
       ctx.save();
-      ctx.globalAlpha = 0.12;
-      const gc = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 0.4);
+      // Capa base del dominante
+      ctx.globalAlpha = 0.10;
+      const gc = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 0.45);
       gc.addColorStop(0, dominante.color + "ff");
+      gc.addColorStop(0.5, dominante.color + "66");
       gc.addColorStop(1, dominante.color + "00");
       ctx.fillStyle = gc;
-      ctx.beginPath(); ctx.arc(cx, cy, R * 0.4, 0, PI2); ctx.fill();
+      ctx.beginPath(); ctx.arc(cx, cy, R * 0.45, 0, PI2); ctx.fill();
+      // Capa secundaria desplazada si hay otro trait
+      if (secundario) {
+        ctx.globalAlpha = 0.06;
+        const gc2 = ctx.createRadialGradient(cx - R * 0.08, cy + R * 0.06, 0, cx, cy, R * 0.35);
+        gc2.addColorStop(0, secundario.color + "ff");
+        gc2.addColorStop(1, secundario.color + "00");
+        ctx.fillStyle = gc2;
+        ctx.beginPath(); ctx.arc(cx, cy, R * 0.35, 0, PI2); ctx.fill();
+      }
       ctx.restore();
     }
   };
