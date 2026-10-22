@@ -453,10 +453,6 @@ function buildTraitAnimFn(traits: AnimTrait[]): AnimFn {
           // Aro barredor con estela
           ctx.globalAlpha = alpha;
           const sweepR = R * amp * 0.88;
-          const sweepGrad = ctx.createConicalGradient
-            ? null // no existe, usamos aproximación
-            : null;
-          void sweepGrad;
           for (let s = 0; s < 22; s++) {
             const sa  = barrerAng - (s / 22) * 1.2;
             const sAlpha = (1 - s / 22) * 0.45;
