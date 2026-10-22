@@ -3368,6 +3368,19 @@ export default function SimuladorIUM() {
     setFaseAnimacion("combinando");
     // explosion y efecto eliminados — el canvas IumMergedCanvas maneja el resultado final
   }, [resultado, componentes, enlaces]);
+  const [avisoTopo, setAvisoTopo] = useState<string | null>(null);
+  // Slot resaltado mientras arrastra en modo topología
+  const [dragSlotPreview, setDragSlotPreview] = useState<{ key: string; x: number; y: number } | null>(null);
+  const [slotDropdown, setSlotDropdown] = useState<{ key: string; posUI: string; x: number; y: number } | null>(null);
+  const [busquedaSlot, setBusquedaSlot] = useState("");
+  const [drawerIzq, setDrawerIzq] = useState(false);
+  const [drawerDer, setDrawerDer] = useState(false);
+
+  // IDs en canvas para saber qué salidas cargar
+  const iumIds = useMemo(() => componentes.map((c) => c.ium_id), [componentes]);
+  const salidas = useIumSalidas(iumIds);
+  const iumMap = useMemo(() => new Map(iums.map((i) => [i.id, i])), [iums]);
+
   // ── F+G: Efecto emergente por combinación de exactamente 2 IUMs ─────────────
   const [combiEmergente, setCombiEmergente] = useState<CombiEmergente | null>(null);
   useEffect(() => {
@@ -3392,19 +3405,6 @@ export default function SimuladorIUM() {
       });
     return () => { vivo = false; };
   }, [resultado, componentes, iumMap]);
-
-  const [avisoTopo, setAvisoTopo] = useState<string | null>(null);
-  // Slot resaltado mientras arrastra en modo topología
-  const [dragSlotPreview, setDragSlotPreview] = useState<{ key: string; x: number; y: number } | null>(null);
-  const [slotDropdown, setSlotDropdown] = useState<{ key: string; posUI: string; x: number; y: number } | null>(null);
-  const [busquedaSlot, setBusquedaSlot] = useState("");
-  const [drawerIzq, setDrawerIzq] = useState(false);
-  const [drawerDer, setDrawerDer] = useState(false);
-
-  // IDs en canvas para saber qué salidas cargar
-  const iumIds = useMemo(() => componentes.map((c) => c.ium_id), [componentes]);
-  const salidas = useIumSalidas(iumIds);
-  const iumMap = useMemo(() => new Map(iums.map((i) => [i.id, i])), [iums]);
 
   // ── Clasificar resultado para el costo de Eterium ────────────────────────
   const clasificarResultado = useCallback((res: ResultadoSimulador): string => {
