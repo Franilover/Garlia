@@ -1776,8 +1776,19 @@ function IumMergedCanvas({
         const ftS = (now - fStart) / 1000;
         const fadeIn = Math.min(1, ftS / 0.4);
 
-        // Recolectar todos los traits de todos los IUMs (con su cantidad)
-        const allTraits: AnimTrait[] = nodes.flatMap(n => n.animTraits ?? []);
+        // Recolectar 1 trait firma por IUM — el que mejor representa su identidad
+        // Si animConfig.trait_firma está definido, filtrar ese trait específico;
+        // si no, tomar el de mayor peso_visual (fallback seguro).
+        const allTraits: AnimTrait[] = nodes.flatMap(n => {
+          const traits = n.animTraits ?? [];
+          if (!traits.length) return [];
+          const firma = n.animConfig?.trait_firma;
+          if (firma) {
+            const match = traits.find(t => t.tipo === firma);
+            return match ? [match] : [traits.reduce((best, t) => t.peso_visual > best.peso_visual ? t : best)];
+          }
+          return [traits.reduce((best, t) => t.peso_visual > best.peso_visual ? t : best)];
+        });
 
         // Calcular reacciones activas: pares de partículas presentes en cualquier nodo seleccionado
         const nombresParticulas = new Set<string>(
@@ -1786,16 +1797,18 @@ function IumMergedCanvas({
         const reaccionesActivas = reaccionesDisponibles.filter(r =>
           nombresParticulas.has(r.particula_a) && nombresParticulas.has(r.particula_b)
         );
-        // Filtrar por modificadores: suprimir_caos ya no aplica aquí, pero escala_velocidad sí
-        const reaccionesRender = reaccionesActivas.map(r => {
-          if (r.modificadores?.escala_velocidad) {
-            return {
-              ...r,
-              efecto: { ...r.efecto, velocidad: r.efecto.velocidad * r.modificadores.escala_velocidad },
-            };
-          }
-          return r;
-        });
+        // Máximo 1 reacción — la de mayor peso_visual (limpieza visual)
+        // Se aplica escala_velocidad del modificador si existe.
+        const reaccionTop = reaccionesActivas.length > 0
+          ? reaccionesActivas.reduce((best, r) =>
+              (r.efecto.peso_visual ?? 0) > (best.efecto.peso_visual ?? 0) ? r : best
+            )
+          : null;
+        const reaccionesRender = reaccionTop
+          ? [reaccionTop.modificadores?.escala_velocidad
+              ? { ...reaccionTop, efecto: { ...reaccionTop.efecto, velocidad: reaccionTop.efecto.velocidad * reaccionTop.modificadores.escala_velocidad } }
+              : reaccionTop]
+          : [];
 
         if (allTraits.length > 0) {
           // Recoger config del primer nodo que tenga animConfig (todos deberían tenerlo)
@@ -1987,6 +2000,7 @@ interface AnimConfig {
   aura_radio: number;
   campo_pulso_hz: number;
   campo_rotacion: number;
+  trait_firma?: string | null; // tipo del trait que representa la identidad del IUM
 }
 
 interface IumCatalogo {
@@ -2194,7 +2208,7 @@ function useIumsCatalogo() {
 
       const { data: configData } = await supabase
         .from("iums_anim_config")
-        .select("ium_id, color_primario, color_blend, escala, velocidad_mult, campo, aura_color, aura_opacidad, aura_radio, campo_pulso_hz, campo_rotacion");
+        .select("ium_id, color_primario, color_blend, escala, velocidad_mult, campo, aura_color, aura_opacidad, aura_radio, campo_pulso_hz, campo_rotacion, trait_firma");
 
       if (!vivo) return;
 
