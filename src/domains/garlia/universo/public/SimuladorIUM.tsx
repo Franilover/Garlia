@@ -5490,48 +5490,54 @@ export default function SimuladorIUM() {
                   {combiEmergente && (faseAnimacion === "explosion" || faseAnimacion === "efecto") && (
                     <div style={{
                       position: "absolute",
-                      top: 22,
-                      left: "50%",
-                      transform: "translateX(-50%)",
+                      top: 0,
+                      left: 0,
+                      right: 0,
                       display: "flex",
                       flexDirection: "column",
                       alignItems: "center",
-                      gap: 3,
+                      paddingTop: 16,
+                      gap: 4,
                       animation: "conjuroNombre 0.9s cubic-bezier(0.22,1,0.36,1) 1.3s both",
                       pointerEvents: "none",
-                      zIndex: 20,
+                      zIndex: 30,
                     }}>
                       <style>{`
                         @keyframes conjuroNombre {
-                          from { opacity: 0; transform: translateX(-50%) scale(0.72); filter: blur(6px); }
+                          from { opacity: 0; transform: translateY(-10px) scale(0.88); filter: blur(8px); }
                           60%  { filter: blur(0px); }
-                          to   { opacity: 1; transform: translateX(-50%) scale(1); filter: blur(0px); }
+                          to   { opacity: 1; transform: translateY(0) scale(1); filter: blur(0px); }
                         }
                       `}</style>
                       <span style={{
-                        fontSize: 13,
-                        fontWeight: 800,
-                        letterSpacing: "0.16em",
+                        fontSize: 15,
+                        fontWeight: 900,
+                        letterSpacing: "0.18em",
                         textTransform: "uppercase",
-                        color: combiEmergente.color_emergente,
-                        textShadow: `0 0 18px ${combiEmergente.color_emergente}99, 0 0 6px ${combiEmergente.color_emergente}66`,
+                        color: "#fff",
+                        textShadow: `0 0 24px ${combiEmergente.color_emergente}, 0 0 8px ${combiEmergente.color_emergente}cc, 0 2px 4px #000a`,
                         whiteSpace: "nowrap",
-                        background: `color-mix(in srgb, var(--bg-main) 65%, transparent)`,
-                        padding: "4px 14px",
-                        borderRadius: 99,
-                        border: `1px solid color-mix(in srgb, ${combiEmergente.color_emergente} 40%, transparent)`,
-                        backdropFilter: "blur(6px)",
+                        background: `linear-gradient(to bottom, color-mix(in srgb, var(--bg-main) 82%, transparent), color-mix(in srgb, var(--bg-main) 0%, transparent))`,
+                        padding: "6px 22px 10px",
+                        borderRadius: "0 0 18px 18px",
+                        borderBottom: `1.5px solid color-mix(in srgb, ${combiEmergente.color_emergente} 50%, transparent)`,
+                        borderLeft: `1px solid color-mix(in srgb, ${combiEmergente.color_emergente} 25%, transparent)`,
+                        borderRight: `1px solid color-mix(in srgb, ${combiEmergente.color_emergente} 25%, transparent)`,
+                        backdropFilter: "blur(10px)",
+                        WebkitBackdropFilter: "blur(10px)",
                       }}>
                         {combiEmergente.nombre_conjuro}
                       </span>
                       {combiEmergente.tipo_emergente && (
                         <span style={{
-                          fontSize: 7,
+                          fontSize: 8,
                           fontWeight: 600,
-                          letterSpacing: "0.14em",
+                          letterSpacing: "0.18em",
                           textTransform: "uppercase",
-                          color: `color-mix(in srgb, ${combiEmergente.color_emergente} 55%, transparent)`,
+                          color: combiEmergente.color_emergente,
+                          textShadow: `0 0 10px ${combiEmergente.color_emergente}88`,
                           whiteSpace: "nowrap",
+                          opacity: 0.85,
                         }}>
                           {combiEmergente.tipo_emergente.replace(/_/g, " ")}
                         </span>
