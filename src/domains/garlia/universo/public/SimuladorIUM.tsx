@@ -5046,7 +5046,6 @@ export default function SimuladorIUM() {
               );
             })()}
           </div>
-            </div>
             )}
       </div>
 
