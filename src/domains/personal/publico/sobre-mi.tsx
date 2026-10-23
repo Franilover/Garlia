@@ -10,55 +10,30 @@ import { MotionA, MotionDiv, MotionH1, MotionMain, MotionSection } from '@/ui/Mo
 import { ToastContainer } from "@/ui/ToastContainer";
 import { useToast } from "@/hooks/ui/useToast";
 
-// ── HOOK: URL dinámica desde GitHub Latest Release ─────────────────────────────
-// Llama a la API de GitHub una vez por repo y resuelve la URL del asset pedido.
-// Si la API falla, cae en la URL construida con /releases/latest/download/.
-
-const githubReleaseCache: Record<string, Promise<string | null>> = {};
-
-function fetchLatestAssetUrl(repo: string, asset: string): Promise<string | null> {
-  const key = `${repo}::${asset}`;
-  if (!githubReleaseCache[key]) {
-    githubReleaseCache[key] = fetch(
-      `https://api.github.com/repos/${repo}/releases/latest`,
-      { headers: { Accept: "application/vnd.github+json" } }
-    )
-      .then((r) => r.json())
-      .then((data) => {
-        const found = (data.assets as Array<{ name: string; browser_download_url: string }> | undefined)
-          ?.find((a) => a.name === asset);
-        return found?.browser_download_url ?? `https://github.com/${repo}/releases/latest/download/${asset}`;
-      })
-      .catch(() => `https://github.com/${repo}/releases/latest/download/${asset}`);
-  }
-  return githubReleaseCache[key];
-}
-
-function useGithubLatestAsset(repo: string, asset: string): string | null {
-  const [url, setUrl] = React.useState<string | null>(null);
-  useEffect(() => {
-    let cancelled = false;
-    fetchLatestAssetUrl(repo, asset).then((resolved) => {
-      if (!cancelled) setUrl(resolved);
-    });
-    return () => { cancelled = true; };
-  }, [repo, asset]);
-  return url;
-}
-
 const fade = (delay = 0) => ({
   initial: { opacity: 0, y: 18 },
   animate: { opacity: 1, y: 0 },
   transition: { duration: 0.55, delay, ease: [0.25, 0.1, 0.25, 1] as any },
 });
 
+// ── HELPERS ────────────────────────────────────────────────────────────────────
+
+function estaEnTauri(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    ("__TAURI_INTERNALS__" in window || "__TAURI__" in window)
+  );
+}
+
 // ── TIPOS ──────────────────────────────────────────────────────────────────────
 
+// url: string → URL fija; null → no disponible; "dynamic:repo/asset" → GitHub API
 type PlatformOption = {
   label: string;
   icon: React.ReactNode;
-  url: string | null | { dynamic: { repo: string; asset: string } };
+  url: string | null;
   tag?: string;
+  githubAsset?: { repo: string; asset: string }; // resuelve URL dinámica
 };
 
 type DownloadPanelProps = {
@@ -71,61 +46,182 @@ type DownloadPanelProps = {
 
 // ── PANEL FLOTANTE ─────────────────────────────────────────────────────────────
 
-// Resuelve una plataforma con URL dinámica a su URL real (o null mientras carga)
-function ResolvedPlatformItem({ p, onClose }: { p: PlatformOption; onClose: () => void }) {
-  const isDynamic = p.url !== null && typeof p.url === "object" && "dynamic" in p.url;
-  const dynamicUrl = useGithubLatestAsset(
-    isDynamic ? (p.url as { dynamic: { repo: string; asset: string } }).dynamic.repo : "",
-    isDynamic ? (p.url as { dynamic: { repo: string; asset: string } }).dynamic.asset : ""
-  );
-  const resolvedUrl = isDynamic ? dynamicUrl : (p.url as string | null);
-  const available = resolvedUrl !== null;
-  const loading = isDynamic && resolvedUrl === null;
+// ── Caché en memoria para GitHub API (evita múltiples fetches por repo) ────────
+const githubUrlCache = new Map<string, Promise<string>>();
 
-  if (available) {
+async function resolverUrlGithub(repo: string, asset: string): Promise<string> {
+  const cacheKey = `${repo}/${asset}`;
+  if (!githubUrlCache.has(cacheKey)) {
+    githubUrlCache.set(
+      cacheKey,
+      fetch(`https://api.github.com/repos/${repo}/releases/latest`, {
+        headers: { Accept: "application/vnd.github+json" },
+      })
+        .then((r) => r.json())
+        .then((data) => {
+          const found = (data?.assets ?? []).find(
+            (a: { name: string; browser_download_url: string }) =>
+              a.name.toLowerCase() === asset.toLowerCase()
+          );
+          return found?.browser_download_url ?? `https://github.com/${repo}/releases/latest/download/${asset}`;
+        })
+        .catch(() => `https://github.com/${repo}/releases/latest/download/${asset}`)
+    );
+  }
+  return githubUrlCache.get(cacheKey)!;
+}
+
+// ── PlatformItem — un botón de descarga que maneja Tauri + URL dinámica ────────
+function PlatformItem({ platform: p }: { platform: PlatformOption }) {
+  const [descargando, setDescargando] = useState(false);
+  const [progreso, setProgreso] = useState(0);
+  const [resolvedUrl, setResolvedUrl] = useState<string | null>(p.url);
+
+  // Resolver URL dinámica al montar
+  useEffect(() => {
+    if (!p.githubAsset) return;
+    let vivo = true;
+    resolverUrlGithub(p.githubAsset.repo, p.githubAsset.asset).then((url) => {
+      if (vivo) setResolvedUrl(url);
+    });
+    return () => { vivo = false; };
+  }, [p.githubAsset]);
+
+  const available = resolvedUrl !== null;
+
+  async function handleClick(e: React.MouseEvent) {
+    if (!resolvedUrl) return;
+
+    // En Tauri Android: usar DownloadManager nativo (igual que ActualizacionDisponible)
+    if (estaEnTauri() && resolvedUrl.toLowerCase().endsWith(".apk")) {
+      e.preventDefault();
+      setDescargando(true);
+      setProgreso(0);
+      try {
+        const { invoke } = await import("@tauri-apps/api/core");
+        const fileName = resolvedUrl.split("/").pop() ?? "Garlia.apk";
+        const downloadId = await invoke<number>(
+          "plugin:android-installer|start_download",
+          { url: resolvedUrl, fileName }
+        );
+
+        // Pollear progreso
+        let detenido = false;
+        const poll = async () => {
+          while (!detenido) {
+            try {
+              const estado = await invoke<{
+                status: string;
+                bytesDownloaded: number;
+                bytesTotal: number;
+                localUri: string | null;
+              }>("plugin:android-installer|query_download", { downloadId });
+
+              if (estado.bytesTotal > 0) {
+                setProgreso(Math.min(99, Math.round((estado.bytesDownloaded / estado.bytesTotal) * 100)));
+              }
+
+              if (estado.status === "successful" && estado.localUri) {
+                setProgreso(100);
+                const path = estado.localUri.startsWith("file://")
+                  ? decodeURIComponent(estado.localUri.slice("file://".length))
+                  : estado.localUri;
+                await invoke("plugin:android-installer|install_apk", { path });
+                setDescargando(false);
+                return;
+              }
+              if (estado.status === "failed") {
+                setDescargando(false);
+                return;
+              }
+            } catch {
+              setDescargando(false);
+              return;
+            }
+            await new Promise((r) => setTimeout(r, 800));
+          }
+        };
+        void poll();
+        return () => { detenido = true; };
+      } catch {
+        setDescargando(false);
+      }
+      return;
+    }
+
+    // En web/desktop: dejar que el <a> maneje la descarga normalmente
+  }
+
+  if (!available) {
     return (
-      <a
-        href={resolvedUrl!}
-        download
-        className="group flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 no-underline"
+      <div
+        className="flex items-center gap-3 px-4 py-3 rounded-xl"
         style={{
-          background: "color-mix(in srgb, var(--primary) 6%, transparent)",
-          border: "var(--border-width) solid color-mix(in srgb, var(--primary) 12%, transparent)",
+          background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+          border: "var(--border-width) solid color-mix(in srgb, var(--primary) 6%, transparent)",
           color: "var(--primary)",
+          opacity: 0.35,
+          cursor: "not-allowed",
         }}
-        onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 12%, transparent)"; }}
-        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 6%, transparent)"; }}
       >
-        <span style={{ opacity: 0.7 }}>{p.icon}</span>
+        <span>{p.icon}</span>
         <span className="font-black text-sm" style={{ letterSpacing: "-0.01em" }}>{p.label}</span>
-        {p.tag && (
-          <span className="ml-auto text-micro font-bold uppercase tracking-wider px-2 py-0.5 rounded-full" style={{ background: "color-mix(in srgb, var(--primary) 12%, transparent)", opacity: 0.7 }}>
-            {p.tag}
-          </span>
-        )}
-        <Download size={13} style={{ marginLeft: p.tag ? "0" : "auto", opacity: 0.5 }} />
-      </a>
+        <span className="ml-auto text-micro font-bold uppercase tracking-wider px-2 py-0.5 rounded-full" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+          Pronto
+        </span>
+      </div>
     );
   }
 
   return (
-    <div
-      className="flex items-center gap-3 px-4 py-3 rounded-xl"
+    <a
+      href={resolvedUrl}
+      download
+      className="group flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 no-underline"
       style={{
-        background: "color-mix(in srgb, var(--primary) 3%, transparent)",
-        border: "var(--border-width) solid color-mix(in srgb, var(--primary) 6%, transparent)",
+        background: "color-mix(in srgb, var(--primary) 6%, transparent)",
+        border: "var(--border-width) solid color-mix(in srgb, var(--primary) 12%, transparent)",
         color: "var(--primary)",
-        opacity: loading ? 0.6 : 0.35,
-        cursor: loading ? "default" : "not-allowed",
+        cursor: descargando ? "default" : "pointer",
+        position: "relative",
+        overflow: "hidden",
       }}
+      onClick={handleClick}
+      onMouseEnter={(e) => { if (!descargando) (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 12%, transparent)"; }}
+      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 6%, transparent)"; }}
     >
-      <span>{p.icon}</span>
-      <span className="font-black text-sm" style={{ letterSpacing: "-0.01em" }}>{p.label}</span>
-      {loading
-        ? <Loader2 size={13} className="animate-spin ml-auto" style={{ opacity: 0.5 }} />
-        : <span className="ml-auto text-micro font-bold uppercase tracking-wider px-2 py-0.5 rounded-full" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>Pronto</span>
-      }
-    </div>
+      {/* Barra de progreso durante descarga Tauri */}
+      {descargando && (
+        <div
+          style={{
+            position: "absolute", left: 0, top: 0, bottom: 0,
+            width: `${progreso}%`,
+            background: "color-mix(in srgb, var(--primary) 18%, transparent)",
+            transition: "width 0.3s ease",
+            pointerEvents: "none",
+          }}
+        />
+      )}
+      <span style={{ opacity: 0.7, position: "relative" }}>{p.icon}</span>
+      <span className="font-black text-sm" style={{ letterSpacing: "-0.01em", position: "relative" }}>{p.label}</span>
+      {descargando ? (
+        <>
+          <span className="ml-auto text-micro font-bold" style={{ opacity: 0.6, position: "relative" }}>
+            {progreso > 0 ? `${progreso}%` : "Descargando…"}
+          </span>
+          <Loader2 size={13} className="animate-spin" style={{ opacity: 0.5, position: "relative" }} />
+        </>
+      ) : (
+        <>
+          {p.tag && (
+            <span className="ml-auto text-micro font-bold uppercase tracking-wider px-2 py-0.5 rounded-full" style={{ background: "color-mix(in srgb, var(--primary) 12%, transparent)", opacity: 0.7, position: "relative" }}>
+              {p.tag}
+            </span>
+          )}
+          <Download size={13} style={{ marginLeft: p.tag ? "0" : "auto", opacity: 0.5, position: "relative" }} />
+        </>
+      )}
+    </a>
   );
 }
 
@@ -192,7 +288,7 @@ function DownloadPanel({ title, description, platforms, onClose, anchorRef }: Do
 
       <div className="flex flex-col gap-2">
         {platforms.map((p) => (
-          <ResolvedPlatformItem key={p.label} p={p} onClose={onClose} />
+          <PlatformItem key={p.label} platform={p} />
         ))}
       </div>
     </div>
@@ -391,7 +487,7 @@ const WEBAPP_PLATFORMS: PlatformOption[] = [
 ];
 
 const JUEGO_PLATFORMS: PlatformOption[] = [
-  { label: "Android", icon: <Smartphone size={16} strokeWidth={1.5} />, url: { dynamic: { repo: "Franilover/Game", asset: "Garlia.apk" } }, tag: "APK" },
+  { label: "Android", icon: <Smartphone size={16} strokeWidth={1.5} />, url: "https://github.com/Franilover/Game/releases/latest/download/Garlia.apk", tag: "APK", githubAsset: { repo: "Franilover/Game", asset: "Garlia.apk" } },
   { label: "Windows", icon: <Monitor size={16} strokeWidth={1.5} />, url: "https://github.com/Franilover/Game/releases/latest/download/Garlia.exe" },
   { label: "Linux", icon: <Terminal size={16} strokeWidth={1.5} />, url: "https://github.com/Franilover/Game/releases/latest/download/Garlia.x86_64" },
 ];
