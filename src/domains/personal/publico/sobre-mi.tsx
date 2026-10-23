@@ -10,6 +10,42 @@ import { MotionA, MotionDiv, MotionH1, MotionMain, MotionSection } from '@/ui/Mo
 import { ToastContainer } from "@/ui/ToastContainer";
 import { useToast } from "@/hooks/ui/useToast";
 
+// ── HOOK: URL dinámica desde GitHub Latest Release ─────────────────────────────
+// Llama a la API de GitHub una vez por repo y resuelve la URL del asset pedido.
+// Si la API falla, cae en la URL construida con /releases/latest/download/.
+
+const githubReleaseCache: Record<string, Promise<string | null>> = {};
+
+function fetchLatestAssetUrl(repo: string, asset: string): Promise<string | null> {
+  const key = `${repo}::${asset}`;
+  if (!githubReleaseCache[key]) {
+    githubReleaseCache[key] = fetch(
+      `https://api.github.com/repos/${repo}/releases/latest`,
+      { headers: { Accept: "application/vnd.github+json" } }
+    )
+      .then((r) => r.json())
+      .then((data) => {
+        const found = (data.assets as Array<{ name: string; browser_download_url: string }> | undefined)
+          ?.find((a) => a.name === asset);
+        return found?.browser_download_url ?? `https://github.com/${repo}/releases/latest/download/${asset}`;
+      })
+      .catch(() => `https://github.com/${repo}/releases/latest/download/${asset}`);
+  }
+  return githubReleaseCache[key];
+}
+
+function useGithubLatestAsset(repo: string, asset: string): string | null {
+  const [url, setUrl] = React.useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    fetchLatestAssetUrl(repo, asset).then((resolved) => {
+      if (!cancelled) setUrl(resolved);
+    });
+    return () => { cancelled = true; };
+  }, [repo, asset]);
+  return url;
+}
+
 const fade = (delay = 0) => ({
   initial: { opacity: 0, y: 18 },
   animate: { opacity: 1, y: 0 },
@@ -21,7 +57,7 @@ const fade = (delay = 0) => ({
 type PlatformOption = {
   label: string;
   icon: React.ReactNode;
-  url: string | null;
+  url: string | null | { dynamic: { repo: string; asset: string } };
   tag?: string;
 };
 
@@ -34,6 +70,64 @@ type DownloadPanelProps = {
 };
 
 // ── PANEL FLOTANTE ─────────────────────────────────────────────────────────────
+
+// Resuelve una plataforma con URL dinámica a su URL real (o null mientras carga)
+function ResolvedPlatformItem({ p, onClose }: { p: PlatformOption; onClose: () => void }) {
+  const isDynamic = p.url !== null && typeof p.url === "object" && "dynamic" in p.url;
+  const dynamicUrl = useGithubLatestAsset(
+    isDynamic ? (p.url as { dynamic: { repo: string; asset: string } }).dynamic.repo : "",
+    isDynamic ? (p.url as { dynamic: { repo: string; asset: string } }).dynamic.asset : ""
+  );
+  const resolvedUrl = isDynamic ? dynamicUrl : (p.url as string | null);
+  const available = resolvedUrl !== null;
+  const loading = isDynamic && resolvedUrl === null;
+
+  if (available) {
+    return (
+      <a
+        href={resolvedUrl!}
+        download
+        className="group flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 no-underline"
+        style={{
+          background: "color-mix(in srgb, var(--primary) 6%, transparent)",
+          border: "var(--border-width) solid color-mix(in srgb, var(--primary) 12%, transparent)",
+          color: "var(--primary)",
+        }}
+        onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 12%, transparent)"; }}
+        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 6%, transparent)"; }}
+      >
+        <span style={{ opacity: 0.7 }}>{p.icon}</span>
+        <span className="font-black text-sm" style={{ letterSpacing: "-0.01em" }}>{p.label}</span>
+        {p.tag && (
+          <span className="ml-auto text-micro font-bold uppercase tracking-wider px-2 py-0.5 rounded-full" style={{ background: "color-mix(in srgb, var(--primary) 12%, transparent)", opacity: 0.7 }}>
+            {p.tag}
+          </span>
+        )}
+        <Download size={13} style={{ marginLeft: p.tag ? "0" : "auto", opacity: 0.5 }} />
+      </a>
+    );
+  }
+
+  return (
+    <div
+      className="flex items-center gap-3 px-4 py-3 rounded-xl"
+      style={{
+        background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+        border: "var(--border-width) solid color-mix(in srgb, var(--primary) 6%, transparent)",
+        color: "var(--primary)",
+        opacity: loading ? 0.6 : 0.35,
+        cursor: loading ? "default" : "not-allowed",
+      }}
+    >
+      <span>{p.icon}</span>
+      <span className="font-black text-sm" style={{ letterSpacing: "-0.01em" }}>{p.label}</span>
+      {loading
+        ? <Loader2 size={13} className="animate-spin ml-auto" style={{ opacity: 0.5 }} />
+        : <span className="ml-auto text-micro font-bold uppercase tracking-wider px-2 py-0.5 rounded-full" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>Pronto</span>
+      }
+    </div>
+  );
+}
 
 function DownloadPanel({ title, description, platforms, onClose, anchorRef }: DownloadPanelProps) {
   const panelRef = useRef<HTMLDivElement>(null);
@@ -97,51 +191,9 @@ function DownloadPanel({ title, description, platforms, onClose, anchorRef }: Do
       </div>
 
       <div className="flex flex-col gap-2">
-        {platforms.map((p) => {
-          const available = p.url !== null;
-          return available ? (
-            <a
-              key={p.label}
-              href={p.url!}
-              download
-              className="group flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 no-underline"
-              style={{
-                background: "color-mix(in srgb, var(--primary) 6%, transparent)",
-                border: "var(--border-width) solid color-mix(in srgb, var(--primary) 12%, transparent)",
-                color: "var(--primary)",
-              }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 12%, transparent)"; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 6%, transparent)"; }}
-            >
-              <span style={{ opacity: 0.7 }}>{p.icon}</span>
-              <span className="font-black text-sm" style={{ letterSpacing: "-0.01em" }}>{p.label}</span>
-              {p.tag && (
-                <span className="ml-auto text-micro font-bold uppercase tracking-wider px-2 py-0.5 rounded-full" style={{ background: "color-mix(in srgb, var(--primary) 12%, transparent)", opacity: 0.7 }}>
-                  {p.tag}
-                </span>
-              )}
-              <Download size={13} style={{ marginLeft: p.tag ? "0" : "auto", opacity: 0.5 }} />
-            </a>
-          ) : (
-            <div
-              key={p.label}
-              className="flex items-center gap-3 px-4 py-3 rounded-xl"
-              style={{
-                background: "color-mix(in srgb, var(--primary) 3%, transparent)",
-                border: "var(--border-width) solid color-mix(in srgb, var(--primary) 6%, transparent)",
-                color: "var(--primary)",
-                opacity: 0.35,
-                cursor: "not-allowed",
-              }}
-            >
-              <span>{p.icon}</span>
-              <span className="font-black text-sm" style={{ letterSpacing: "-0.01em" }}>{p.label}</span>
-              <span className="ml-auto text-micro font-bold uppercase tracking-wider px-2 py-0.5 rounded-full" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-                Pronto
-              </span>
-            </div>
-          );
-        })}
+        {platforms.map((p) => (
+          <ResolvedPlatformItem key={p.label} p={p} onClose={onClose} />
+        ))}
       </div>
     </div>
   );
@@ -339,7 +391,7 @@ const WEBAPP_PLATFORMS: PlatformOption[] = [
 ];
 
 const JUEGO_PLATFORMS: PlatformOption[] = [
-  { label: "Android", icon: <Smartphone size={16} strokeWidth={1.5} />, url: null, tag: "APK" },
+  { label: "Android", icon: <Smartphone size={16} strokeWidth={1.5} />, url: { dynamic: { repo: "Franilover/Game", asset: "Garlia.apk" } }, tag: "APK" },
   { label: "Windows", icon: <Monitor size={16} strokeWidth={1.5} />, url: "https://github.com/Franilover/Game/releases/latest/download/Garlia.exe" },
   { label: "Linux", icon: <Terminal size={16} strokeWidth={1.5} />, url: "https://github.com/Franilover/Game/releases/latest/download/Garlia.x86_64" },
 ];
