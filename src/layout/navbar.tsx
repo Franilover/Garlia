@@ -540,6 +540,166 @@ function MobileNavItem({
   );
 }
 
+// ── MobileDropdownMenu ────────────────────────────────────────────────────────
+// Usado cuando hay demasiados ítems para mostrarlos en fila horizontal.
+// Muestra un botón con el label del ítem activo; al pulsarlo despliega
+// todas las opciones hacia arriba en una columna.
+
+type DropdownEntry =
+  | {
+      key: string;
+      label: string;
+      icon: React.ElementType;
+      active: boolean;
+      onSelect: () => void;
+    }
+  | { key: string; divider: true };
+
+function MobileDropdownMenu({
+  entries,
+  isOpen,
+  onToggle,
+  onClose,
+  fallbackLabel,
+}: {
+  entries: DropdownEntry[];
+  isOpen: boolean;
+  onToggle: () => void;
+  onClose: () => void;
+  fallbackLabel: string;
+}) {
+  const { theme } = useTheme();
+  const useOutline = OUTLINE_THEMES.has(theme);
+
+  // Encuentra el ítem activo para mostrarlo en el botón
+  const activeEntry = entries.find(
+    (e): e is Exclude<DropdownEntry, { divider: true }> =>
+      !("divider" in e) && e.active,
+  );
+  const ActiveIcon = activeEntry?.icon;
+  const displayLabel = activeEntry?.label ?? fallbackLabel;
+
+  const btnStyle: React.CSSProperties = useOutline
+    ? {
+        borderRadius: "var(--radius-btn)",
+        touchAction: "manipulation",
+        border: isOpen
+          ? "var(--border-width) solid var(--primary)"
+          : "var(--border-width) solid color-mix(in srgb, var(--primary) 20%, transparent)",
+        background: isOpen
+          ? "color-mix(in srgb, var(--primary) 8%, transparent)"
+          : "transparent",
+        color: isOpen
+          ? "var(--primary)"
+          : "color-mix(in srgb, var(--primary) 60%, transparent)",
+      }
+    : {
+        borderRadius: "var(--radius-btn)",
+        touchAction: "manipulation",
+        background: isOpen
+          ? "var(--primary)"
+          : "color-mix(in srgb, var(--primary) 10%, transparent)",
+        color: isOpen
+          ? "var(--btn-text)"
+          : "color-mix(in srgb, var(--primary) 70%, transparent)",
+      };
+
+  return (
+    <div className="relative flex items-center">
+      <button
+        type="button"
+        className="flex items-center gap-1.5 px-2.5 transition-all"
+        style={{ ...btnStyle, height: 32, maxWidth: 160 }}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onToggle();
+        }}
+      >
+        {ActiveIcon && (
+          <ActiveIcon
+            size={13}
+            strokeWidth={2.5}
+            style={{ flexShrink: 0 }}
+          />
+        )}
+        <span
+          className="text-micro font-black uppercase tracking-widest truncate"
+          style={{ maxWidth: 100 }}
+        >
+          {displayLabel}
+        </span>
+        <ChevronRight
+          size={11}
+          style={{
+            flexShrink: 0,
+            transform: isOpen ? "rotate(-90deg)" : "rotate(90deg)",
+            transition: "transform 0.2s",
+          }}
+        />
+      </button>
+
+      <AnimatePresence>
+        {isOpen && (
+          <MotionDiv
+            animate={{ opacity: 1, y: 0, scale: 1, x: "-50%" }}
+            className="absolute bottom-full mb-2 left-1/2 z-[2000] p-2 origin-bottom"
+            exit={{ opacity: 0, y: 8, scale: 0.97, x: "-50%" }}
+            initial={{ opacity: 0, y: 8, scale: 0.97, x: "-50%" }}
+            style={{ ...submenuSurface, minWidth: 160 }}
+            transition={{ type: "spring", stiffness: 420, damping: 34 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {entries.map((entry) =>
+              "divider" in entry ? (
+                <NavDivider key={entry.key} />
+              ) : (
+                <button
+                  key={entry.key}
+                  type="button"
+                  className="flex w-full items-center gap-2.5 px-3 py-2 text-micro font-black uppercase tracking-widest transition-all"
+                  style={{
+                    borderRadius: "var(--radius-btn)",
+                    background: entry.active
+                      ? "color-mix(in srgb, var(--primary) 8%, transparent)"
+                      : "transparent",
+                    color: entry.active
+                      ? "var(--primary)"
+                      : "color-mix(in srgb, var(--primary) 60%, transparent)",
+                    textAlign: "left",
+                  }}
+                  onMouseEnter={(e) => {
+                    const el = e.currentTarget as HTMLElement;
+                    el.style.background =
+                      "color-mix(in srgb, var(--primary) 6%, transparent)";
+                    el.style.color = "var(--primary)";
+                  }}
+                  onMouseLeave={(e) => {
+                    const el = e.currentTarget as HTMLElement;
+                    el.style.background = entry.active
+                      ? "color-mix(in srgb, var(--primary) 8%, transparent)"
+                      : "transparent";
+                    el.style.color = entry.active
+                      ? "var(--primary)"
+                      : "color-mix(in srgb, var(--primary) 60%, transparent)";
+                  }}
+                  onClick={() => {
+                    entry.onSelect();
+                    onClose();
+                  }}
+                >
+                  <entry.icon size={13} strokeWidth={entry.active ? 2.5 : 2} />
+                  {entry.label}
+                </button>
+              ),
+            )}
+          </MotionDiv>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 const Navbar = () => {
@@ -550,6 +710,7 @@ const Navbar = () => {
   const [mobileOpenMenu, setMobileOpenMenu] = useState<string | null>(null);
   const [adminSubmenuOpen, setAdminSubmenuOpen] = useState(false);
   const [escritorioSubmenuOpen, setEscritorioSubmenuOpen] = useState(false);
+  const [mobileDropdownOpen, setMobileDropdownOpen] = useState(false);
 
   const [tecladoAbierto, setTecladoAbierto] = useState(false);
   useEffect(() => {
@@ -580,6 +741,7 @@ const Navbar = () => {
   const closeAll = () => {
     setThemeMenuOpen(false);
     setMobileOpenMenu(null);
+    setMobileDropdownOpen(false);
   };
 
   useEffect(() => {
@@ -596,10 +758,12 @@ const Navbar = () => {
 
   useEffect(() => {
     setAdminSubmenuOpen(isGarliaeditor);
+    setMobileDropdownOpen(false);
   }, [isGarliaeditor]);
 
   useEffect(() => {
     setEscritorioSubmenuOpen(isEscritorio);
+    setMobileDropdownOpen(false);
   }, [isEscritorio]);
 
   const escritorioSection = useEscritorioNavigation((s) => s.section);
@@ -1314,22 +1478,15 @@ const Navbar = () => {
                   }}
                 />
                 <NavVerticalDivider />
-                {adminSubmenuItems.map((entry) =>
-                  "divider" in entry ? (
-                    <NavVerticalDivider key={entry.key} />
-                  ) : (
-                    <MobileFlatButton
-                      key={entry.key}
-                      active={entry.active}
-                      icon={entry.icon}
-                      label={entry.label}
-                      onClick={() => {
-                        entry.onSelect();
-                        closeAll();
-                      }}
-                    />
-                  ),
-                )}
+                <MobileDropdownMenu
+                  entries={adminSubmenuItems}
+                  fallbackLabel="Sección"
+                  isOpen={mobileDropdownOpen}
+                  onClose={closeAll}
+                  onToggle={() =>
+                    setMobileDropdownOpen(!mobileDropdownOpen)
+                  }
+                />
               </>
             ) : isAdmin && escritorioSubmenuOpen ? (
               <>
@@ -1343,20 +1500,15 @@ const Navbar = () => {
                   }}
                 />
                 <NavVerticalDivider />
-                {escritorioSubmenuItems.map(
-                  ({ key, label, icon, active, onSelect }) => (
-                    <MobileFlatButton
-                      key={key}
-                      active={active}
-                      icon={icon}
-                      label={label}
-                      onClick={() => {
-                        onSelect();
-                        closeAll();
-                      }}
-                    />
-                  ),
-                )}
+                <MobileDropdownMenu
+                  entries={escritorioSubmenuItems}
+                  fallbackLabel="Sección"
+                  isOpen={mobileDropdownOpen}
+                  onClose={closeAll}
+                  onToggle={() =>
+                    setMobileDropdownOpen(!mobileDropdownOpen)
+                  }
+                />
               </>
             ) : isAdmin ? (
               <>
