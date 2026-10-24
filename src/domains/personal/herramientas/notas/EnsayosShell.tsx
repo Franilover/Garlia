@@ -30,6 +30,233 @@ const LS_ACTIVE = "ensayos-active-id";
 const LS_HOME   = "ensayos-at-home";
 const LS_TABS   = "ensayos-open-tabs";
 
+// ── TabsDropdown ──────────────────────────────────────────────────────────────
+// Reemplaza la barra horizontal de pestañas.
+// Muestra un botón con el título de la nota activa; al pulsarlo se despliega
+// hacia abajo con todas las notas abiertas, cada una con su botón de cierre.
+
+function TabsDropdown({
+  ids,
+  activeId,
+  activeLabel,
+  ensayos,
+  onSelect,
+  onClose,
+}: {
+  ids: string[];
+  activeId: string | null;
+  activeLabel: string;
+  ensayos: any[];
+  onSelect: (id: string) => void;
+  onClose: (id: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = React.useRef<HTMLDivElement>(null);
+
+  // Cerrar al hacer click fuera
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative flex items-center" style={{ minWidth: 0 }}>
+      {/* Botón principal */}
+      <button
+        type="button"
+        className="flex items-center gap-1.5 select-none"
+        style={{
+          maxWidth: 260,
+          padding: "3px 8px 3px 7px",
+          borderRadius: 6,
+          border: "1px solid color-mix(in srgb, var(--foreground) 10%, transparent)",
+          background: open
+            ? "color-mix(in srgb, var(--foreground) 7%, transparent)"
+            : "color-mix(in srgb, var(--foreground) 4%, transparent)",
+          color: "color-mix(in srgb, var(--foreground) 70%, transparent)",
+          cursor: "pointer",
+          transition: "background 0.1s, border-color 0.1s",
+        }}
+        title={`${ids.length} nota${ids.length !== 1 ? "s" : ""} abierta${ids.length !== 1 ? "s" : ""}`}
+        onClick={() => setOpen((p) => !p)}
+        onMouseEnter={(e) => {
+          (e.currentTarget as HTMLElement).style.borderColor =
+            "color-mix(in srgb, var(--foreground) 22%, transparent)";
+        }}
+        onMouseLeave={(e) => {
+          (e.currentTarget as HTMLElement).style.borderColor =
+            "color-mix(in srgb, var(--foreground) 10%, transparent)";
+        }}
+      >
+        <FileText size={10} style={{ flexShrink: 0 }} />
+        <span
+          style={{
+            fontSize: 11,
+            fontFamily: "var(--font-serif)",
+            fontStyle: "italic",
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            maxWidth: 180,
+          }}
+        >
+          {activeLabel}
+        </span>
+        {/* Contador de pestañas */}
+        {ids.length > 1 && (
+          <span
+            style={{
+              fontSize: 8,
+              fontFamily: "var(--font-mono)",
+              padding: "0 4px",
+              borderRadius: 3,
+              background: "color-mix(in srgb, var(--foreground) 8%, transparent)",
+              color: "color-mix(in srgb, var(--foreground) 40%, transparent)",
+              flexShrink: 0,
+            }}
+          >
+            {ids.length}
+          </span>
+        )}
+        <svg
+          width="8"
+          height="8"
+          viewBox="0 0 8 8"
+          style={{
+            flexShrink: 0,
+            transform: open ? "rotate(180deg)" : "rotate(0deg)",
+            transition: "transform 0.15s",
+            color: "color-mix(in srgb, var(--foreground) 30%, transparent)",
+          }}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+        >
+          <path d="M1.5 3L4 5.5L6.5 3" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+
+      {/* Panel dropdown */}
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -4, scale: 0.98 }}
+            initial={{ opacity: 0, y: -4, scale: 0.98 }}
+            transition={{ duration: 0.12, ease: "easeOut" }}
+            style={{
+              position: "absolute",
+              top: "calc(100% + 4px)",
+              left: 0,
+              minWidth: 220,
+              maxWidth: 320,
+              zIndex: 200,
+              background: "var(--bg-menu)",
+              border: "1px solid color-mix(in srgb, var(--foreground) 10%, transparent)",
+              borderRadius: 8,
+              boxShadow: "0 8px 32px color-mix(in srgb, var(--bg-main) 40%, transparent)",
+              padding: "4px",
+              overflow: "hidden",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {ids.map((id) => {
+              const ens = (ensayos as any[]).find((e) => e.id === id);
+              const titulo = ens?.titulo ?? "Sin título";
+              const isActive = id === activeId;
+              const esLibro = ens?.tags?.includes("libro");
+              return (
+                <div
+                  key={id}
+                  className="group flex items-center gap-2 px-2.5 py-2 cursor-pointer rounded-md"
+                  style={{
+                    background: isActive
+                      ? "color-mix(in srgb, var(--foreground) 6%, transparent)"
+                      : "transparent",
+                    color: isActive
+                      ? "var(--foreground)"
+                      : "color-mix(in srgb, var(--foreground) 55%, transparent)",
+                    transition: "background 0.08s",
+                  }}
+                  onClick={() => {
+                    onSelect(id);
+                    setOpen(false);
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isActive)
+                      (e.currentTarget as HTMLElement).style.background =
+                        "color-mix(in srgb, var(--foreground) 3%, transparent)";
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isActive)
+                      (e.currentTarget as HTMLElement).style.background = "transparent";
+                  }}
+                >
+                  {esLibro ? (
+                    <BookOpen size={10} style={{ flexShrink: 0 }} />
+                  ) : (
+                    <FileText size={10} style={{ flexShrink: 0 }} />
+                  )}
+                  <span
+                    style={{
+                      flex: 1,
+                      minWidth: 0,
+                      fontSize: 11,
+                      fontFamily: "var(--font-serif)",
+                      fontStyle: "italic",
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                    }}
+                  >
+                    {titulo}
+                  </span>
+                  {/* Botón cerrar pestaña */}
+                  <button
+                    type="button"
+                    className="shrink-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    style={{
+                      width: 16,
+                      height: 16,
+                      borderRadius: 4,
+                      background: "transparent",
+                      border: "none",
+                      cursor: "pointer",
+                      color: "color-mix(in srgb, var(--foreground) 35%, transparent)",
+                      padding: 0,
+                    }}
+                    title="Cerrar pestaña"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onClose(id);
+                      if (ids.length <= 1) setOpen(false);
+                    }}
+                    onMouseEnter={(e) => {
+                      (e.currentTarget as HTMLElement).style.background =
+                        "color-mix(in srgb, var(--foreground) 10%, transparent)";
+                    }}
+                    onMouseLeave={(e) => {
+                      (e.currentTarget as HTMLElement).style.background = "transparent";
+                    }}
+                  >
+                    <X size={9} />
+                  </button>
+                </div>
+              );
+            })}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 function EnsayosInner() {
   const { user } = useAuth() as { user: any };
   const { toasts, dismiss } = useToast();
@@ -915,53 +1142,30 @@ function EnsayosInner() {
           </div>
         </div>
 
-        {/* ── Pestañas de notas abiertas ── */}
-        {openTabIds.length > 0 && (
-          <div
-            className="shrink-0 flex items-center gap-1 px-2 py-1.5 overflow-x-auto"
-            style={{ borderBottom: "1px solid color-mix(in srgb, var(--foreground) 8%, transparent)" }}
-            role="tablist"
-            aria-label="Notas abiertas"
-          >
-            {openTabIds.map((id) => {
-              const ensayo = (ensayos as any[]).find((e) => e.id === id);
-              const titulo = ensayo?.titulo ?? "Sin título";
-              const active = ensayoActivoId === id;
-              return (
-                <div
-                  key={id}
-                  role="tab"
-                  aria-selected={active}
-                  onClick={() => setEnsayoActivo(id)}
-                  title={titulo}
-                  className="group flex items-center gap-1.5 pl-2.5 pr-1.5 py-1.5 rounded-lg cursor-pointer select-none shrink-0 max-w-[180px]"
-                  style={{
-                    background: active
-                      ? "color-mix(in srgb, var(--foreground) 8%, transparent)"
-                      : "transparent",
-                    color: active
-                      ? "var(--foreground)"
-                      : "color-mix(in srgb, var(--foreground) 45%, transparent)",
-                  }}
-                >
-                  <FileText size={11} className="shrink-0" />
-                  <span className="text-xs font-semibold truncate">{titulo}</span>
-                  <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); closeTab(id); }}
-                    title="Cerrar pestaña"
-                    className="shrink-0 p-0.5 rounded-md opacity-0 group-hover:opacity-100 transition-opacity"
-                    style={{ background: "transparent" }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = "color-mix(in srgb, var(--foreground) 12%, transparent)")}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-                  >
-                    <X size={10} />
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        )}
+        {/* ── Pestañas de notas abiertas — dropdown ── */}
+        {openTabIds.length > 0 && (() => {
+          const activeEnsayo = (ensayos as any[]).find((e) => e.id === ensayoActivoId);
+          const activeTituloTab = openTabIds.includes(ensayoActivoId ?? "")
+            ? (activeEnsayo?.titulo ?? "Sin título")
+            : ((ensayos as any[]).find((e) => e.id === openTabIds[0])?.titulo ?? "Sin título");
+
+          return (
+            <div
+              className="shrink-0 relative flex items-center gap-2 px-2 py-1"
+              style={{ borderBottom: "1px solid color-mix(in srgb, var(--foreground) 8%, transparent)" }}
+            >
+              {/* Botón dropdown — muestra la nota activa */}
+              <TabsDropdown
+                activeId={ensayoActivoId}
+                activeLabel={activeTituloTab}
+                ensayos={ensayos}
+                ids={openTabIds}
+                onClose={closeTab}
+                onSelect={setEnsayoActivo}
+              />
+            </div>
+          );
+        })()}
 
         {/* ── Contenido principal ── */}
         <main className="flex-1 flex flex-col min-w-0 bg-background overflow-y-auto">
