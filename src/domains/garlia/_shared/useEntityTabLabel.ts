@@ -57,6 +57,8 @@ const SECTION_TABLE: Record<SectionKey, string | null> = {
   "sistema-solar": null,
   // "pizarron" es el canvas creativo, no abre pestañas de entidad puntual.
   pizarron: null,
+  // "escritor" es la sección de consulta para worldbuilders, no abre pestañas puntuales.
+  escritor: null,
 };
 
 /**
