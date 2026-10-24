@@ -77,6 +77,15 @@ interface Personaje {
   ciudad_id?: string | null;
   reino?: string | null;
 }
+interface Lugar {
+  id: string;
+  nombre: string;
+  /** Si no es null, el lugar pertenece a este reino y se pinta como pill de ciudad dentro de él. */
+  reino_id?: string | null;
+  /** true → si no tiene reino, se muestra con bloque propio estilo "Reino". false → va dentro del bloque "Sin Reino". */
+  es_grande?: boolean | null;
+}
+
 interface Bioma {
   id: string;
   nombre: string;
@@ -88,6 +97,12 @@ interface Props {
   reinos: Reino[];
   ciudades: Ciudad[];
   personajes: Personaje[];
+  /** Lugares — se integran en la jerarquía según reino_id y es_grande:
+   *  - lugar.reino_id != null → pill de ciudad dentro del bloque de ese reino.
+   *  - lugar.reino_id == null && lugar.es_grande == true → bloque propio estilo Reino.
+   *  - lugar.reino_id == null && lugar.es_grande == false → dentro del bloque "Sin Reino" como pill de ciudad. */
+  lugares?: Lugar[];
+  onCreateLugar?: (reinoId: string | null) => void;
   /** Biomas — nivel jerárquico usado en modo "ojo apagado" para agrupar
    *  reinos (Bioma → Reinos, vía Bioma.reino_ids), opcional para no romper
    *  usos previos. */
@@ -304,6 +319,8 @@ export function GeografiaJerarquica({
   reinos,
   ciudades,
   personajes,
+  lugares = [],
+  onCreateLugar,
   biomas = [],
   loading,
   mostrarPersonajes = true,
@@ -424,6 +441,17 @@ export function GeografiaJerarquica({
   const personajesSinCiudad = qReino
     ? personajesSinCiudadBase.filter((p) => p.nombre?.toLocaleLowerCase("es").includes(qReino))
     : personajesSinCiudadBase;
+
+  // ── Helpers de lugares ──────────────────────────────────────────────────
+  /** Lugares que pertenecen a un reino concreto (pill de ciudad dentro del bloque). */
+  const lugaresDe = (reinoId: string) =>
+    lugares.filter((l) => l.reino_id === reinoId);
+
+  /** Lugares sin reino que son "grandes" → bloque propio nivel Rey */
+  const lugresGrandesSinReino = lugares.filter((l) => !l.reino_id && l.es_grande);
+
+  /** Lugares sin reino y no grandes → van dentro del bloque "Sin Reino" */
+  const lugaresChicosSinReino = lugares.filter((l) => !l.reino_id && !l.es_grande);
 
   const reinosOrdenados = [...reinosVisibles].sort(
     (a, b) =>
@@ -849,6 +877,29 @@ export function GeografiaJerarquica({
                             : renderSinCiudadDeReino(reino)
                         )}
                     </div>
+                    {/* Lugares vinculados a este reino — pills estilo ciudad */}
+                    {lugaresDe(reino.id).length > 0 && (
+                      <div className="px-3 pb-3 border-t border-primary/5 pt-2">
+                        <div className="mb-1.5 text-micro font-bold uppercase tracking-[0.1em] text-primary/35">
+                          Lugares
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {lugaresDe(reino.id).map((lugar) => (
+                            <NodoTitulo
+                              key={lugar.id}
+                              label={lugar.nombre}
+                              variant="ciudad"
+                              maxWidthPx={160}
+                              onClick={() => abrirPanel("lugar" as any, lugar.id)}
+                              onCreate={
+                                onCreateLugar ? () => onCreateLugar!(reino.id) : undefined
+                              }
+                            />
+                          ))}
+                          {onCreateLugar && lugaresDe(reino.id).length === 0 && null}
+                        </div>
+                      </div>
+                    )}
                   </div>
                   );
                 })}
@@ -963,6 +1014,59 @@ export function GeografiaJerarquica({
                 Sin reinos todavía
               </div>
             )}
+
+          {/* ── Lugares grandes sin reino — bloque propio estilo Reino ── */}
+          {lugresGrandesSinReino.map((lugar) => (
+            <div
+              key={lugar.id}
+              className="w-full rounded-lg border border-primary/10 overflow-hidden"
+            >
+              <div className="px-3 py-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+                <span />
+                <button
+                  type="button"
+                  onClick={() => abrirPanel("lugar" as any, lugar.id)}
+                  title={lugar.nombre}
+                  className="min-w-0 truncate text-micro font-bold uppercase tracking-[0.12em] text-primary/70 hover:text-accent transition-colors text-center justify-self-center max-w-full"
+                >
+                  {lugar.nombre}
+                </button>
+                <span />
+              </div>
+            </div>
+          ))}
+
+          {/* ── Bloque "Sin Reino" — lugares chicos sin reino, pills estilo ciudad ── */}
+          {lugaresChicosSinReino.length > 0 && (
+            <div className="w-full rounded-lg border border-primary/10 overflow-hidden">
+              <div className="px-3 py-3 flex items-center gap-2">
+                <span className="flex-1 truncate text-micro font-bold uppercase tracking-[0.12em] text-primary/70">
+                  Sin Reino
+                </span>
+                {onCreateLugar && (
+                  <button
+                    type="button"
+                    onClick={() => onCreateLugar(null)}
+                    title="Añadir lugar"
+                    className="p-1 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors shrink-0"
+                  >
+                    <Plus size={9} className="text-primary/60" />
+                  </button>
+                )}
+              </div>
+              <div className="px-3 pb-3 flex flex-wrap gap-2">
+                {lugaresChicosSinReino.map((lugar) => (
+                  <NodoTitulo
+                    key={lugar.id}
+                    label={lugar.nombre}
+                    variant="ciudad"
+                    maxWidthPx={160}
+                    onClick={() => abrirPanel("lugar" as any, lugar.id)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         // ── Ojo OFF: Reinos agrupados directo por Bioma (Bioma.reino_ids,
