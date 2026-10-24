@@ -47,7 +47,8 @@ export type SectionKey =
   | "auditoria"
   | "sistema-solar"
   | "pizarron"
-  | "culturas";
+  | "culturas"
+  | "escritor";
 
 /** Una pestaña de entidad abierta: sección + id puntual. */
 export interface MundoTab {

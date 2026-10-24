@@ -90,6 +90,11 @@ const IdiomasSection = lazy(() =>
     default: m.IdiomasSection,
   })),
 );
+const EscritorSection = lazy(() =>
+  import("@/domains/garlia/escritor/EscritorSection").then((m) => ({
+    default: m.EscritorSection,
+  })),
+);
 
 function SectionFallback() {
   return (
@@ -147,6 +152,8 @@ function ActiveSection() {
       return <PizarronSection />;
     case "culturas":
       return <IdiomasSection />;
+    case "escritor":
+      return <EscritorSection />;
     default: {
       const _exhaustive: never = section;
       void _exhaustive;

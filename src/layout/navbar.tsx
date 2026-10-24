@@ -1003,6 +1003,14 @@ const Navbar = () => {
       active: isGarliaeditor && mundoSection === "culturas",
       onSelect: () => mundoSelectSection("culturas"),
     },
+    { key: "div-7", divider: true },
+    {
+      key: "escritor",
+      label: "Escritor",
+      icon: BookOpen,
+      active: isGarliaeditor && mundoSection === "escritor",
+      onSelect: () => mundoSelectSection("escritor"),
+    },
   ];
 
   // ── Submenú Escritorio (desktop) ─────────────────────────────────────────
