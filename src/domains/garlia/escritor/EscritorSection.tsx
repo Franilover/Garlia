@@ -106,6 +106,22 @@ function SubseccionMateriales() {
     );
   }, [materiales, query]);
 
+  // Agrupar por categoría manteniendo orden alfabético dentro de cada grupo
+  const grupos = useMemo(() => {
+    const map = new Map<string, Material[]>();
+    for (const m of filtrados) {
+      const cat = m.categoria ?? "sin categoría";
+      if (!map.has(cat)) map.set(cat, []);
+      map.get(cat)!.push(m);
+    }
+    // Ordenar grupos: "sin categoría" al final, el resto alfabético
+    return Array.from(map.entries()).sort(([a], [b]) => {
+      if (a === "sin categoría") return 1;
+      if (b === "sin categoría") return -1;
+      return a.localeCompare(b);
+    });
+  }, [filtrados]);
+
   return (
     <div className="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
       {/* Lista */}
@@ -131,32 +147,45 @@ function SubseccionMateriales() {
         ) : filtrados.length === 0 ? (
           <p className="px-1 text-[11px]" style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>Sin resultados.</p>
         ) : (
-          <div className="flex flex-col gap-0.5 overflow-y-auto" style={{ maxHeight: "calc(100dvh - 200px)" }}>
-            {filtrados.map((m) => {
-              const selected = activo?.id === m.id;
-              return (
-                <button
-                  key={m.id}
-                  type="button"
-                  onClick={() => setActivo(selected ? null : m)}
-                  className="flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-left transition-colors"
-                  style={{
-                    background: selected ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "transparent",
-                    color: selected ? "var(--primary)" : "color-mix(in srgb, var(--primary) 65%, transparent)",
-                  }}
+          <div className="flex flex-col overflow-y-auto" style={{ maxHeight: "calc(100dvh - 200px)" }}>
+            {grupos.map(([categoria, items], gi) => (
+              <div key={categoria}>
+                {/* Separador de categoría */}
+                <div
+                  className="flex items-center gap-2 px-1 py-1.5"
+                  style={{ marginTop: gi > 0 ? "8px" : 0 }}
                 >
-                  <div className="min-w-0">
-                    <p className="truncate text-xs font-black">{m.nombre}</p>
-                    {m.categoria && (
-                      <p className="truncate text-[10px] font-bold capitalize" style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
-                        {m.categoria.replace(/_/g, " ")}
-                      </p>
-                    )}
-                  </div>
-                  <ChevronRight size={12} style={{ flexShrink: 0 }} />
-                </button>
-              );
-            })}
+                  <span
+                    className="text-[9px] font-black uppercase tracking-widest capitalize whitespace-nowrap"
+                    style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
+                  >
+                    {categoria.replace(/_/g, " ")}
+                  </span>
+                  <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
+                </div>
+                {/* Items del grupo */}
+                <div className="flex flex-col gap-0.5">
+                  {items.map((m) => {
+                    const selected = activo?.id === m.id;
+                    return (
+                      <button
+                        key={m.id}
+                        type="button"
+                        onClick={() => setActivo(selected ? null : m)}
+                        className="flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-left transition-colors"
+                        style={{
+                          background: selected ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "transparent",
+                          color: selected ? "var(--primary)" : "color-mix(in srgb, var(--primary) 65%, transparent)",
+                        }}
+                      >
+                        <p className="min-w-0 truncate text-xs font-black">{m.nombre}</p>
+                        <ChevronRight size={12} style={{ flexShrink: 0 }} />
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
@@ -181,15 +210,15 @@ function SubseccionMateriales() {
 }
 
 // Mapeo de claves canónicas → etiqueta + descripción para escritores
-const PROPS_ESCRITOR: Record<string, { label: string; descripcion: string; icono: string }> = {
-  dureza:        { label: "Dureza",        descripcion: "Resistencia a ser rayado o deformado", icono: "🪨" },
-  rigidez:       { label: "Rigidez",       descripcion: "Cuánto mantiene su forma bajo presión", icono: "📐" },
-  flexibilidad:  { label: "Flexibilidad",  descripcion: "Capacidad de doblarse sin romperse",    icono: "🌿" },
-  estabilidad:   { label: "Estabilidad",   descripcion: "Resistencia al paso del tiempo y la magia", icono: "⚖️" },
-  conductividad: { label: "Conductividad", descripcion: "Transmite calor, energía o magia",      icono: "⚡" },
-  transparencia: { label: "Transparencia", descripcion: "Deja pasar la luz o la vista",           icono: "🔮" },
-  interaccion:   { label: "Interacción",   descripcion: "Reacciona con otras materias o fuerzas", icono: "🔗" },
-  cohesion:      { label: "Cohesión",      descripcion: "Qué tan unido permanece el material",    icono: "🧲" },
+const PROPS_ESCRITOR: Record<string, { label: string; descripcion: string }> = {
+  dureza:        { label: "Dureza",        descripcion: "Resistencia a ser rayado o deformado" },
+  rigidez:       { label: "Rigidez",       descripcion: "Cuánto mantiene su forma bajo presión" },
+  flexibilidad:  { label: "Flexibilidad",  descripcion: "Capacidad de doblarse sin romperse" },
+  estabilidad:   { label: "Estabilidad",   descripcion: "Resistencia al paso del tiempo y la magia" },
+  conductividad: { label: "Conductividad", descripcion: "Transmite calor, energía o magia" },
+  transparencia: { label: "Transparencia", descripcion: "Deja pasar la luz o la vista" },
+  interaccion:   { label: "Interacción",   descripcion: "Reacciona con otras materias o fuerzas" },
+  cohesion:      { label: "Cohesión",      descripcion: "Qué tan unido permanece el material" },
 };
 
 // Paleta de colores según nivel narrativo
@@ -281,12 +310,9 @@ function DetalleMaterial({ material }: { material: Material }) {
                       className="flex flex-col gap-1 rounded-xl px-3 py-2.5"
                       style={{ background: bg }}
                     >
-                      <div className="flex items-center gap-1.5">
-                        {meta && <span className="text-[11px]">{meta.icono}</span>}
-                        <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: text }}>
-                          {meta?.label ?? p.propiedad_clave.replace(/_/g, " ")}
-                        </span>
-                      </div>
+                      <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: text }}>
+                        {meta?.label ?? p.propiedad_clave.replace(/_/g, " ")}
+                      </span>
                       <p className="text-[11px] font-black" style={{ color: text }}>{p.nivel}</p>
                       {p.significado && (
                         <p className="text-[10px] leading-4" style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}>
