@@ -18,6 +18,7 @@ import {
   Utensils, Thermometer, Clock,
 } from "lucide-react";
 import { supabase } from "@/infra/supabase/supabase";
+import { useGameNavigation } from "@/hooks/useGameNavigationStore";
 import { PopoverFlotante } from "@/domains/garlia/_shared/PopoverFlotante";
 import { usePanelFlotante } from "@/domains/garlia/_shared/usePanelFlotanteStore";
 import { PanelFlotanteGlobal } from "@/domains/garlia/_shared/PanelFlotanteGlobal";
@@ -3064,44 +3065,14 @@ const ALL_TABS: TabEntry[] = [
 
 
 export default function GamePage() {
-  const [active, setActive] = useState<ActiveTab>("personajes");
-
+  // La sección activa la controla el navbar (igual que escritorio/garlia)
+  const active = useGameNavigation((s) => s.section);
   const ambSubs: AmbSub[] = ["factores", "modificadores"];
 
   return (
     <div className="flex flex-col h-full min-h-0" style={{ paddingLeft: "52px" }}>
       <PanelFlotanteGlobal />
-      {/* ── Fila única de tabs plana ── */}
-      <div className="shrink-0 flex items-center gap-0.5 px-3 pt-2 pb-0 border-b overflow-x-auto"
-        style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }}>
-        {ALL_TABS.map((tab, i) => {
-          const prev = ALL_TABS[i - 1];
-          const showDivider = prev && prev.group !== tab.group;
-          const Icon = tab.icon;
-          const isActive = active === tab.key;
-          return (
-            <React.Fragment key={tab.key}>
-              {showDivider && (
-                <span className="shrink-0 mx-2 self-stretch"
-                  style={{ width: "2px", borderRadius: "1px", background: "color-mix(in srgb, var(--primary) 20%, transparent)", marginTop: "4px", marginBottom: "4px" }} />
-              )}
-              <button type="button" onClick={() => setActive(tab.key)}
-                className="shrink-0 flex items-center gap-1.5 px-3 py-2 text-xs font-medium transition-all rounded-t-lg whitespace-nowrap"
-                style={{
-                  background: isActive ? "color-mix(in srgb, var(--primary) 8%, var(--bg-main))" : "transparent",
-                  color: isActive ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)",
-                  borderBottom: isActive ? "2px solid var(--primary)" : "2px solid transparent",
-                  marginBottom: "-1px",
-                  fontWeight: isActive ? 600 : 400,
-                }}>
-                <Icon size={12} strokeWidth={isActive ? 2.5 : 2} />{tab.label}
-              </button>
-            </React.Fragment>
-          );
-        })}
-      </div>
-
-      {/* ── Contenido ── */}
+      {/* Sin barra de tabs — la navegación vive en el navbar lateral/inferior */}
       <div className="flex-1 min-h-0 flex flex-col">
         {active === "personajes"    && <PersonajesSection />}
         {active === "biomas"        && <BiomasSection />}

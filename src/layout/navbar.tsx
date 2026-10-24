@@ -32,6 +32,8 @@ import {
   Globe,
   PenSquare,
   Languages,
+  TreePine,
+  Thermometer,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -44,6 +46,7 @@ import {
   type SectionKey,
 } from "@/domains/garlia/_shared/useMundoNavigationStore";
 import { useEscritorioNavigation } from "@/editor/notas/hooks/useEscritorioNavigationStore";
+import { useGameNavigation, type GameSectionKey } from "@/hooks/useGameNavigationStore";
 import { useGotoHotkeys } from "@/hooks/ui/useGotoHotkeys";
 import { useMobileAsidePanel } from "@/hooks/ui/useMobileAsidePanel";
 import { useAuth } from "@/providers/AuthProvider";
@@ -710,6 +713,7 @@ const Navbar = () => {
   const [mobileOpenMenu, setMobileOpenMenu] = useState<string | null>(null);
   const [adminSubmenuOpen, setAdminSubmenuOpen] = useState(false);
   const [escritorioSubmenuOpen, setEscritorioSubmenuOpen] = useState(false);
+  const [gameSubmenuOpen, setGameSubmenuOpen] = useState(false);
   const [mobileDropdownOpen, setMobileDropdownOpen] = useState(false);
 
   const [tecladoAbierto, setTecladoAbierto] = useState(false);
@@ -766,10 +770,18 @@ const Navbar = () => {
     setMobileDropdownOpen(false);
   }, [isEscritorio]);
 
+  useEffect(() => {
+    setGameSubmenuOpen(isGame);
+    setMobileDropdownOpen(false);
+  }, [isGame]);
+
   const escritorioSection = useEscritorioNavigation((s) => s.section);
   const selectEscritorioSection = useEscritorioNavigation(
     (s) => s.selectSection,
   );
+
+  const gameSection = useGameNavigation((s) => s.section);
+  const selectGameSection = useGameNavigation((s) => s.selectSection);
 
   const mundoSection = useMundoNavigation((s) => s.section);
   const mundoSelectedId = useMundoNavigation((s) => s.selectedId);
@@ -1047,6 +1059,68 @@ const Navbar = () => {
     },
   ];
 
+  // ── Submenú Game ─────────────────────────────────────────────────────────
+
+  type GameSubmenuItem = {
+    key: string;
+    label: string;
+    icon: React.ElementType;
+    active: boolean;
+    onSelect: () => void;
+  };
+
+  const gameSubmenuItems: GameSubmenuItem[] = [
+    {
+      key: "personajes",
+      label: "Personajes",
+      icon: Users,
+      active: isGame && gameSection === "personajes",
+      onSelect: () => selectGameSection("personajes"),
+    },
+    {
+      key: "biomas",
+      label: "Biomas",
+      icon: Mountain,
+      active: isGame && gameSection === "biomas",
+      onSelect: () => selectGameSection("biomas"),
+    },
+    {
+      key: "items",
+      label: "Items",
+      icon: Sword,
+      active: isGame && gameSection === "items",
+      onSelect: () => selectGameSection("items"),
+    },
+    {
+      key: "ecologia",
+      label: "Ecología",
+      icon: TreePine,
+      active: isGame && gameSection === "ecologia",
+      onSelect: () => selectGameSection("ecologia"),
+    },
+    {
+      key: "misiones",
+      label: "Misiones",
+      icon: ScrollText,
+      active: isGame && gameSection === "misiones",
+      onSelect: () => selectGameSection("misiones"),
+    },
+    {
+      key: "factores",
+      label: "Factores",
+      icon: Thermometer,
+      active: isGame && gameSection === "factores",
+      onSelect: () => selectGameSection("factores"),
+    },
+    {
+      key: "modificadores",
+      label: "Mods",
+      icon: Clock,
+      active: isGame && gameSection === "modificadores",
+      onSelect: () => selectGameSection("modificadores"),
+    },
+  ];
+
   // ── Atajos globales ──────────────────────────────────────────────────────
 
   useGotoHotkeys({
@@ -1128,7 +1202,7 @@ const Navbar = () => {
           boxShadow: "var(--shadow-card)",
         }}
       >
-        {!adminSubmenuOpen && !escritorioSubmenuOpen && (
+        {!adminSubmenuOpen && !escritorioSubmenuOpen && !gameSubmenuOpen && (
           <div className="relative shrink-0 mx-auto">
             <button
               className="flex items-center justify-center transition-all"
@@ -1230,7 +1304,7 @@ const Navbar = () => {
           </div>
         )}
 
-        {!adminSubmenuOpen && !escritorioSubmenuOpen && (
+        {!adminSubmenuOpen && !escritorioSubmenuOpen && !gameSubmenuOpen && (
           <NavDivider margin="0 12px" />
         )}
 
@@ -1295,6 +1369,33 @@ const Navbar = () => {
                 ),
               )}
             </>
+          ) : isAdmin && gameSubmenuOpen ? (
+            <>
+              <SideNavItem
+                active={false}
+                href="#"
+                icon={ArrowLeft}
+                label="Volver al navbar normal"
+                onClose={(e) => {
+                  e?.preventDefault();
+                  setGameSubmenuOpen(false);
+                }}
+              />
+              <NavDivider />
+              {gameSubmenuItems.map(({ key, label, icon, active, onSelect }) => (
+                <SideNavItem
+                  key={key}
+                  active={active}
+                  href="/myself/game"
+                  icon={icon}
+                  label={label}
+                  onClose={() => {
+                    onSelect();
+                    closeAll();
+                  }}
+                />
+              ))}
+            </>
           ) : (
             <>
               {personalLinks.map(({ href, label, icon, active, fillActive }) => (
@@ -1351,7 +1452,10 @@ const Navbar = () => {
                     href="/myself/game"
                     icon={Gamepad2}
                     label="Game"
-                    onClose={closeAll}
+                    onClose={(e) => {
+                      e?.preventDefault();
+                      setGameSubmenuOpen(true);
+                    }}
                   />
                 </>
               )}
@@ -1510,6 +1614,28 @@ const Navbar = () => {
                   }
                 />
               </>
+            ) : isAdmin && gameSubmenuOpen ? (
+              <>
+                <MobileFlatButton
+                  active={false}
+                  icon={ArrowLeft}
+                  label="Volver al navbar normal"
+                  onClick={() => {
+                    setGameSubmenuOpen(false);
+                    closeAll();
+                  }}
+                />
+                <NavVerticalDivider />
+                <MobileDropdownMenu
+                  entries={gameSubmenuItems}
+                  fallbackLabel="Sección"
+                  isOpen={mobileDropdownOpen}
+                  onClose={closeAll}
+                  onToggle={() =>
+                    setMobileDropdownOpen(!mobileDropdownOpen)
+                  }
+                />
+              </>
             ) : isAdmin ? (
               <>
                 {mainLinks.map(({ href, label, icon, active, fillActive }) => (
@@ -1558,8 +1684,10 @@ const Navbar = () => {
                   icon={Gamepad2}
                   isOpen={false}
                   label="Game"
-                  onClose={closeAll}
-                  onToggle={closeAll}
+                  onClose={() => {
+                    setGameSubmenuOpen(true);
+                  }}
+                  onToggle={() => setGameSubmenuOpen(true)}
                 />
               </>
             ) : (
