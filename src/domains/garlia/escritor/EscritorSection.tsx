@@ -29,7 +29,6 @@ import {
   Swords,
   Handshake,
   ShoppingCart,
-  Star,
   AlertTriangle,
 } from "lucide-react";
 
@@ -42,8 +41,6 @@ interface Material {
   id: string;
   nombre: string;
   categoria?: string | null;
-  descripcion?: string | null;
-  estado_materia?: string | null;
 }
 
 interface Reino {
@@ -54,9 +51,6 @@ interface Reino {
 interface ItemEscritor {
   id: string;
   nombre: string;
-  tipo?: string | null;
-  descripcion?: string | null;
-  rareza?: string | null;
 }
 
 interface ReinoRelacionRaw {
@@ -81,29 +75,6 @@ interface ReinoRelacion {
 
 type Subseccion = "materiales" | "politica" | "objetos";
 
-// ── Pill de rareza ────────────────────────────────────────────────────────
-
-function RarezaPill({ rareza }: { rareza?: string | null }) {
-  if (!rareza) return null;
-  const map: Record<string, { label: string; color: string }> = {
-    comun:      { label: "Común",      color: "color-mix(in srgb, var(--primary) 30%, transparent)" },
-    poco_comun: { label: "Poco común", color: "hsl(200 60% 55%)" },
-    raro:       { label: "Raro",       color: "hsl(260 70% 65%)" },
-    epico:      { label: "Épico",      color: "hsl(280 80% 60%)" },
-    legendario: { label: "Legendario", color: "hsl(45 90% 55%)" },
-  };
-  const def = map[rareza.toLowerCase()] ?? { label: rareza, color: "var(--primary)" };
-  return (
-    <span
-      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-widest"
-      style={{ background: `color-mix(in srgb, ${def.color} 15%, transparent)`, color: def.color }}
-    >
-      <Star size={8} />
-      {def.label}
-    </span>
-  );
-}
-
 // ── Subsección: Materiales ─────────────────────────────────────────────────
 
 function SubseccionMateriales() {
@@ -115,7 +86,7 @@ function SubseccionMateriales() {
   useEffect(() => {
     supabase
       .from("materiales")
-      .select("id, nombre, categoria, descripcion, estado_materia")
+      .select("id, nombre, categoria")
       .order("nombre")
       .then(({ data }) => { setMateriales(data ?? []); setLoading(false); });
   }, []);
@@ -226,17 +197,13 @@ function DetalleMaterial({ material }: { material: Material }) {
           <p className="text-base font-black" style={{ color: "var(--primary)" }}>{material.nombre}</p>
           {material.categoria && (
             <p className="text-[11px] font-bold capitalize" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>
-              {material.categoria.replace(/_/g, " ")}{material.estado_materia ? ` · ${material.estado_materia}` : ""}
+              {material.categoria.replace(/_/g, " ")}
             </p>
           )}
         </div>
         <Gem size={18} style={{ color: "var(--accent)", flexShrink: 0 }} />
       </div>
-      {material.descripcion && (
-        <p className="text-[12px] leading-5" style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}>
-          {material.descripcion}
-        </p>
-      )}
+
       {loading ? (
         <p className="text-[11px]" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>Cargando datos…</p>
       ) : (
@@ -438,7 +405,7 @@ function SubseccionObjetos() {
   useEffect(() => {
     supabase
       .from("items")
-      .select("id, nombre, tipo, descripcion, rareza")
+      .select("id, nombre")
       .order("nombre")
       .limit(200)
       .then(({ data }) => { setItems(data ?? []); setLoading(false); });
@@ -447,7 +414,7 @@ function SubseccionObjetos() {
   const filtrados = useMemo(() => {
     if (!query.trim()) return items;
     const q = query.toLowerCase();
-    return items.filter((it) => it.nombre.toLowerCase().includes(q) || (it.tipo ?? "").toLowerCase().includes(q));
+    return items.filter((it) => it.nombre.toLowerCase().includes(q));
   }, [items, query]);
 
   return (
@@ -487,13 +454,7 @@ function SubseccionObjetos() {
                   }}
                 >
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5">
-                      <p className="truncate text-xs font-black">{it.nombre}</p>
-                      <RarezaPill rareza={it.rareza} />
-                    </div>
-                    {it.tipo && (
-                      <p className="truncate text-[10px] font-bold capitalize" style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>{it.tipo}</p>
-                    )}
+                    <p className="truncate text-xs font-black">{it.nombre}</p>
                   </div>
                   <ChevronRight size={12} style={{ flexShrink: 0 }} />
                 </button>
@@ -538,19 +499,11 @@ function DetalleItem({ item }: { item: ItemEscritor }) {
     <div className="flex flex-col gap-4 rounded-2xl border p-5" style={{ borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="flex items-center gap-2">
-            <p className="text-base font-black" style={{ color: "var(--primary)" }}>{item.nombre}</p>
-            <RarezaPill rareza={item.rareza} />
-          </div>
-          {item.tipo && (
-            <p className="text-[11px] font-bold capitalize" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>{item.tipo}</p>
-          )}
+          <p className="text-base font-black" style={{ color: "var(--primary)" }}>{item.nombre}</p>
         </div>
         <Package size={18} style={{ color: "var(--accent)", flexShrink: 0 }} />
       </div>
-      {item.descripcion && (
-        <p className="text-[12px] leading-5" style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}>{item.descripcion}</p>
-      )}
+
       {loading ? (
         <p className="text-[11px]" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>Cargando…</p>
       ) : (
@@ -611,9 +564,6 @@ export function EscritorSection() {
       {/* Header */}
       <div className="mb-5">
         <p className={PAGE_TITLE_CLS}>Escritor / Creador</p>
-        <p className="mt-1 text-[12px]" style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}>
-          Consultá materiales, relaciones políticas y objetos del mundo sin tocar datos técnicos.
-        </p>
       </div>
 
       {/* Tabs */}
