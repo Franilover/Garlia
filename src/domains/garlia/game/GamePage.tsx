@@ -2298,6 +2298,7 @@ function ItemsSection() {
   const [propsIsNew, setPropsIsNew]       = useState(false);
   const [propsQ, setPropsQ]               = useState("");
   const [propsFiltroTipo, setPropsFiltroTipo] = useState("");
+  const [propsListOpen, setPropsListOpen] = useState(false);
   const { saving: savingP, saved: savedP, run: runP } = useSave();
   const [pClave, setPClave]   = useState(""); const [pNombre, setPNombre] = useState(""); const [pTipo, setPTipo]   = useState(""); const [pActivo, setPActivo] = useState(true);
   const [pOrden, setPOrden]   = useState(0);  const [pPeso, setPPeso]   = useState(0);    const [pEscala, setPEscala] = useState(1);
@@ -2316,7 +2317,7 @@ function ItemsSection() {
     setPropsLoading(false);
   }, []);
 
-  const openProps = () => { loadProps(); setPropsOpen(true); };
+  const openProps = () => { setPropsOpen(true); setPropsSel(null); setPropsIsNew(false); setPropsListOpen(false); };
   const pickP = (p: any) => { setPropsSel(p); setPropsIsNew(false); setPClave(p.clave); setPNombre(p.nombre); setPTipo(p.tipo); setPActivo(p.activo); setPOrden(p.orden); setPPeso(p.peso); setPEscala(p.escala); setPBiomaId(p.bioma_id ?? ""); setPEcoId(p.ecosistema_id ?? ""); setPHabId(p.habitat_id ?? ""); setPJsonProps(p.propiedades ?? {}); };
   const startNewP = () => { setPropsSel(null); setPropsIsNew(true); setPClave(""); setPNombre(""); setPTipo(""); setPActivo(true); setPOrden(0); setPPeso(0); setPEscala(1); setPBiomaId(""); setPEcoId(""); setPHabId(""); setPJsonProps({}); };
   const saveP = () => runP(async () => {
@@ -2618,8 +2619,8 @@ function ItemsSection() {
       {/* ── Panel Props anidado ── */}
       <PanelModal
         abierto={propsOpen}
-        onCerrar={() => { setPropsOpen(false); setPropsSel(null); setPropsIsNew(false); }}
-        titulo="Props"
+        onCerrar={() => { setPropsOpen(false); setPropsSel(null); setPropsIsNew(false); setPropsListOpen(false); }}
+        titulo={propsSel ? propsSel.nombre : propsIsNew ? "Nuevo prop" : "Props"}
         icono={<Package size={12} />}
         accionesDerecha={
           propsIsNew || propsSel
@@ -2627,49 +2628,9 @@ function ItemsSection() {
             : undefined
         }
       >
-        {/* Toolbar interno */}
-        <div className="shrink-0 flex items-center gap-2 mb-3">
-          <div className="flex-1 flex items-center gap-2 px-3 py-2 rounded-xl"
-            style={{ background: "color-mix(in srgb, var(--primary) 5%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)" }}>
-            <Search size={12} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
-            <input className="flex-1 bg-transparent text-xs outline-none" style={{ color: "var(--primary)" }}
-              placeholder="Buscar…" value={propsQ} onChange={(e) => setPropsQ(e.target.value)} />
-          </div>
-          <FilterTag value={propsFiltroTipo} onChange={setPropsFiltroTipo} options={propsTiposOptions} placeholder="Tipo…" />
-          <button type="button" onClick={startNewP}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold"
-            style={{ background: propsIsNew ? "color-mix(in srgb, var(--primary) 12%, transparent)" : "var(--primary)", color: propsIsNew ? "var(--primary)" : "var(--btn-text,#fff)" }}>
-            <Plus size={12} /> Nuevo
-          </button>
-        </div>
-
-        {/* Grid de props */}
-        {propsLoading ? (
-          <div className="flex items-center justify-center py-8"><Loader2 size={16} className="animate-spin" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} /></div>
-        ) : (
-          <div className="grid gap-2 mb-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))" }}>
-            {propsFiltered.map((p) => (
-              <button key={p.id} type="button" onClick={() => pickP(p)}
-                className="group flex flex-col gap-1.5 p-3 rounded-2xl text-left transition-all hover:scale-[1.02]"
-                style={{ background: propsSel?.id === p.id ? "color-mix(in srgb, var(--primary) 8%, var(--bg-main))" : "color-mix(in srgb, var(--primary) 4%, var(--bg-main))", border: `1px solid ${propsSel?.id === p.id ? "color-mix(in srgb, var(--primary) 18%, transparent)" : "color-mix(in srgb, var(--primary) 10%, transparent)"}` }}>
-                <div className="w-7 h-7 rounded-xl flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-                  <Package size={12} style={{ color: "color-mix(in srgb, var(--primary) 50%, transparent)" }} />
-                </div>
-                <p className="text-xs font-bold truncate" style={{ color: "var(--primary)" }}>{p.nombre}</p>
-                <p className="text-[10px] truncate" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>{p.clave}</p>
-                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full self-start"
-                  style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)", color: "color-mix(in srgb, var(--primary) 60%, transparent)" }}>
-                  {p.activo ? "on" : "off"}
-                </span>
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Formulario de edición/creación inline */}
+        {/* ── Prop seleccionado: detalle arriba ── */}
         {(propsSel || propsIsNew) && (
           <>
-            <div className="shrink-0 h-px mb-3" style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
             <div className="flex gap-3">
               <label className="flex flex-col gap-1 flex-1"><FL label="Clave" /><Inp value={pClave} onChange={(e) => setPClave(e.target.value)} /></label>
               <label className="flex flex-col gap-1 flex-1"><FL label="Nombre" /><Inp value={pNombre} onChange={(e) => setPNombre(e.target.value)} /></label>
@@ -2692,6 +2653,75 @@ function ItemsSection() {
                 <button type="button" onClick={() => delP(propsSel.id)} className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs border" style={{ borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)", color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}><Trash2 size={11} /> Eliminar</button>
               )}
             </div>
+            <div className="shrink-0 h-px mt-1" style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
+          </>
+        )}
+
+        {/* ── Sin prop seleccionado: placeholder ── */}
+        {!propsSel && !propsIsNew && !propsListOpen && (
+          <div className="flex flex-col items-center justify-center gap-2 py-8"
+            style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
+            <Package size={20} style={{ opacity: 0.4 }} />
+            <p className="text-xs">Seleccioná un prop de la lista</p>
+          </div>
+        )}
+
+        {/* ── Botón para abrir/cerrar la lista ── */}
+        <button
+          type="button"
+          onClick={() => { if (!propsListOpen) { loadProps(); } setPropsListOpen((v) => !v); }}
+          className="flex items-center gap-2 w-full px-3 py-2 rounded-xl text-xs font-semibold transition-colors"
+          style={{
+            background: propsListOpen ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "color-mix(in srgb, var(--primary) 4%, transparent)",
+            border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+            color: "color-mix(in srgb, var(--primary) 60%, transparent)",
+          }}
+        >
+          <Package size={11} />
+          {propsListOpen ? "Ocultar lista" : "Ver todos los props"}
+          <ChevronRight size={11} className={`ml-auto transition-transform ${propsListOpen ? "rotate-90" : ""}`} />
+        </button>
+
+        {/* ── Lista desplegable ── */}
+        {propsListOpen && (
+          <>
+            {/* Toolbar */}
+            <div className="flex items-center gap-2 mt-2">
+              <div className="flex-1 flex items-center gap-2 px-3 py-2 rounded-xl"
+                style={{ background: "color-mix(in srgb, var(--primary) 5%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)" }}>
+                <Search size={12} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
+                <input className="flex-1 bg-transparent text-xs outline-none" style={{ color: "var(--primary)" }}
+                  placeholder="Buscar…" value={propsQ} onChange={(e) => setPropsQ(e.target.value)} />
+              </div>
+              <FilterTag value={propsFiltroTipo} onChange={setPropsFiltroTipo} options={propsTiposOptions} placeholder="Tipo…" />
+              <button type="button" onClick={startNewP}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold"
+                style={{ background: propsIsNew ? "color-mix(in srgb, var(--primary) 12%, transparent)" : "var(--primary)", color: propsIsNew ? "var(--primary)" : "var(--btn-text,#fff)" }}>
+                <Plus size={12} /> Nuevo
+              </button>
+            </div>
+            {/* Grid */}
+            {propsLoading ? (
+              <div className="flex items-center justify-center py-8"><Loader2 size={16} className="animate-spin" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} /></div>
+            ) : (
+              <div className="grid gap-2 mt-2" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))" }}>
+                {propsFiltered.map((p) => (
+                  <button key={p.id} type="button" onClick={() => { pickP(p); setPropsListOpen(false); }}
+                    className="group flex flex-col gap-1.5 p-3 rounded-2xl text-left transition-all hover:scale-[1.02]"
+                    style={{ background: propsSel?.id === p.id ? "color-mix(in srgb, var(--primary) 8%, var(--bg-main))" : "color-mix(in srgb, var(--primary) 4%, var(--bg-main))", border: `1px solid ${propsSel?.id === p.id ? "color-mix(in srgb, var(--primary) 18%, transparent)" : "color-mix(in srgb, var(--primary) 10%, transparent)"}` }}>
+                    <div className="w-7 h-7 rounded-xl flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+                      <Package size={12} style={{ color: "color-mix(in srgb, var(--primary) 50%, transparent)" }} />
+                    </div>
+                    <p className="text-xs font-bold truncate" style={{ color: "var(--primary)" }}>{p.nombre}</p>
+                    <p className="text-[10px] truncate" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>{p.clave}</p>
+                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full self-start"
+                      style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)", color: "color-mix(in srgb, var(--primary) 60%, transparent)" }}>
+                      {p.activo ? "on" : "off"}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
           </>
         )}
       </PanelModal>
@@ -3070,7 +3100,7 @@ export default function GamePage() {
   const ambSubs: AmbSub[] = ["factores", "modificadores"];
 
   return (
-    <div className="flex flex-col h-full min-h-0" style={{ paddingLeft: "52px" }}>
+    <div className="flex flex-col h-full min-h-0 md:pl-[52px]">
       <PanelFlotanteGlobal />
       {/* Sin barra de tabs — la navegación vive en el navbar lateral/inferior */}
       <div className="flex-1 min-h-0 flex flex-col">
