@@ -40,7 +40,14 @@ import { PAGE_TITLE_CLS } from "@/domains/garlia/_shared/types";
 interface Material {
   id: string;
   nombre: string;
+  descripcion?: string | null;
   categoria?: string | null;
+}
+
+interface PropiedadEscritor {
+  propiedad_clave: string;
+  nivel: string;
+  significado: string | null;
 }
 
 interface Reino {
@@ -86,7 +93,7 @@ function SubseccionMateriales() {
   useEffect(() => {
     supabase
       .from("materiales")
-      .select("id, nombre, categoria")
+      .select("id, nombre, descripcion, categoria")
       .order("nombre")
       .then(({ data }) => { setMateriales(data ?? []); setLoading(false); });
   }, []);
@@ -173,25 +180,69 @@ function SubseccionMateriales() {
   );
 }
 
+// Mapeo de claves canónicas → etiqueta + descripción para escritores
+const PROPS_ESCRITOR: Record<string, { label: string; descripcion: string; icono: string }> = {
+  dureza:        { label: "Dureza",        descripcion: "Resistencia a ser rayado o deformado", icono: "🪨" },
+  rigidez:       { label: "Rigidez",       descripcion: "Cuánto mantiene su forma bajo presión", icono: "📐" },
+  flexibilidad:  { label: "Flexibilidad",  descripcion: "Capacidad de doblarse sin romperse",    icono: "🌿" },
+  estabilidad:   { label: "Estabilidad",   descripcion: "Resistencia al paso del tiempo y la magia", icono: "⚖️" },
+  conductividad: { label: "Conductividad", descripcion: "Transmite calor, energía o magia",      icono: "⚡" },
+  transparencia: { label: "Transparencia", descripcion: "Deja pasar la luz o la vista",           icono: "🔮" },
+  interaccion:   { label: "Interacción",   descripcion: "Reacciona con otras materias o fuerzas", icono: "🔗" },
+  cohesion:      { label: "Cohesión",      descripcion: "Qué tan unido permanece el material",    icono: "🧲" },
+};
+
+// Paleta de colores según nivel narrativo
+function colorDeNivel(nivel: string): { bg: string; text: string } {
+  const n = nivel.toLowerCase();
+  if (n.includes("muy alt") || n.includes("extremo") || n.includes("máximo") || n.includes("maximo"))
+    return { bg: "color-mix(in srgb, hsl(45 90% 55%) 15%, transparent)", text: "hsl(45 85% 50%)" };
+  if (n.includes("alto") || n.includes("alta") || n.includes("elevad"))
+    return { bg: "color-mix(in srgb, hsl(200 70% 55%) 15%, transparent)", text: "hsl(200 65% 50%)" };
+  if (n.includes("medio") || n.includes("media") || n.includes("moderado"))
+    return { bg: "color-mix(in srgb, var(--primary) 10%, transparent)", text: "color-mix(in srgb, var(--primary) 65%, transparent)" };
+  if (n.includes("bajo") || n.includes("baja") || n.includes("poco") || n.includes("mínimo") || n.includes("minimo"))
+    return { bg: "color-mix(in srgb, hsl(0 0% 55%) 12%, transparent)", text: "color-mix(in srgb, var(--primary) 40%, transparent)" };
+  return { bg: "color-mix(in srgb, var(--primary) 8%, transparent)", text: "color-mix(in srgb, var(--primary) 55%, transparent)" };
+}
+
 function DetalleMaterial({ material }: { material: Material }) {
-  const [habitats, setHabitats]     = useState<{ nombre: string }[]>([]);
-  const [yacimientos, setYacimientos] = useState<{ nombre: string; tipo_yacimiento?: string }[]>([]);
-  const [loading, setLoading]       = useState(true);
+  const [habitats, setHabitats]         = useState<{ nombre: string }[]>([]);
+  const [yacimientos, setYacimientos]   = useState<{ nombre: string; tipo_yacimiento?: string }[]>([]);
+  const [propiedades, setPropiedades]   = useState<PropiedadEscritor[]>([]);
+  const [loading, setLoading]           = useState(true);
 
   useEffect(() => {
     setLoading(true);
+    setPropiedades([]);
     Promise.all([
       supabase.from("material_habitats").select("habitats(nombre)").eq("material_id", material.id).limit(10),
       supabase.from("yacimientos_geologicos_v1").select("nombre, tipo_yacimiento").eq("material_id", material.id).limit(10),
-    ]).then(([habRes, yacRes]) => {
+      (supabase as any)
+        .from("v_frontend_escritor_propiedades_interpretadas")
+        .select("propiedad_clave, interpretacion_humana, valor_mostrable")
+        .eq("entidad_tipo", "material")
+        .eq("entidad_id", material.id)
+        .eq("valor_mostrable", true),
+    ]).then(([habRes, yacRes, propRes]) => {
       setHabitats((habRes.data ?? []).flatMap((r: any) => r.habitats ? [r.habitats] : []));
       setYacimientos(yacRes.data ?? []);
+      const props: PropiedadEscritor[] = (propRes.data ?? [])
+        .filter((r: any) => r.interpretacion_humana?.nivel)
+        .map((r: any) => ({
+          propiedad_clave: r.propiedad_clave,
+          nivel: r.interpretacion_humana.nivel as string,
+          significado: r.interpretacion_humana.significado as string | null,
+        }));
+      setPropiedades(props);
       setLoading(false);
     });
   }, [material.id]);
 
   return (
-    <div className="flex flex-col gap-4 rounded-2xl border p-5" style={{ borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
+    <div className="flex flex-col gap-5 rounded-2xl border p-5" style={{ borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
+
+      {/* Encabezado */}
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-base font-black" style={{ color: "var(--primary)" }}>{material.nombre}</p>
@@ -204,43 +255,87 @@ function DetalleMaterial({ material }: { material: Material }) {
         <Gem size={18} style={{ color: "var(--accent)", flexShrink: 0 }} />
       </div>
 
+      {material.descripcion && (
+        <p className="text-[12px] leading-5" style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}>
+          {material.descripcion}
+        </p>
+      )}
+
       {loading ? (
-        <p className="text-[11px]" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>Cargando datos…</p>
+        <p className="text-[11px]" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>Cargando…</p>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div>
-            <p className="mb-1.5 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
-              <MapPin size={10} /> Hábitats donde se encuentra
-            </p>
-            {habitats.length === 0 ? (
-              <p className="text-[11px]" style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>Sin datos</p>
-            ) : (
-              <div className="flex flex-wrap gap-1">
-                {habitats.map((h, i) => (
-                  <span key={i} className="rounded-full px-2 py-0.5 text-[10px] font-bold" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)", color: "color-mix(in srgb, var(--primary) 60%, transparent)" }}>
-                    {h.nombre}
-                  </span>
-                ))}
+        <>
+          {/* Propiedades narrativas */}
+          {propiedades.length > 0 && (
+            <div>
+              <p className="mb-2 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
+                <Sparkles size={10} /> Propiedades
+              </p>
+              <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+                {propiedades.map((p) => {
+                  const meta = PROPS_ESCRITOR[p.propiedad_clave];
+                  const { bg, text } = colorDeNivel(p.nivel);
+                  return (
+                    <div
+                      key={p.propiedad_clave}
+                      className="flex flex-col gap-1 rounded-xl px-3 py-2.5"
+                      style={{ background: bg }}
+                    >
+                      <div className="flex items-center gap-1.5">
+                        {meta && <span className="text-[11px]">{meta.icono}</span>}
+                        <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: text }}>
+                          {meta?.label ?? p.propiedad_clave.replace(/_/g, " ")}
+                        </span>
+                      </div>
+                      <p className="text-[11px] font-black" style={{ color: text }}>{p.nivel}</p>
+                      {p.significado && (
+                        <p className="text-[10px] leading-4" style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}>
+                          {p.significado}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
-            )}
+            </div>
+          )}
+
+          {/* Hábitats y Yacimientos */}
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <p className="mb-1.5 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
+                <MapPin size={10} /> Hábitats donde se encuentra
+              </p>
+              {habitats.length === 0 ? (
+                <p className="text-[11px]" style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>Sin datos</p>
+              ) : (
+                <div className="flex flex-wrap gap-1">
+                  {habitats.map((h, i) => (
+                    <span key={i} className="rounded-full px-2 py-0.5 text-[10px] font-bold" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)", color: "color-mix(in srgb, var(--primary) 60%, transparent)" }}>
+                      {h.nombre}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div>
+              <p className="mb-1.5 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
+                <Sparkles size={10} /> Yacimientos
+              </p>
+              {yacimientos.length === 0 ? (
+                <p className="text-[11px]" style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>Sin datos</p>
+              ) : (
+                <div className="flex flex-col gap-1">
+                  {yacimientos.map((y, i) => (
+                    <p key={i} className="text-[11px] font-bold" style={{ color: "color-mix(in srgb, var(--primary) 60%, transparent)" }}>
+                      {y.nombre}{y.tipo_yacimiento && <span className="ml-1 opacity-50">({y.tipo_yacimiento})</span>}
+                    </p>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-          <div>
-            <p className="mb-1.5 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
-              <Sparkles size={10} /> Yacimientos
-            </p>
-            {yacimientos.length === 0 ? (
-              <p className="text-[11px]" style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>Sin datos</p>
-            ) : (
-              <div className="flex flex-col gap-1">
-                {yacimientos.map((y, i) => (
-                  <p key={i} className="text-[11px] font-bold" style={{ color: "color-mix(in srgb, var(--primary) 60%, transparent)" }}>
-                    {y.nombre}{y.tipo_yacimiento && <span className="ml-1 opacity-50">({y.tipo_yacimiento})</span>}
-                  </p>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
+        </>
       )}
     </div>
   );
