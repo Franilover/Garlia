@@ -59,14 +59,24 @@ interface ItemEscritor {
   rareza?: string | null;
 }
 
+interface ReinoRelacionRaw {
+  id: string;
+  reino_a_id: string;
+  reino_b_id: string;
+  tipo: string;
+  descripcion?: string | null;
+  reino_a: { nombre: string }[] | null;
+  reino_b: { nombre: string }[] | null;
+}
+
 interface ReinoRelacion {
   id: string;
   reino_a_id: string;
   reino_b_id: string;
-  tipo: "alianza" | "comercio" | "conflicto" | "tratado" | string;
+  tipo: string;
   descripcion?: string | null;
-  reino_a?: { nombre: string };
-  reino_b?: { nombre: string };
+  reino_a_nombre: string | null;
+  reino_b_nombre: string | null;
 }
 
 type Subseccion = "materiales" | "politica" | "objetos";
@@ -290,7 +300,16 @@ function SubseccionPolitica() {
       if (relRes.error?.code === "42P01") {
         setNoTabla(true);
       } else {
-        setRelaciones((relRes.data as ReinoRelacion[]) ?? []);
+        const raw = (relRes.data ?? []) as ReinoRelacionRaw[];
+        setRelaciones(raw.map((r) => ({
+          id: r.id,
+          reino_a_id: r.reino_a_id,
+          reino_b_id: r.reino_b_id,
+          tipo: r.tipo,
+          descripcion: r.descripcion,
+          reino_a_nombre: Array.isArray(r.reino_a) ? (r.reino_a[0]?.nombre ?? null) : null,
+          reino_b_nombre: Array.isArray(r.reino_b) ? (r.reino_b[0]?.nombre ?? null) : null,
+        })));
       }
       setLoading(false);
     });
@@ -393,9 +412,9 @@ CREATE INDEX idx_reino_relaciones_b ON reino_relaciones(reino_b_id);`}</pre>
                 </span>
               </div>
               <p className="text-xs font-black" style={{ color: "var(--primary)" }}>
-                {(rel.reino_a as any)?.nombre ?? rel.reino_a_id}
+                {rel.reino_a_nombre ?? rel.reino_a_id}
                 <span className="mx-1.5 opacity-30">↔</span>
-                {(rel.reino_b as any)?.nombre ?? rel.reino_b_id}
+                {rel.reino_b_nombre ?? rel.reino_b_id}
               </p>
               {rel.descripcion && (
                 <p className="text-[11px] leading-4" style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}>{rel.descripcion}</p>
