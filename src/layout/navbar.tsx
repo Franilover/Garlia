@@ -1066,6 +1066,13 @@ const Navbar = () => {
       active: isEscritorio && escritorioSection === "ropa",
       onSelect: () => selectEscritorioSection("ropa"),
     },
+    {
+      key: "teoria-musical",
+      label: "Teoría Musical",
+      icon: Music,
+      active: isEscritorio && escritorioSection === "teoria-musical",
+      onSelect: () => selectEscritorioSection("teoria-musical"),
+    },
   ];
 
   // ── Submenú Game ─────────────────────────────────────────────────────────
@@ -1188,6 +1195,10 @@ const Navbar = () => {
     gdr: () => {
       if (!isEscritorio) router.push("/myself/escritorio");
       selectEscritorioSection("ropa");
+    },
+    gdm: () => {
+      if (!isEscritorio) router.push("/myself/escritorio");
+      selectEscritorioSection("teoria-musical");
     },
   });
 
