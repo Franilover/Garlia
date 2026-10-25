@@ -52,11 +52,11 @@ interface PropiedadEscritor { propiedad_clave: string; nivel: string; significad
 interface Reino { id: string; nombre: string }
 interface ReinoLore extends Reino {
   cultura?: string | null; politica?: string | null;
-  economia?: string | null; geografia?: string | null; historia?: string | null;
+  economia?: string | null; geografia?: string | null;
 }
 interface ItemEscritor { id: string; nombre: string }
 interface Criatura {
-  id: string; nombre: string; imagen_url?: string | null; descripcion?: string | null; sobre?: string | null;
+  id: string; nombre: string; imagen_url?: string | null; descripcion?: string | null;
   // Campos del EditorCriatura
   habitat?: string | null; pensamiento?: string | null; alma?: string | null;
   biologia?: string | null; relacion?: string | null; comportamiento?: string | null; magia?: string | null;
@@ -198,7 +198,7 @@ function SubseccionReinos() {
   useEffect(() => {
     supabase
       .from("reinos")
-      .select("id, nombre, cultura, politica, economia, geografia, historia")
+      .select("id, nombre, cultura, politica, economia, geografia")
       .order("nombre")
       .then(({ data }) => { setReinos(data ?? []); setLoading(false); });
   }, []);
@@ -234,7 +234,6 @@ function SubseccionReinos() {
     { key: "cultura", label: "Cultura" },
     { key: "politica", label: "Política" },
     { key: "economia", label: "Economía" },
-    { key: "historia", label: "Historia" },
   ];
 
   // Extrae texto plano de un posible string con marcado Lexical/HTML
@@ -589,7 +588,7 @@ function DetalleCriatura({ criatura }: { criatura: Criatura }) {
     });
   }, [criatura.id, criatura.nombre]);
 
-  const descripcion = criatura.descripcion || criatura.sobre;
+  const descripcion = criatura.descripcion;
   // Campos de lore extra que tienen contenido
   const camposLoreConDatos = CRIATURA_CAMPOS_LORE.filter(({ key }) => !!(criatura as any)[key]);
 
@@ -686,7 +685,7 @@ function SubseccionCriaturas() {
 
   useEffect(() => {
     supabase.from("criaturas")
-      .select("id, nombre, imagen_url, descripcion, sobre, habitat, pensamiento, alma, biologia, relacion, comportamiento, magia, descripcion_dnd")
+      .select("id, nombre, imagen_url, descripcion, habitat, pensamiento, alma, biologia, relacion, comportamiento, magia, descripcion_dnd")
       .order("nombre")
       .then(({ data }) => { setCriaturas(data ?? []); setLoading(false); });
   }, []);
