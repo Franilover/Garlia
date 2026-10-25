@@ -22,6 +22,11 @@ interface SmartImageProps {
   // primera letra del `alt`, gigante. Con esto mostramos un ícono en vez
   // de dejar que el navegador improvise.
   fallbackIcon?: React.ReactNode;
+  // Base64 tiny generado por plaiceholder (server-side). Si se pasa,
+  // se muestra como blur de la imagen real mientras carga, en vez del
+  // skeleton genérico. Generarlo con lib/utils/blurPlaceholder.ts
+  // desde Server Components o Route Handlers — nunca desde el cliente.
+  blurDataUrl?: string;
 }
 
 // DEBUG TEMPORAL (sacar cuando se confirme el fix): texto encima de la
@@ -38,6 +43,7 @@ export const SmartImage = ({
   priority = false,
   cacheBust = false,
   fallbackIcon,
+  blurDataUrl,
 }: SmartImageProps) => {
   const srcFinal =
     src && cacheBust
@@ -146,10 +152,25 @@ export const SmartImage = ({
         {!loaded && (
           <MotionDiv
             key="skeleton"
-            className="absolute inset-0 z-10 animate-pulse bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5"
+            className="absolute inset-0 z-10 overflow-hidden"
             exit={{ opacity: 0 }}
             initial={{ opacity: 1 }}
-          />
+          >
+            {blurDataUrl ? (
+              // Blur de la imagen real (plaiceholder) — mucho más premium
+              // que un skeleton gris. La img tiene blur-lg + scale-110 para
+              // que no se vean los bordes pixelados del tiny base64.
+              <img
+                alt=""
+                aria-hidden
+                className="w-full h-full object-cover blur-lg scale-110"
+                src={blurDataUrl}
+              />
+            ) : (
+              // Fallback: skeleton original si no hay blurDataUrl
+              <div className="w-full h-full animate-pulse bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5" />
+            )}
+          </MotionDiv>
         )}
       </AnimatePresence>
 
