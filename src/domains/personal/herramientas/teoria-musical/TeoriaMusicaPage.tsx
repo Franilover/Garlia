@@ -59,15 +59,15 @@ const REAPER_TIPS = [
 type Mood = "oscuro" | "melancólico" | "relajado" | "alegre" | "épico" | "tenso" | "groovy" | "etéreo";
 type Genero = "trap" | "lo-fi" | "hip-hop" | "drill" | "r&b" | "pop" | "cinematic" | "funk";
 
-const MOODS: { key: Mood; label: string }[] = [
-  { key: "oscuro",      label: "Oscuro" },
-  { key: "melancólico", label: "Melancólico" },
-  { key: "relajado",    label: "Relajado" },
-  { key: "alegre",      label: "Alegre" },
-  { key: "épico",       label: "Épico" },
-  { key: "tenso",       label: "Tenso" },
-  { key: "groovy",      label: "Groovy" },
-  { key: "etéreo",      label: "Etéreo" },
+const MOODS: { key: Mood; emoji: string; label: string }[] = [
+  { key: "oscuro",      emoji: "🌑", label: "Oscuro" },
+  { key: "melancólico", emoji: "🌧️", label: "Melancólico" },
+  { key: "relajado",    emoji: "🌊", label: "Relajado" },
+  { key: "alegre",      emoji: "☀️", label: "Alegre" },
+  { key: "épico",       emoji: "⚡", label: "Épico" },
+  { key: "tenso",       emoji: "🔥", label: "Tenso" },
+  { key: "groovy",      emoji: "🎸", label: "Groovy" },
+  { key: "etéreo",      emoji: "✨", label: "Etéreo" },
 ];
 
 const GENEROS: { key: Genero; label: string }[] = [
@@ -89,8 +89,8 @@ type Receta = {
   progresionAlt?: number;
   bpmMin: number;
   bpmMax: number;
-  notaMelodia: string[];   // notas clave de la melodía
-  notaBajo: string[];      // notas clave del bajo
+  notaMelodia: number[];   // índices de semitono de notas clave de la melodía
+  notaBajo: number[];      // índices de semitono de notas clave del bajo
   consejo: string;
   consejo2?: string;
   acordesDestacados: number[]; // índices de grados diatónicos para usar primero
@@ -467,31 +467,31 @@ function TabPractica({ rootIdx, setRootIdx }: { rootIdx: number; setRootIdx: (i:
 
       <div style={{ padding: "20px 20px 32px", display: "flex", flexDirection: "column", gap: 24 }}>
 
-        {/* Mood */}
+        {/* Paso 1 — Mood */}
         <div>
-          <div style={{ ...S.label, marginBottom: 8 }}>Mood</div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+          <div style={{ ...S.label, marginBottom: 12 }}>1 · ¿Qué sensación quieres transmitir?</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
             {MOODS.map(m => (
               <button key={m.key} type="button"
                 onClick={() => setMood(mood === m.key ? null : m.key)}
                 style={{
-                  padding: "6px 12px", borderRadius: "var(--radius-btn)", border: "none", cursor: "pointer",
-                  fontFamily: "inherit", fontSize: 10, fontWeight: 900, letterSpacing: "0.06em", textTransform: "uppercase" as const,
+                  padding: "8px 14px", borderRadius: "var(--radius-btn)", border: "none", cursor: "pointer",
+                  fontFamily: "inherit", fontSize: 11, fontWeight: 900, letterSpacing: "0.04em",
                   transition: "all 0.12s",
                   background: mood === m.key ? "var(--primary)" : "color-mix(in srgb, var(--primary) 7%, transparent)",
-                  color: mood === m.key ? "var(--bg-main)" : "color-mix(in srgb, var(--primary) 55%, transparent)",
+                  color: mood === m.key ? "var(--bg-main)" : "color-mix(in srgb, var(--primary) 60%, transparent)",
                   outline: mood === m.key ? "none" : `var(--border-width) solid color-mix(in srgb, var(--primary) 12%, transparent)`,
                 }}
               >
-                {m.label}
+                {m.emoji} {m.label}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Género */}
+        {/* Paso 2 — Género */}
         <div>
-          <div style={{ ...S.label, marginBottom: 8 }}>Género</div>
+          <div style={{ ...S.label, marginBottom: 12 }}>2 · ¿En qué género o estilo?</div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
             {GENEROS.map(g => (
               <button key={g.key} type="button"
@@ -511,16 +511,16 @@ function TabPractica({ rootIdx, setRootIdx }: { rootIdx: number; setRootIdx: (i:
           </div>
         </div>
 
-        {/* BPM */}
+        {/* Paso 3 — BPM */}
         <div>
-          <div style={{ ...S.label, marginBottom: 8 }}>BPM</div>
+          <div style={{ ...S.label, marginBottom: 12 }}>3 · BPM</div>
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
             <input type="range" min={50} max={200} value={bpm} onChange={e => setBpm(Number(e.target.value))}
               style={{ flex: 1, accentColor: "var(--primary)", cursor: "pointer" }} />
             <span style={{ fontSize: 22, fontWeight: 900, color: "var(--primary)", minWidth: 44, textAlign: "center" as const, fontFamily: "var(--font-mono, monospace)" }}>{bpm}</span>
             {receta && (
               <span style={{ fontSize: 9, color: bpmFuera ? "color-mix(in srgb, #f00 60%, var(--primary))" : "color-mix(in srgb, var(--primary) 35%, transparent)", fontWeight: 700, whiteSpace: "nowrap" as const }}>
-                {bpmFuera ? "fuera" : "ok"}<br />{bpmMin}–{bpmMax}
+                {bpmFuera ? "⚠ fuera" : "✓ en rango"}<br />{bpmMin}–{bpmMax}
               </span>
             )}
           </div>
@@ -528,18 +528,22 @@ function TabPractica({ rootIdx, setRootIdx }: { rootIdx: number; setRootIdx: (i:
 
         {/* ── Sin selección ── */}
         {(!mood || !genero) && (
-          <div style={{ padding: "16px 20px", border: S.border, borderRadius: "var(--radius-btn)" }}>
-            <div style={{ fontSize: 10, color: "color-mix(in srgb, var(--primary) 30%, transparent)", letterSpacing: "0.06em" }}>
-              — selecciona mood + género
+          <div style={{ padding: "28px 24px", border: S.border, borderRadius: "var(--radius-btn)", textAlign: "center" as const }}>
+            <div style={{ fontSize: 28, marginBottom: 10 }}>🎵</div>
+            <div style={{ fontSize: 12, color: "color-mix(in srgb, var(--primary) 45%, transparent)", lineHeight: 1.6 }}>
+              Selecciona un <strong style={{ color: "var(--primary)" }}>mood</strong> y un <strong style={{ color: "var(--primary)" }}>género</strong><br />para ver tu receta musical.
             </div>
           </div>
         )}
 
         {/* ── Sin receta para esa combo ── */}
         {mood && genero && !receta && (
-          <div style={{ padding: "14px 16px", border: S.border, borderRadius: "var(--radius-btn)" }}>
-            <div style={{ fontSize: 10, color: "color-mix(in srgb, var(--primary) 40%, transparent)", letterSpacing: "0.04em" }}>
-              {mood} + {genero} — sin receta. Prueba otra combinación.
+          <div style={{ padding: "20px 24px", border: S.border, borderRadius: "var(--radius-btn)" }}>
+            <div style={{ fontSize: 11, color: "color-mix(in srgb, var(--primary) 50%, transparent)", marginBottom: 6 }}>
+              No hay una receta específica para <strong>{mood}</strong> + <strong>{genero}</strong>.
+            </div>
+            <div style={{ fontSize: 10, color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
+              Prueba con otra combinación o mezcla las recetas cercanas.
             </div>
           </div>
         )}
@@ -548,24 +552,26 @@ function TabPractica({ rootIdx, setRootIdx }: { rootIdx: number; setRootIdx: (i:
         {receta && escalaRec && (
           <>
             {/* Header de la receta */}
-            <div style={{ padding: "14px 18px", border: `var(--border-width) solid var(--primary)`, borderRadius: "var(--radius-btn)", background: "color-mix(in srgb, var(--primary) 5%, transparent)" }}>
-              <div style={{ fontSize: 15, fontWeight: 900, color: "var(--primary)", letterSpacing: "0.04em", marginBottom: 4 }}>
-                {NOTAS[rootIdx]} {escalaRec.label}
+            <div style={{ padding: "16px 20px", border: `var(--border-width) solid var(--primary)`, borderRadius: "var(--radius-btn)", background: "color-mix(in srgb, var(--primary) 5%, transparent)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                <span style={{ fontSize: 22 }}>{MOODS.find(m => m.key === mood)?.emoji}</span>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 900, color: "var(--primary)", letterSpacing: "0.04em" }}>
+                    {NOTAS[rootIdx]} {escalaRec.label}
+                  </div>
+                  <div style={{ fontSize: 9.5, color: "color-mix(in srgb, var(--primary) 40%, transparent)", marginTop: 1 }}>
+                    {escalaRec.uso} · BPM recomendado: {bpmMin}–{bpmMax}
+                  </div>
+                </div>
               </div>
-              <div style={{ display: "flex", gap: 12, fontSize: 9, color: "color-mix(in srgb, var(--primary) 38%, transparent)", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase" as const, marginBottom: 8 }}>
-                <span>{mood}</span>
-                <span>·</span>
-                <span>{genero}</span>
-                <span>·</span>
-                <span>{bpmMin}–{bpmMax} BPM</span>
-              </div>
-              <div style={{ fontSize: 10.5, color: "color-mix(in srgb, var(--primary) 50%, transparent)", lineHeight: 1.5 }}>
+              <div style={{ fontSize: 10.5, color: "color-mix(in srgb, var(--primary) 55%, transparent)", lineHeight: 1.6 }}>
                 {escalaRec.descripcion}
               </div>
             </div>
 
             {/* Notas de la escala + piano */}
             <div>
+              <div style={{ ...S.label, marginBottom: 10 }}>Notas de la escala</div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 14 }}>
                 {escalaRecNotas.map((n, i) => {
                   const isMelody = notasMelodia.includes(n);
@@ -587,6 +593,9 @@ function TabPractica({ rootIdx, setRootIdx }: { rootIdx: number; setRootIdx: (i:
                 })}
               </div>
               <Piano notes={escalaRecNotas} root={NOTAS[rootIdx]} highlight={hlSet} />
+              <div style={{ marginTop: 6, fontSize: 9, color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
+                Teclas más brillantes = notas clave de melodía
+              </div>
             </div>
 
             {/* Notas de melodía + bajo en dos columnas */}
@@ -598,7 +607,9 @@ function TabPractica({ rootIdx, setRootIdx }: { rootIdx: number; setRootIdx: (i:
                     <span key={i} style={{ padding: "4px 9px", borderRadius: "var(--radius-btn)", background: "color-mix(in srgb, var(--primary) 12%, transparent)", border: `var(--border-width) solid var(--primary)`, fontSize: 11, fontWeight: 900, color: "var(--primary)", letterSpacing: "0.06em" }}>{n}</span>
                   ))}
                 </div>
-
+                <div style={{ marginTop: 8, fontSize: 9.5, color: "color-mix(in srgb, var(--primary) 38%, transparent)", lineHeight: 1.5 }}>
+                  Empieza y termina frases en la raíz <strong style={{ color: "var(--primary)" }}>{NOTAS[rootIdx]}</strong>.
+                </div>
               </div>
               <div style={{ padding: "12px 14px", border: S.border, borderRadius: "var(--radius-btn)" }}>
                 <div style={{ ...S.label, marginBottom: 8 }}>Notas de bajo / 808</div>
@@ -607,7 +618,9 @@ function TabPractica({ rootIdx, setRootIdx }: { rootIdx: number; setRootIdx: (i:
                     <span key={i} style={{ padding: "4px 9px", borderRadius: "var(--radius-btn)", background: "color-mix(in srgb, var(--primary) 7%, transparent)", border: S.border, fontSize: 11, fontWeight: 900, color: "color-mix(in srgb, var(--primary) 70%, transparent)", letterSpacing: "0.06em" }}>{n}</span>
                   ))}
                 </div>
-
+                <div style={{ marginTop: 8, fontSize: 9.5, color: "color-mix(in srgb, var(--primary) 38%, transparent)", lineHeight: 1.5 }}>
+                  La raíz y la quinta son las más seguras.
+                </div>
               </div>
             </div>
 
@@ -775,8 +788,8 @@ export default function TeoriaMusicaPage() {
       {/* ── Tabs de nivel superior ──────────────────────────────────────────── */}
       <div style={{ display: "flex", borderBottom: S.border, background: "var(--bg-main)", flexShrink: 0 }}>
         {([
-          { key: "teoria",   label: "Teoría" },
-          { key: "practica", label: "Práctica" },
+          { key: "teoria",   label: "Teoría",   emoji: "📖" },
+          { key: "practica", label: "Práctica", emoji: "🎹" },
         ] as const).map(tab => (
           <button key={tab.key} type="button"
             onClick={() => setActiveTab(tab.key)}
@@ -789,7 +802,7 @@ export default function TeoriaMusicaPage() {
               marginBottom: -1,
             }}
           >
-            {tab.label}
+            {tab.emoji} {tab.label}
           </button>
         ))}
       </div>
@@ -1008,7 +1021,7 @@ export default function TeoriaMusicaPage() {
                       <div style={{ fontSize: 10, fontWeight: 900, color: "var(--primary)", marginBottom: 3 }}>{iv.nombre}</div>
                       <div style={{ fontSize: 9, color: "color-mix(in srgb, var(--primary) 30%, transparent)", marginBottom: 5, fontFamily: "var(--font-mono, monospace)" }}>{iv.ejemplo}</div>
                       <div style={{ fontSize: 9.5, color: "color-mix(in srgb, var(--primary) 50%, transparent)", lineHeight: 1.45 }}>{iv.descripcion}</div>
-                      {isSel && <div style={{ marginTop: 6, padding: "5px 8px", background: "color-mix(in srgb, var(--primary) 6%, transparent)", borderRadius: 4, fontSize: 9, color: "color-mix(in srgb, var(--primary) 55%, transparent)", lineHeight: 1.5 }}>{iv.cancion}</div>}
+                      {isSel && <div style={{ marginTop: 6, padding: "5px 8px", background: "color-mix(in srgb, var(--primary) 6%, transparent)", borderRadius: 4, fontSize: 9, color: "color-mix(in srgb, var(--primary) 55%, transparent)", lineHeight: 1.5 }}>🎵 {iv.cancion}</div>}
                     </div>
                   );
                 })}
