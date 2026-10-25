@@ -52,9 +52,15 @@ interface ReinoLore extends Reino {
   economia?: string | null; geografia?: string | null; historia?: string | null;
 }
 interface ItemEscritor { id: string; nombre: string }
-interface Criatura { id: string; nombre: string; imagen_url?: string | null; descripcion?: string | null; sobre?: string | null }
+interface Criatura {
+  id: string; nombre: string; imagen_url?: string | null; descripcion?: string | null; sobre?: string | null;
+  // Campos del EditorCriatura
+  habitat?: string | null; pensamiento?: string | null; alma?: string | null;
+  biologia?: string | null; relacion?: string | null; comportamiento?: string | null; magia?: string | null;
+  descripcion_dnd?: string | null;
+}
 interface FloraMin { id: string; nombre: string; imagen_url?: string | null; descripcion?: string | null; notas?: string | null }
-interface Personaje { id: string; nombre: string; img_url?: string | null; especie?: string | null; sobre?: string | null; reino?: string | null }
+interface Personaje { id: string; nombre: string; img_url?: string | null; especie?: string | null; sobre?: string | null; reino?: string | null; caracteristicas?: string | null }
 interface Grupo { id: string; nombre: string; tipo: string; subtipo?: string | null; descripcion?: string | null }
 interface LibroMin { id: string; titulo: string; created_at: string }
 interface LibroPagina { id: string; libro_id: string; orden: number; contenido: string }
@@ -179,6 +185,11 @@ function SubseccionReinos() {
   const [query, setQuery] = useState("");
   const [activo, setActivo] = useState<ReinoLore | null>(null);
 
+  // Entidades del reino seleccionado
+  const [personajesReino, setPersonajesReino] = useState<{ id: string; nombre: string; img_url?: string | null; especie?: string | null }[]>([]);
+  const [criaturasReino, setCriaturasReino] = useState<{ id: string; nombre: string; imagen_url?: string | null }[]>([]);
+  const [loadingEntidades, setLoadingEntidades] = useState(false);
+
   useEffect(() => {
     supabase
       .from("reinos")
@@ -186,6 +197,26 @@ function SubseccionReinos() {
       .order("nombre")
       .then(({ data }) => { setReinos(data ?? []); setLoading(false); });
   }, []);
+
+  // Cuando cambia el reino activo, carga sus personajes y criaturas
+  useEffect(() => {
+    if (!activo) { setPersonajesReino([]); setCriaturasReino([]); return; }
+    setLoadingEntidades(true);
+    Promise.all([
+      // personajes con campo reino = nombre del reino (así está guardado)
+      supabase.from("personajes").select("id, nombre, img_url, especie")
+        .eq("reino", activo.nombre).limit(50).order("nombre"),
+      // criaturas via tabla de relación criatura_reinos
+      supabase.from("criatura_reinos").select("criaturas(id, nombre, imagen_url)")
+        .eq("reino_id", activo.id).limit(30),
+    ]).then(([persRes, criRes]) => {
+      if (!persRes.error) setPersonajesReino(persRes.data ?? []);
+      if (!criRes.error) setCriaturasReino(
+        (criRes.data ?? []).flatMap((r: any) => r.criaturas ? [r.criaturas] : [])
+      );
+      setLoadingEntidades(false);
+    });
+  }, [activo?.id, activo?.nombre]);
 
   const filtrados = useMemo(() => {
     if (!query.trim()) return reinos;
@@ -250,6 +281,54 @@ function SubseccionReinos() {
             })}
             {CAMPOS_LORE.every(({ key }) => !activo[key]) && (
               <SinDatos texto="Este reino no tiene lore escrito todavía." />
+            )}
+
+            {/* Personajes del reino */}
+            <div>
+              <SectionLabel icon={<Users size={10} />}>
+                Personajes{loadingEntidades ? "" : ` (${personajesReino.length})`}
+              </SectionLabel>
+              {loadingEntidades ? <SinDatos texto="Cargando…" /> :
+               personajesReino.length === 0 ? <SinDatos texto="Sin personajes registrados." /> : (
+                <div className="flex flex-wrap gap-1.5">
+                  {personajesReino.map((p) => (
+                    <div key={p.id} className="flex items-center gap-1.5 rounded-full px-2 py-1" style={{ background: MUTED_BG }}>
+                      {p.img_url
+                        ? <img src={p.img_url} alt={p.nombre} className="h-4 w-4 rounded-full object-cover" />
+                        : <UserCircle2 size={12} style={{ opacity: 0.4 }} />}
+                      <span className="text-[10px] font-bold" style={{ color: "color-mix(in srgb, var(--primary) 65%, transparent)" }}>
+                        {p.nombre}
+                      </span>
+                      {p.especie && (
+                        <span className="text-[9px]" style={{ color: MUTED }}>{p.especie}</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Criaturas del reino */}
+            {(loadingEntidades || criaturasReino.length > 0) && (
+              <div>
+                <SectionLabel icon={<Bug size={10} />}>
+                  Criaturas{loadingEntidades ? "" : ` (${criaturasReino.length})`}
+                </SectionLabel>
+                {loadingEntidades ? <SinDatos texto="Cargando…" /> : (
+                  <div className="flex flex-wrap gap-1.5">
+                    {criaturasReino.map((c) => (
+                      <div key={c.id} className="flex items-center gap-1.5 rounded-full px-2 py-1" style={{ background: MUTED_BG }}>
+                        {c.imagen_url
+                          ? <img src={c.imagen_url} alt={c.nombre} className="h-4 w-4 rounded-md object-cover" />
+                          : <Bug size={10} style={{ opacity: 0.4 }} />}
+                        <span className="text-[10px] font-bold" style={{ color: "color-mix(in srgb, var(--primary) 65%, transparent)" }}>
+                          {c.nombre}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             )}
           </div>
         )}
@@ -469,29 +548,49 @@ function SubseccionGrupos() {
 // VIDA — Criaturas
 // ══════════════════════════════════════════════════════════════════════════════
 
+// Campos de lore adicionales del editor que mostramos en sección colapsable
+const CRIATURA_CAMPOS_LORE: { key: keyof Criatura; label: string }[] = [
+  { key: "biologia",      label: "Biología" },
+  { key: "habitat",       label: "Hábitat" },
+  { key: "comportamiento",label: "Comportamiento" },
+  { key: "pensamiento",   label: "Pensamiento" },
+  { key: "alma",          label: "Alma / Esencia" },
+  { key: "relacion",      label: "Relación con humanos" },
+  { key: "magia",         label: "Magia" },
+  { key: "descripcion_dnd", label: "Rasgos D&D" },
+];
+
 function DetalleCriatura({ criatura }: { criatura: Criatura }) {
   const [reinos, setReinos] = useState<{ nombre: string }[]>([]);
   const [habitats, setHabitats] = useState<{ nombre: string }[]>([]);
+  const [personajesEspecie, setPersonajesEspecie] = useState<{ id: string; nombre: string; img_url?: string | null }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [expandidoLore, setExpandidoLore] = useState(false);
 
   useEffect(() => {
     setLoading(true);
     Promise.all([
-      // reinos donde aparece la criatura
-      supabase.from("criatura_reinos").select("reinos(nombre)").eq("criatura_id", criatura.id).limit(10),
-      // habitats si existe tabla directa (puede no existir)
-      supabase.from("criatura_habitats").select("habitats(nombre)").eq("criatura_id", criatura.id).limit(10),
-    ]).then(([reinosRes, habRes]) => {
+      // reinos donde aparece la criatura (tabla de relación)
+      supabase.from("criatura_reinos").select("reinos(nombre)").eq("criatura_id", criatura.id).limit(20),
+      // habitats si existe tabla directa
+      supabase.from("criatura_habitats").select("habitats(nombre)").eq("criatura_id", criatura.id).limit(20),
+      // personajes cuya especie coincide con el nombre de la criatura
+      supabase.from("personajes").select("id, nombre, img_url").eq("especie", criatura.nombre).limit(30),
+    ]).then(([reinosRes, habRes, persRes]) => {
       setReinos((reinosRes.data ?? []).flatMap((r: any) => r.reinos ? [r.reinos] : []));
       if (!habRes.error) setHabitats((habRes.data ?? []).flatMap((r: any) => r.habitats ? [r.habitats] : []));
+      if (!persRes.error) setPersonajesEspecie(persRes.data ?? []);
       setLoading(false);
     });
-  }, [criatura.id]);
+  }, [criatura.id, criatura.nombre]);
 
   const descripcion = criatura.descripcion || criatura.sobre;
+  // Campos de lore extra que tienen contenido
+  const camposLoreConDatos = CRIATURA_CAMPOS_LORE.filter(({ key }) => !!(criatura as any)[key]);
 
   return (
     <div className="flex flex-col gap-5 rounded-2xl border p-5" style={{ borderColor: CARD_BORDER }}>
+      {/* Header + imagen */}
       <div className="flex items-start gap-4">
         {criatura.imagen_url && (
           <img src={criatura.imagen_url} alt={criatura.nombre}
@@ -500,22 +599,75 @@ function DetalleCriatura({ criatura }: { criatura: Criatura }) {
         )}
         <DetalleHeader nombre={criatura.nombre} icon={<Bug size={18} />} />
       </div>
-      {descripcion && <p className="text-[12px] leading-5" style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}>{descripcion}</p>}
+
+      {/* Descripción principal */}
+      {descripcion && (
+        <p className="text-[12px] leading-5" style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}>
+          {descripcion}
+        </p>
+      )}
+
       {loading ? <SinDatos texto="Cargando…" /> : (
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div>
-            <SectionLabel icon={<Crown size={10} />}>Presente en reinos</SectionLabel>
-            {reinos.length === 0 ? <SinDatos /> : (
-              <div className="flex flex-wrap gap-1">{reinos.map((r, i) => <Tag key={i}>{r.nombre}</Tag>)}</div>
+        <>
+          {/* Reinos y hábitats */}
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <SectionLabel icon={<Crown size={10} />}>Presente en reinos</SectionLabel>
+              {reinos.length === 0 ? <SinDatos /> : (
+                <div className="flex flex-wrap gap-1">{reinos.map((r, i) => <Tag key={i}>{r.nombre}</Tag>)}</div>
+              )}
+            </div>
+            {habitats.length > 0 && (
+              <div>
+                <SectionLabel icon={<MapPin size={10} />}>Hábitats</SectionLabel>
+                <div className="flex flex-wrap gap-1">{habitats.map((h, i) => <Tag key={i}>{h.nombre}</Tag>)}</div>
+              </div>
             )}
           </div>
-          {habitats.length > 0 && (
+
+          {/* Personajes de esta especie */}
+          {personajesEspecie.length > 0 && (
             <div>
-              <SectionLabel icon={<MapPin size={10} />}>Hábitats</SectionLabel>
-              <div className="flex flex-wrap gap-1">{habitats.map((h, i) => <Tag key={i}>{h.nombre}</Tag>)}</div>
+              <SectionLabel icon={<Users size={10} />}>Personajes de esta especie ({personajesEspecie.length})</SectionLabel>
+              <div className="flex flex-wrap gap-1.5">
+                {personajesEspecie.map((p) => (
+                  <div key={p.id} className="flex items-center gap-1.5 rounded-full px-2 py-1"
+                    style={{ background: MUTED_BG }}>
+                    {p.img_url
+                      ? <img src={p.img_url} alt={p.nombre} className="h-4 w-4 rounded-full object-cover" />
+                      : <UserCircle2 size={12} style={{ opacity: 0.4 }} />}
+                    <span className="text-[10px] font-bold" style={{ color: "color-mix(in srgb, var(--primary) 65%, transparent)" }}>{p.nombre}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
-        </div>
+
+          {/* Campos de lore adicionales colapsables */}
+          {camposLoreConDatos.length > 0 && (
+            <div>
+              <button type="button" onClick={() => setExpandidoLore((v) => !v)}
+                className="flex items-center gap-1.5 mb-2"
+                style={{ color: MUTED }}>
+                <ChevronDown size={11} style={{ transform: expandidoLore ? "rotate(0deg)" : "rotate(-90deg)", transition: "transform 0.15s" }} />
+                <span className={LABEL_CLS}>{expandidoLore ? "Ocultar" : "Ver"} lore adicional ({camposLoreConDatos.length} campos)</span>
+              </button>
+              {expandidoLore && (
+                <div className="flex flex-col gap-4">
+                  {camposLoreConDatos.map(({ key, label }) => (
+                    <div key={key}>
+                      <SectionLabel icon={null}>{label}</SectionLabel>
+                      <p className="text-[12px] leading-5" style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}>
+                        {String((criatura as any)[key]).slice(0, 500)}
+                        {String((criatura as any)[key]).length > 500 ? "…" : ""}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </>
       )}
     </div>
   );
@@ -528,7 +680,9 @@ function SubseccionCriaturas() {
   const [activa, setActiva] = useState<Criatura | null>(null);
 
   useEffect(() => {
-    supabase.from("criaturas").select("id, nombre, imagen_url, descripcion, sobre").order("nombre")
+    supabase.from("criaturas")
+      .select("id, nombre, imagen_url, descripcion, sobre, habitat, pensamiento, alma, biologia, relacion, comportamiento, magia, descripcion_dnd")
+      .order("nombre")
       .then(({ data }) => { setCriaturas(data ?? []); setLoading(false); });
   }, []);
 
@@ -892,7 +1046,7 @@ function SubseccionPersonajes() {
   const [filtroReino, setFiltroReino] = useState<string>("todos");
 
   useEffect(() => {
-    supabase.from("personajes").select("id, nombre, img_url, especie, sobre, reino").order("nombre").limit(300)
+    supabase.from("personajes").select("id, nombre, img_url, especie, sobre, reino, caracteristicas").order("nombre").limit(300)
       .then(({ data }) => { setPersonajes(data ?? []); setLoading(false); });
   }, []);
 
@@ -986,6 +1140,14 @@ function SubseccionPersonajes() {
             {activo.sobre
               ? <p className="text-[12px] leading-5" style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}>{activo.sobre}</p>
               : <SinDatos texto="Sin descripción." />}
+            {activo.caracteristicas && (
+              <div className="mt-3 pt-3" style={{ borderTop: `1px solid color-mix(in srgb, var(--primary) 8%, transparent)` }}>
+                <SectionLabel icon={<Sparkles size={10} />}>Características de especie</SectionLabel>
+                <p className="text-[12px] leading-5" style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}>
+                  {activo.caracteristicas.slice(0, 400)}{activo.caracteristicas.length > 400 ? "…" : ""}
+                </p>
+              </div>
+            )}
           </div>
         )}
       </div>
