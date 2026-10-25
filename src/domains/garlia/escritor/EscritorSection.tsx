@@ -58,10 +58,15 @@ interface Personaje { id: string; nombre: string; img_url?: string | null; espec
 interface Grupo { id: string; nombre: string; tipo: string; subtipo?: string | null; descripcion?: string | null }
 interface LibroMin { id: string; titulo: string; created_at: string }
 interface LibroPagina { id: string; libro_id: string; orden: number; contenido: string }
+interface EraMundo { id: string; nombre: string; descripcion?: string | null; anio_inicio?: number | null; anio_fin?: number | null; color?: string | null }
+interface EventoMundo { id: string; titulo: string; descripcion?: string | null; dia_absoluto?: number | null; reinoNombre?: string | null }
+interface PizarronLienzoMin { id: string; nombre: string; descripcion?: string | null; updated_at: string }
+interface PizarronNodoTexto { id: string; label: string | null }
+
 interface ReinoRelacionRaw { id: string; reino_a_id: string; reino_b_id: string; tipo: string; descripcion?: string | null; reino_a: { nombre: string }[] | null; reino_b: { nombre: string }[] | null }
 interface ReinoRelacion { id: string; reino_a_id: string; reino_b_id: string; tipo: string; descripcion?: string | null; reino_a_nombre: string | null; reino_b_nombre: string | null }
 
-type Subseccion = "reinos" | "politica" | "grupos" | "criaturas" | "flora" | "materiales" | "objetos" | "personajes" | "libros";
+type Subseccion = "reinos" | "politica" | "grupos" | "criaturas" | "flora" | "materiales" | "objetos" | "personajes" | "libros" | "linea" | "ideas";
 type Grupo_Nav = "Mundo" | "Vida" | "Objetos" | "Lore";
 
 // ─── Helpers visuales ─────────────────────────────────────────────────────
@@ -1105,6 +1110,235 @@ function SubseccionLibros() {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
+// LORE — Línea de tiempo (eras + eventos)
+// ══════════════════════════════════════════════════════════════════════════════
+
+function SubseccionLineaTiempo() {
+  const [eras, setEras] = useState<EraMundo[]>([]);
+  const [eventos, setEventos] = useState<EventoMundo[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filtroEra, setFiltroEra] = useState<string>("todas");
+
+  useEffect(() => {
+    setLoading(true);
+    Promise.all([
+      (supabase as any).from("eras_mundo")
+        .select("id, nombre, descripcion, anio_inicio, anio_fin, color")
+        .order("anio_inicio", { ascending: true, nullsFirst: false }),
+      supabase.from("eventos_mundo")
+        .select("id, titulo, descripcion, dia_absoluto, reino_id, reinos!reino_id(nombre)")
+        .order("dia_absoluto", { ascending: true, nullsFirst: false }),
+    ]).then(([erasRes, evRes]) => {
+      setEras(erasRes.data ?? []);
+      const evData = (evRes.data ?? []).map((e: any) => {
+        const reino = Array.isArray(e.reinos) ? e.reinos[0] : e.reinos;
+        return {
+          id: e.id,
+          titulo: e.titulo ?? "Sin título",
+          descripcion: e.descripcion ?? null,
+          dia_absoluto: e.dia_absoluto ?? null,
+          reinoNombre: reino?.nombre ?? null,
+        };
+      });
+      setEventos(evData);
+      setLoading(false);
+    });
+  }, []);
+
+  // Eventos filtrados por era seleccionada (por rango de día absoluto)
+  const eraActiva = eras.find((e) => e.id === filtroEra) ?? null;
+  const eventosFiltrados = useMemo(() => {
+    if (!eraActiva || eraActiva.anio_inicio == null) return eventos;
+    return eventos.filter((ev) => {
+      if (ev.dia_absoluto == null) return false;
+      const ini = eraActiva.anio_inicio ?? -Infinity;
+      const fin = eraActiva.anio_fin ?? Infinity;
+      return ev.dia_absoluto >= ini && ev.dia_absoluto <= fin;
+    });
+  }, [eventos, eraActiva]);
+
+  if (loading) return <SinDatos texto="Cargando…" />;
+
+  return (
+    <div className="flex flex-col gap-6">
+      {/* Eras — banda cromática horizontal */}
+      {eras.length > 0 && (
+        <div>
+          <SectionLabel icon={<Sparkles size={10} />}>Eras del mundo</SectionLabel>
+          <div className="flex flex-col gap-1.5">
+            {eras.map((era) => {
+              const sel = filtroEra === era.id;
+              const accent = era.color ?? "color-mix(in srgb, var(--accent) 60%, transparent)";
+              return (
+                <button key={era.id} type="button" onClick={() => setFiltroEra(sel ? "todas" : era.id)}
+                  className="flex items-start gap-3 rounded-xl p-3 text-left transition-colors"
+                  style={{ background: sel ? "color-mix(in srgb, var(--primary) 6%, transparent)" : "color-mix(in srgb, var(--primary) 3%, transparent)", border: `1px solid ${sel ? "color-mix(in srgb, var(--primary) 18%, transparent)" : "color-mix(in srgb, var(--primary) 8%, transparent)"}` }}>
+                  {/* Franja de color */}
+                  <div className="mt-0.5 h-full w-1 rounded-full flex-shrink-0" style={{ minHeight: "2rem", background: accent, opacity: sel ? 1 : 0.5 }} />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs font-black" style={{ color: sel ? "var(--primary)" : "color-mix(in srgb, var(--primary) 75%, transparent)" }}>{era.nombre}</p>
+                      {(era.anio_inicio != null || era.anio_fin != null) && (
+                        <span className="text-[9px] font-bold flex-shrink-0" style={{ color: MUTED }}>
+                          {era.anio_inicio ?? "?"} → {era.anio_fin ?? "presente"}
+                        </span>
+                      )}
+                    </div>
+                    {era.descripcion && (
+                      <p className="mt-0.5 text-[11px] leading-4" style={{ color: MUTED }}>{era.descripcion.slice(0, 120)}{era.descripcion.length > 120 ? "…" : ""}</p>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+            {filtroEra !== "todas" && (
+              <button type="button" onClick={() => setFiltroEra("todas")}
+                className="text-[10px] font-black uppercase tracking-widest self-start px-2 py-1"
+                style={{ color: MUTED }}>
+                ← Ver todos los eventos
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Eventos — lista cronológica */}
+      <div>
+        <SectionLabel icon={<ChevronRight size={10} />}>
+          Eventos{eraActiva ? ` · ${eraActiva.nombre}` : ""} ({eventosFiltrados.length})
+        </SectionLabel>
+        {eventosFiltrados.length === 0 ? (
+          <SinDatos texto={eraActiva ? "No hay eventos registrados para esta era." : "Aún no hay eventos en la línea de tiempo."} />
+        ) : (
+          <div className="relative flex flex-col">
+            {/* Línea vertical */}
+            <div className="absolute left-[11px] top-2 bottom-2 w-px" style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
+            <div className="flex flex-col gap-0">
+              {eventosFiltrados.map((ev, i) => (
+                <div key={ev.id} className="flex items-start gap-3 pl-1 py-2.5">
+                  {/* Punto */}
+                  <div className="mt-1.5 h-2.5 w-2.5 rounded-full flex-shrink-0 z-10"
+                    style={{ background: "color-mix(in srgb, var(--accent) 70%, transparent)", border: "2px solid color-mix(in srgb, var(--bg-main) 90%, transparent)", outline: "1px solid color-mix(in srgb, var(--accent) 40%, transparent)" }} />
+                  <div className="min-w-0 flex-1 rounded-xl p-3"
+                    style={{ background: i % 2 === 0 ? "color-mix(in srgb, var(--primary) 3%, transparent)" : "transparent", border: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }}>
+                    <div className="flex items-start justify-between gap-2 flex-wrap">
+                      <p className="text-xs font-black" style={{ color: "var(--primary)" }}>{ev.titulo}</p>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        {ev.reinoNombre && <Tag>{ev.reinoNombre}</Tag>}
+                        {ev.dia_absoluto != null && (
+                          <span className="text-[9px] font-bold" style={{ color: MUTED }}>Día {ev.dia_absoluto}</span>
+                        )}
+                      </div>
+                    </div>
+                    {ev.descripcion && (
+                      <p className="mt-1 text-[11px] leading-4" style={{ color: "color-mix(in srgb, var(--primary) 50%, transparent)" }}>{ev.descripcion.slice(0, 200)}{ev.descripcion.length > 200 ? "…" : ""}</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// LORE — Ideas / Pizarrón (lienzos + nodos de texto)
+// ══════════════════════════════════════════════════════════════════════════════
+
+function SubseccionIdeas() {
+  const [lienzos, setLienzos] = useState<PizarronLienzoMin[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [activo, setActivo] = useState<PizarronLienzoMin | null>(null);
+  const [notas, setNotas] = useState<PizarronNodoTexto[]>([]);
+  const [loadingNotas, setLoadingNotas] = useState(false);
+
+  useEffect(() => {
+    supabase.from("pizarron_lienzos").select("id, nombre, descripcion, updated_at")
+      .order("updated_at", { ascending: false })
+      .then(({ data }) => { setLienzos(data ?? []); setLoading(false); });
+  }, []);
+
+  useEffect(() => {
+    if (!activo) { setNotas([]); return; }
+    setLoadingNotas(true);
+    // Traemos todos los nodos del lienzo — mostramos texto y entidades
+    supabase.from("pizarron_nodos")
+      .select("id, tipo_entidad, label, datos_extra")
+      .eq("lienzo_id", activo.id)
+      .then(({ data }) => {
+        // Priorizamos nodos de texto y cualquiera con label
+        const con_texto = (data ?? []).filter((n: any) => n.label?.trim());
+        setNotas(con_texto.map((n: any) => ({ id: n.id, label: n.label as string })));
+        setLoadingNotas(false);
+      });
+  }, [activo?.id]);
+
+  const formatFecha = (iso: string) => {
+    try { return new Date(iso).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" }); }
+    catch { return iso; }
+  };
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)]">
+      {/* Lista de lienzos */}
+      <div className="flex flex-col gap-2">
+        <p className={`${LABEL_CLS} px-1`} style={{ color: MUTED }}>Lienzos ({lienzos.length})</p>
+        {loading ? <SinDatos texto="Cargando…" /> : lienzos.length === 0 ? <SinDatos texto="No hay lienzos creados." /> : (
+          <div className="flex flex-col gap-0.5 overflow-y-auto" style={{ maxHeight: "calc(100dvh - 200px)" }}>
+            {lienzos.map((l) => (
+              <button key={l.id} type="button" onClick={() => setActivo(activo?.id === l.id ? null : l)}
+                className="flex flex-col gap-0.5 rounded-lg px-3 py-2.5 text-left transition-colors"
+                style={{ background: activo?.id === l.id ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "transparent", color: activo?.id === l.id ? "var(--primary)" : "color-mix(in srgb, var(--primary) 65%, transparent)" }}>
+                <p className="truncate text-xs font-black">{l.nombre}</p>
+                <p className="text-[9px]" style={{ color: MUTED }}>{formatFecha(l.updated_at)}</p>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Notas del lienzo activo */}
+      <div>
+        {!activo ? (
+          <PanelVacio texto="Seleccioná un lienzo para ver sus ideas y notas" />
+        ) : (
+          <div className="flex flex-col gap-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-base font-black" style={{ color: "var(--primary)" }}>{activo.nombre}</p>
+                {activo.descripcion && <p className="text-[11px]" style={{ color: MUTED }}>{activo.descripcion}</p>}
+              </div>
+              <Sparkles size={18} style={{ color: "var(--accent)", flexShrink: 0 }} />
+            </div>
+
+            {loadingNotas ? (
+              <SinDatos texto="Cargando notas…" />
+            ) : notas.length === 0 ? (
+              <SinDatos texto="Este lienzo no tiene nodos con texto todavía." />
+            ) : (
+              <div className="columns-1 sm:columns-2 gap-3">
+                {notas.map((nota) => (
+                  <div key={nota.id} className="break-inside-avoid mb-3 rounded-xl p-4"
+                    style={{ background: "color-mix(in srgb, var(--accent) 6%, transparent)", border: "1px solid color-mix(in srgb, var(--accent) 15%, transparent)" }}>
+                    <p className="text-[12px] leading-5 whitespace-pre-wrap"
+                      style={{ color: "color-mix(in srgb, var(--primary) 75%, transparent)" }}>
+                      {nota.label}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
 // NAV  — Sidebar izquierdo agrupado (igual patrón que WorldbuilderPage)
 // ══════════════════════════════════════════════════════════════════════════════
 
@@ -1137,8 +1371,10 @@ const NAV_GROUPS: NavGroup[] = [
   {
     group: "Lore", icon: <BookOpen size={12} />,
     items: [
-      { key: "personajes", label: "Personajes", icon: <Users size={14} /> },
-      { key: "libros",     label: "Libros",     icon: <BookOpen size={14} /> },
+      { key: "personajes", label: "Personajes",     icon: <Users size={14} /> },
+      { key: "libros",     label: "Libros",          icon: <BookOpen size={14} /> },
+      { key: "linea",      label: "Línea de tiempo", icon: <ChevronRight size={14} /> },
+      { key: "ideas",      label: "Ideas",           icon: <Sparkles size={14} /> },
     ],
   },
 ];
@@ -1239,6 +1475,8 @@ export function EscritorSection() {
           {subseccion === "objetos"    && <SubseccionObjetos />}
           {subseccion === "personajes" && <SubseccionPersonajes />}
           {subseccion === "libros"     && <SubseccionLibros />}
+          {subseccion === "linea"      && <SubseccionLineaTiempo />}
+          {subseccion === "ideas"      && <SubseccionIdeas />}
         </main>
       </div>
     </div>
