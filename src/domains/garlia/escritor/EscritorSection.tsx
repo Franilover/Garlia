@@ -22,6 +22,7 @@ import {
   Package,
   Search,
   ChevronRight,
+  ChevronLeft,
   MapPin,
   Crown,
   Sparkles,
@@ -141,6 +142,66 @@ function PanelVacio({ texto }: { texto: string }) {
   );
 }
 
+/**
+ * MobileListaDetalle — En mobile: muestra lista. Al seleccionar, reemplaza con detalle + back.
+ * En desktop: renderiza children directamente (side-by-side sigue siendo del grid del subsección).
+ *
+ * Uso:
+ *   <MobileListaDetalle
+ *     lista={<div>…lista de items…</div>}
+ *     detalle={activo ? <DetalleXxx item={activo} /> : null}
+ *     tituloDetalle={activo?.nombre}
+ *     onBack={() => setActivo(null)}
+ *   >
+ *     {children}  ← ignorado, se usa lista/detalle directamente
+ *   </MobileListaDetalle>
+ *
+ * Para desktop, la subsección sigue usando grid gap-4 lg:grid-cols-[Xpx_1fr].
+ * MobileListaDetalle oculta el grid desktop en mobile y muestra su propia UI.
+ */
+function MobileListaDetalle({
+  lista,
+  detalle,
+  tituloDetalle,
+  onBack,
+  children,
+}: {
+  lista: React.ReactNode;
+  detalle: React.ReactNode;
+  tituloDetalle?: string | null;
+  onBack: () => void;
+  children?: React.ReactNode;
+}) {
+  const enDetalle = !!detalle;
+  return (
+    <>
+      {/* ── Mobile ───────────────────────────────────────────────── */}
+      <div className="lg:hidden flex flex-col min-h-0 flex-1">
+        {enDetalle ? (
+          /* Vista detalle */
+          <div className="flex flex-col min-h-0 flex-1">
+            <button
+              type="button"
+              onClick={onBack}
+              className="flex items-center gap-1.5 mb-4 -mx-1 px-1 py-1 rounded-lg transition-colors"
+              style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}
+            >
+              <ChevronLeft size={16} />
+              <span className="text-xs font-black">Volver</span>
+            </button>
+            <div className="flex-1 overflow-y-auto">{detalle}</div>
+          </div>
+        ) : (
+          /* Vista lista */
+          <div className="flex flex-col gap-3 flex-1">{lista}</div>
+        )}
+      </div>
+      {/* ── Desktop: children (el grid original) ─────────────────── */}
+      <div className="hidden lg:block">{children}</div>
+    </>
+  );
+}
+
 /** Encabezado de card de detalle */
 function DetalleHeader({ nombre, subtitulo, icon }: { nombre: string; subtitulo?: string | null; icon: React.ReactNode }) {
   return (
@@ -255,89 +316,91 @@ function SubseccionReinos() {
     return s.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
   }
 
-  return (
-    <div className="grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)]">
-      <div className="flex flex-col gap-2">
-        <Buscador value={query} onChange={setQuery} placeholder="Buscar reino…" />
-        {loading ? <SinDatos texto="Cargando…" /> : filtrados.length === 0 ? <SinDatos texto="Sin resultados." /> : (
-          <div className="flex flex-col gap-0.5 overflow-y-auto" style={{ maxHeight: "calc(100dvh - 200px)" }}>
-            {filtrados.map((r) => (
-              <FilaLista key={r.id} nombre={r.nombre} activo={activo?.id === r.id} onClick={() => setActivo(activo?.id === r.id ? null : r)} />
+  const listaNode = (
+    <div className="flex flex-col gap-2">
+      <Buscador value={query} onChange={setQuery} placeholder="Buscar reino…" />
+      {loading ? <SinDatos texto="Cargando…" /> : filtrados.length === 0 ? <SinDatos texto="Sin resultados." /> : (
+        <div className="flex flex-col gap-0.5 overflow-y-auto" style={{ maxHeight: "calc(100dvh - 200px)" }}>
+          {filtrados.map((r) => (
+            <FilaLista key={r.id} nombre={r.nombre} activo={activo?.id === r.id} onClick={() => setActivo(r)} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
+  const detalleNode = activo ? (
+    <div className="flex flex-col gap-5 rounded-2xl border p-5" style={{ borderColor: CARD_BORDER }}>
+      <DetalleHeader nombre={activo.nombre} icon={<Crown size={18} />} />
+      {CAMPOS_LORE.map(({ key, label }) => {
+        const texto = limpiarTexto(activo[key] as string | null);
+        if (!texto) return null;
+        return (
+          <div key={key}>
+            <SectionLabel icon={null}>{label}</SectionLabel>
+            <p className="text-[12px] leading-5" style={{ color: "color-mix(in srgb, var(--primary) 60%, transparent)" }}>
+              {texto.slice(0, 600)}{texto.length > 600 ? "…" : ""}
+            </p>
+          </div>
+        );
+      })}
+      {CAMPOS_LORE.every(({ key }) => !activo[key]) && (
+        <SinDatos texto="Este reino no tiene lore escrito todavía." />
+      )}
+      <div>
+        <SectionLabel icon={<Users size={10} />}>
+          Personajes{loadingEntidades ? "" : ` (${personajesReino.length})`}
+        </SectionLabel>
+        {loadingEntidades ? <SinDatos texto="Cargando…" /> :
+         personajesReino.length === 0 ? <SinDatos texto="Sin personajes registrados." /> : (
+          <div className="flex flex-wrap gap-1.5">
+            {personajesReino.map((p) => (
+              <div key={p.id} className="flex items-center gap-1.5 rounded-full px-2 py-1" style={{ background: MUTED_BG }}>
+                {p.img_url
+                  ? <img src={p.img_url} alt={p.nombre} className="h-4 w-4 rounded-full object-cover" />
+                  : <UserCircle2 size={12} style={{ opacity: 0.4 }} />}
+                <span className="text-[10px] font-bold" style={{ color: "color-mix(in srgb, var(--primary) 65%, transparent)" }}>
+                  {p.nombre}
+                </span>
+                {p.especie && <span className="text-[9px]" style={{ color: MUTED }}>{p.especie}</span>}
+              </div>
             ))}
           </div>
         )}
       </div>
-      <div>
-        {!activo ? <PanelVacio texto="Seleccioná un reino para leer su lore" /> : (
-          <div className="flex flex-col gap-5 rounded-2xl border p-5" style={{ borderColor: CARD_BORDER }}>
-            <DetalleHeader nombre={activo.nombre} icon={<Crown size={18} />} />
-            {CAMPOS_LORE.map(({ key, label }) => {
-              const texto = limpiarTexto(activo[key] as string | null);
-              if (!texto) return null;
-              return (
-                <div key={key}>
-                  <SectionLabel icon={null}>{label}</SectionLabel>
-                  <p className="text-[12px] leading-5" style={{ color: "color-mix(in srgb, var(--primary) 60%, transparent)" }}>
-                    {texto.slice(0, 600)}{texto.length > 600 ? "…" : ""}
-                  </p>
+      {(loadingEntidades || criaturasReino.length > 0) && (
+        <div>
+          <SectionLabel icon={<Bug size={10} />}>
+            Criaturas{loadingEntidades ? "" : ` (${criaturasReino.length})`}
+          </SectionLabel>
+          {loadingEntidades ? <SinDatos texto="Cargando…" /> : (
+            <div className="flex flex-wrap gap-1.5">
+              {criaturasReino.map((c) => (
+                <div key={c.id} className="flex items-center gap-1.5 rounded-full px-2 py-1" style={{ background: MUTED_BG }}>
+                  {c.imagen_url
+                    ? <img src={c.imagen_url} alt={c.nombre} className="h-4 w-4 rounded-md object-cover" />
+                    : <Bug size={10} style={{ opacity: 0.4 }} />}
+                  <span className="text-[10px] font-bold" style={{ color: "color-mix(in srgb, var(--primary) 65%, transparent)" }}>
+                    {c.nombre}
+                  </span>
                 </div>
-              );
-            })}
-            {CAMPOS_LORE.every(({ key }) => !activo[key]) && (
-              <SinDatos texto="Este reino no tiene lore escrito todavía." />
-            )}
-
-            {/* Personajes del reino */}
-            <div>
-              <SectionLabel icon={<Users size={10} />}>
-                Personajes{loadingEntidades ? "" : ` (${personajesReino.length})`}
-              </SectionLabel>
-              {loadingEntidades ? <SinDatos texto="Cargando…" /> :
-               personajesReino.length === 0 ? <SinDatos texto="Sin personajes registrados." /> : (
-                <div className="flex flex-wrap gap-1.5">
-                  {personajesReino.map((p) => (
-                    <div key={p.id} className="flex items-center gap-1.5 rounded-full px-2 py-1" style={{ background: MUTED_BG }}>
-                      {p.img_url
-                        ? <img src={p.img_url} alt={p.nombre} className="h-4 w-4 rounded-full object-cover" />
-                        : <UserCircle2 size={12} style={{ opacity: 0.4 }} />}
-                      <span className="text-[10px] font-bold" style={{ color: "color-mix(in srgb, var(--primary) 65%, transparent)" }}>
-                        {p.nombre}
-                      </span>
-                      {p.especie && (
-                        <span className="text-[9px]" style={{ color: MUTED }}>{p.especie}</span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
+              ))}
             </div>
-
-            {/* Criaturas del reino */}
-            {(loadingEntidades || criaturasReino.length > 0) && (
-              <div>
-                <SectionLabel icon={<Bug size={10} />}>
-                  Criaturas{loadingEntidades ? "" : ` (${criaturasReino.length})`}
-                </SectionLabel>
-                {loadingEntidades ? <SinDatos texto="Cargando…" /> : (
-                  <div className="flex flex-wrap gap-1.5">
-                    {criaturasReino.map((c) => (
-                      <div key={c.id} className="flex items-center gap-1.5 rounded-full px-2 py-1" style={{ background: MUTED_BG }}>
-                        {c.imagen_url
-                          ? <img src={c.imagen_url} alt={c.nombre} className="h-4 w-4 rounded-md object-cover" />
-                          : <Bug size={10} style={{ opacity: 0.4 }} />}
-                        <span className="text-[10px] font-bold" style={{ color: "color-mix(in srgb, var(--primary) 65%, transparent)" }}>
-                          {c.nombre}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
     </div>
+  ) : null;
+
+  return (
+    <MobileListaDetalle lista={listaNode} detalle={detalleNode} tituloDetalle={activo?.nombre} onBack={() => setActivo(null)}>
+      <div className="grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)]">
+        {listaNode}
+        <div>
+          {!activo ? <PanelVacio texto="Seleccioná un reino para leer su lore" /> : detalleNode}
+        </div>
+      </div>
+    </MobileListaDetalle>
   );
 }
 
@@ -484,67 +547,73 @@ function SubseccionGrupos() {
     return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b));
   }, [filtrados]);
 
-  return (
-    <div className="grid gap-4 lg:grid-cols-[240px_minmax(0,1fr)]">
-      <div className="flex flex-col gap-2">
-        <Buscador value={query} onChange={setQuery} placeholder="Buscar grupo…" />
-        <div className="flex flex-wrap gap-1">
-          {tipos.map((t) => {
-            const sel = filtroTipo === t;
-            return (
-              <button key={t} type="button" onClick={() => setFiltroTipo(t)}
-                className="rounded-lg px-2 py-0.5 text-[9px] font-black uppercase tracking-widest capitalize transition-colors"
-                style={{ background: sel ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent", color: sel ? "var(--primary)" : MUTED, border: `1px solid ${sel ? "color-mix(in srgb, var(--primary) 20%, transparent)" : "color-mix(in srgb, var(--primary) 8%, transparent)"}` }}>
-                {GRUPO_TIPO_LABELS[t]?.label ?? t}
-              </button>
-            );
-          })}
-        </div>
-        {loading ? <SinDatos texto="Cargando…" /> : filtrados.length === 0 ? <SinDatos texto="Sin resultados." /> : (
-          <div className="flex flex-col overflow-y-auto" style={{ maxHeight: "calc(100dvh - 220px)" }}>
-            {porTipo.map(([tipo, items], gi) => (
-              <div key={tipo}>
-                <div className="flex items-center gap-2 px-1 py-1.5" style={{ marginTop: gi > 0 ? "8px" : 0 }}>
-                  <span className={`text-[9px] font-black uppercase tracking-widest flex items-center gap-1`} style={{ color: MUTED }}>
-                    {GRUPO_TIPO_LABELS[tipo]?.icon}{GRUPO_TIPO_LABELS[tipo]?.label ?? tipo}
-                  </span>
-                  <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
-                </div>
-                <div className="flex flex-col gap-0.5">
-                  {items.map((g) => (
-                    <button key={g.id} type="button" onClick={() => setActivo(activo?.id === g.id ? null : g)}
-                      className="flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-left transition-colors"
-                      style={{ background: activo?.id === g.id ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "transparent", color: activo?.id === g.id ? "var(--primary)" : "color-mix(in srgb, var(--primary) 65%, transparent)" }}>
-                      <div className="min-w-0">
-                        <p className="truncate text-xs font-black">{g.nombre}</p>
-                        {g.subtipo && <p className="text-[9px] capitalize" style={{ color: MUTED }}>{g.subtipo}</p>}
-                      </div>
-                      <ChevronRight size={12} style={{ flexShrink: 0 }} />
-                    </button>
-                  ))}
-                </div>
+  const listaGrupos = (
+    <div className="flex flex-col gap-2">
+      <Buscador value={query} onChange={setQuery} placeholder="Buscar grupo…" />
+      <div className="flex flex-wrap gap-1">
+        {tipos.map((t) => {
+          const sel = filtroTipo === t;
+          return (
+            <button key={t} type="button" onClick={() => setFiltroTipo(t)}
+              className="rounded-lg px-2 py-0.5 text-[9px] font-black uppercase tracking-widest capitalize transition-colors"
+              style={{ background: sel ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent", color: sel ? "var(--primary)" : MUTED, border: `1px solid ${sel ? "color-mix(in srgb, var(--primary) 20%, transparent)" : "color-mix(in srgb, var(--primary) 8%, transparent)"}` }}>
+              {GRUPO_TIPO_LABELS[t]?.label ?? t}
+            </button>
+          );
+        })}
+      </div>
+      {loading ? <SinDatos texto="Cargando…" /> : filtrados.length === 0 ? <SinDatos texto="Sin resultados." /> : (
+        <div className="flex flex-col overflow-y-auto" style={{ maxHeight: "calc(100dvh - 220px)" }}>
+          {porTipo.map(([tipo, items], gi) => (
+            <div key={tipo}>
+              <div className="flex items-center gap-2 px-1 py-1.5" style={{ marginTop: gi > 0 ? "8px" : 0 }}>
+                <span className="text-[9px] font-black uppercase tracking-widest flex items-center gap-1" style={{ color: MUTED }}>
+                  {GRUPO_TIPO_LABELS[tipo]?.icon}{GRUPO_TIPO_LABELS[tipo]?.label ?? tipo}
+                </span>
+                <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
               </div>
-            ))}
-          </div>
-        )}
-      </div>
-      <div>
-        {!activo ? <PanelVacio texto="Seleccioná un grupo para ver sus detalles" /> : (
-          <div className="flex flex-col gap-4 rounded-2xl border p-5" style={{ borderColor: CARD_BORDER }}>
-            <DetalleHeader nombre={activo.nombre} subtitulo={activo.subtipo ?? (GRUPO_TIPO_LABELS[activo.tipo]?.label ?? activo.tipo)} icon={<Layers size={18} />} />
-            <div className="flex items-center gap-2">
-              <span className="flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold" style={{ background: MUTED_BG, color: "color-mix(in srgb, var(--primary) 60%, transparent)" }}>
-                {GRUPO_TIPO_LABELS[activo.tipo]?.icon}
-                {GRUPO_TIPO_LABELS[activo.tipo]?.label ?? activo.tipo}
-              </span>
+              <div className="flex flex-col gap-0.5">
+                {items.map((g) => (
+                  <button key={g.id} type="button" onClick={() => setActivo(g)}
+                    className="flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-left transition-colors"
+                    style={{ background: activo?.id === g.id ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "transparent", color: activo?.id === g.id ? "var(--primary)" : "color-mix(in srgb, var(--primary) 65%, transparent)" }}>
+                    <div className="min-w-0">
+                      <p className="truncate text-xs font-black">{g.nombre}</p>
+                      {g.subtipo && <p className="text-[9px] capitalize" style={{ color: MUTED }}>{g.subtipo}</p>}
+                    </div>
+                    <ChevronRight size={12} style={{ flexShrink: 0 }} />
+                  </button>
+                ))}
+              </div>
             </div>
-            {activo.descripcion
-              ? <p className="text-[12px] leading-5" style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}>{activo.descripcion}</p>
-              : <SinDatos texto="Sin descripción." />}
-          </div>
-        )}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
+  );
+
+  const detalleGrupo = activo ? (
+    <div className="flex flex-col gap-4 rounded-2xl border p-5" style={{ borderColor: CARD_BORDER }}>
+      <DetalleHeader nombre={activo.nombre} subtitulo={activo.subtipo ?? (GRUPO_TIPO_LABELS[activo.tipo]?.label ?? activo.tipo)} icon={<Layers size={18} />} />
+      <div className="flex items-center gap-2">
+        <span className="flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold" style={{ background: MUTED_BG, color: "color-mix(in srgb, var(--primary) 60%, transparent)" }}>
+          {GRUPO_TIPO_LABELS[activo.tipo]?.icon}
+          {GRUPO_TIPO_LABELS[activo.tipo]?.label ?? activo.tipo}
+        </span>
+      </div>
+      {activo.descripcion
+        ? <p className="text-[12px] leading-5" style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}>{activo.descripcion}</p>
+        : <SinDatos texto="Sin descripción." />}
+    </div>
+  ) : null;
+
+  return (
+    <MobileListaDetalle lista={listaGrupos} detalle={detalleGrupo} tituloDetalle={activo?.nombre} onBack={() => setActivo(null)}>
+      <div className="grid gap-4 lg:grid-cols-[240px_minmax(0,1fr)]">
+        {listaGrupos}
+        <div>{!activo ? <PanelVacio texto="Seleccioná un grupo para ver sus detalles" /> : detalleGrupo}</div>
+      </div>
+    </MobileListaDetalle>
   );
 }
 
@@ -696,32 +765,34 @@ function SubseccionCriaturas() {
     return criaturas.filter((c) => c.nombre.toLowerCase().includes(q));
   }, [criaturas, query]);
 
-  return (
-    <div className="grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)]">
-      <div className="flex flex-col gap-2">
-        <Buscador value={query} onChange={setQuery} placeholder="Buscar criatura…" />
-        {loading ? <SinDatos texto="Cargando…" /> : filtradas.length === 0 ? <SinDatos texto="Sin resultados." /> : (
-          <div className="flex flex-col gap-0.5 overflow-y-auto" style={{ maxHeight: "calc(100dvh - 200px)" }}>
-            {filtradas.map((c) => (
-              <button key={c.id} type="button" onClick={() => setActiva(activa?.id === c.id ? null : c)}
-                className="flex items-center gap-2 rounded-lg px-3 py-2 text-left transition-colors"
-                style={{ background: activa?.id === c.id ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "transparent", color: activa?.id === c.id ? "var(--primary)" : "color-mix(in srgb, var(--primary) 65%, transparent)" }}>
-                {c.imagen_url
-                  ? <img src={c.imagen_url} alt={c.nombre} className="h-6 w-6 rounded-md object-cover flex-shrink-0" />
-                  : <Bug size={14} style={{ flexShrink: 0, opacity: 0.4 }} />}
-                <p className="min-w-0 flex-1 truncate text-xs font-black">{c.nombre}</p>
-                <ChevronRight size={12} style={{ flexShrink: 0 }} />
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-      <div>
-        {!activa ? <PanelVacio texto="Seleccioná una criatura para ver sus detalles" /> : (
-          <DetalleCriatura criatura={activa} />
-        )}
-      </div>
+  const listaCriaturas = (
+    <div className="flex flex-col gap-2">
+      <Buscador value={query} onChange={setQuery} placeholder="Buscar criatura…" />
+      {loading ? <SinDatos texto="Cargando…" /> : filtradas.length === 0 ? <SinDatos texto="Sin resultados." /> : (
+        <div className="flex flex-col gap-0.5 overflow-y-auto" style={{ maxHeight: "calc(100dvh - 200px)" }}>
+          {filtradas.map((c) => (
+            <button key={c.id} type="button" onClick={() => setActiva(c)}
+              className="flex items-center gap-2 rounded-lg px-3 py-2 text-left transition-colors"
+              style={{ background: activa?.id === c.id ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "transparent", color: activa?.id === c.id ? "var(--primary)" : "color-mix(in srgb, var(--primary) 65%, transparent)" }}>
+              {c.imagen_url
+                ? <img src={c.imagen_url} alt={c.nombre} className="h-6 w-6 rounded-md object-cover flex-shrink-0" />
+                : <Bug size={14} style={{ flexShrink: 0, opacity: 0.4 }} />}
+              <p className="min-w-0 flex-1 truncate text-xs font-black">{c.nombre}</p>
+              <ChevronRight size={12} style={{ flexShrink: 0 }} />
+            </button>
+          ))}
+        </div>
+      )}
     </div>
+  );
+
+  return (
+    <MobileListaDetalle lista={listaCriaturas} detalle={activa ? <DetalleCriatura criatura={activa} /> : null} tituloDetalle={activa?.nombre} onBack={() => setActiva(null)}>
+      <div className="grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)]">
+        {listaCriaturas}
+        <div>{!activa ? <PanelVacio texto="Seleccioná una criatura para ver sus detalles" /> : <DetalleCriatura criatura={activa} />}</div>
+      </div>
+    </MobileListaDetalle>
   );
 }
 
@@ -782,32 +853,34 @@ function SubseccionFlora() {
     return flora.filter((f) => f.nombre.toLowerCase().includes(q));
   }, [flora, query]);
 
-  return (
-    <div className="grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)]">
-      <div className="flex flex-col gap-2">
-        <Buscador value={query} onChange={setQuery} placeholder="Buscar planta…" />
-        {loading ? <SinDatos texto="Cargando…" /> : filtrada.length === 0 ? <SinDatos texto="Sin resultados." /> : (
-          <div className="flex flex-col gap-0.5 overflow-y-auto" style={{ maxHeight: "calc(100dvh - 200px)" }}>
-            {filtrada.map((f) => (
-              <button key={f.id} type="button" onClick={() => setActiva(activa?.id === f.id ? null : f)}
-                className="flex items-center gap-2 rounded-lg px-3 py-2 text-left transition-colors"
-                style={{ background: activa?.id === f.id ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "transparent", color: activa?.id === f.id ? "var(--primary)" : "color-mix(in srgb, var(--primary) 65%, transparent)" }}>
-                {f.imagen_url
-                  ? <img src={f.imagen_url} alt={f.nombre} className="h-6 w-6 rounded-md object-cover flex-shrink-0" />
-                  : <Leaf size={14} style={{ flexShrink: 0, opacity: 0.4 }} />}
-                <p className="min-w-0 flex-1 truncate text-xs font-black">{f.nombre}</p>
-                <ChevronRight size={12} style={{ flexShrink: 0 }} />
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-      <div>
-        {!activa ? <PanelVacio texto="Seleccioná una planta para ver sus detalles" /> : (
-          <DetalleFlora planta={activa} />
-        )}
-      </div>
+  const listaFlora = (
+    <div className="flex flex-col gap-2">
+      <Buscador value={query} onChange={setQuery} placeholder="Buscar planta…" />
+      {loading ? <SinDatos texto="Cargando…" /> : filtrada.length === 0 ? <SinDatos texto="Sin resultados." /> : (
+        <div className="flex flex-col gap-0.5 overflow-y-auto" style={{ maxHeight: "calc(100dvh - 200px)" }}>
+          {filtrada.map((f) => (
+            <button key={f.id} type="button" onClick={() => setActiva(f)}
+              className="flex items-center gap-2 rounded-lg px-3 py-2 text-left transition-colors"
+              style={{ background: activa?.id === f.id ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "transparent", color: activa?.id === f.id ? "var(--primary)" : "color-mix(in srgb, var(--primary) 65%, transparent)" }}>
+              {f.imagen_url
+                ? <img src={f.imagen_url} alt={f.nombre} className="h-6 w-6 rounded-md object-cover flex-shrink-0" />
+                : <Leaf size={14} style={{ flexShrink: 0, opacity: 0.4 }} />}
+              <p className="min-w-0 flex-1 truncate text-xs font-black">{f.nombre}</p>
+              <ChevronRight size={12} style={{ flexShrink: 0 }} />
+            </button>
+          ))}
+        </div>
+      )}
     </div>
+  );
+
+  return (
+    <MobileListaDetalle lista={listaFlora} detalle={activa ? <DetalleFlora planta={activa} /> : null} tituloDetalle={activa?.nombre} onBack={() => setActiva(null)}>
+      <div className="grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)]">
+        {listaFlora}
+        <div>{!activa ? <PanelVacio texto="Seleccioná una planta para ver sus detalles" /> : <DetalleFlora planta={activa} />}</div>
+      </div>
+    </MobileListaDetalle>
   );
 }
 
@@ -919,30 +992,34 @@ function SubseccionMateriales() {
     });
   }, [filtrados]);
 
-  return (
-    <div className="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
-      <div className="flex flex-col gap-2">
-        <Buscador value={query} onChange={setQuery} placeholder="Buscar material…" />
-        {loading ? <SinDatos texto="Cargando…" /> : filtrados.length === 0 ? <SinDatos texto="Sin resultados." /> : (
-          <div className="flex flex-col overflow-y-auto" style={{ maxHeight: "calc(100dvh - 200px)" }}>
-            {grupos.map(([categoria, items], gi) => (
-              <div key={categoria}>
-                <div className="flex items-center gap-2 px-1 py-1.5" style={{ marginTop: gi > 0 ? "8px" : 0 }}>
-                  <span className="text-[9px] font-black uppercase tracking-widest capitalize whitespace-nowrap" style={{ color: MUTED }}>{categoria.replace(/_/g, " ")}</span>
-                  <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
-                </div>
-                <div className="flex flex-col gap-0.5">
-                  {items.map((m) => <FilaLista key={m.id} nombre={m.nombre} activo={activo?.id === m.id} onClick={() => setActivo(activo?.id === m.id ? null : m)} />)}
-                </div>
+  const listaMats = (
+    <div className="flex flex-col gap-2">
+      <Buscador value={query} onChange={setQuery} placeholder="Buscar material…" />
+      {loading ? <SinDatos texto="Cargando…" /> : filtrados.length === 0 ? <SinDatos texto="Sin resultados." /> : (
+        <div className="flex flex-col overflow-y-auto" style={{ maxHeight: "calc(100dvh - 200px)" }}>
+          {grupos.map(([categoria, items], gi) => (
+            <div key={categoria}>
+              <div className="flex items-center gap-2 px-1 py-1.5" style={{ marginTop: gi > 0 ? "8px" : 0 }}>
+                <span className="text-[9px] font-black uppercase tracking-widest capitalize whitespace-nowrap" style={{ color: MUTED }}>{categoria.replace(/_/g, " ")}</span>
+                <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
               </div>
-            ))}
-          </div>
-        )}
-      </div>
-      <div>
-        {!activo ? <PanelVacio texto="Seleccioná un material para ver sus detalles" /> : <DetalleMaterial material={activo} />}
-      </div>
+              <div className="flex flex-col gap-0.5">
+                {items.map((m) => <FilaLista key={m.id} nombre={m.nombre} activo={activo?.id === m.id} onClick={() => setActivo(m)} />)}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
+  );
+
+  return (
+    <MobileListaDetalle lista={listaMats} detalle={activo ? <DetalleMaterial material={activo} /> : null} tituloDetalle={activo?.nombre} onBack={() => setActivo(null)}>
+      <div className="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
+        {listaMats}
+        <div>{!activo ? <PanelVacio texto="Seleccioná un material para ver sus detalles" /> : <DetalleMaterial material={activo} />}</div>
+      </div>
+    </MobileListaDetalle>
   );
 }
 
@@ -1021,20 +1098,24 @@ function SubseccionObjetos() {
     return items.filter((it) => it.nombre.toLowerCase().includes(q));
   }, [items, query]);
 
-  return (
-    <div className="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
-      <div className="flex flex-col gap-2">
-        <Buscador value={query} onChange={setQuery} placeholder="Buscar objeto…" />
-        {loading ? <SinDatos texto="Cargando…" /> : (
-          <div className="flex flex-col gap-0.5 overflow-y-auto" style={{ maxHeight: "calc(100dvh - 200px)" }}>
-            {filtrados.map((it) => <FilaLista key={it.id} nombre={it.nombre} activo={activo?.id === it.id} onClick={() => setActivo(activo?.id === it.id ? null : it)} />)}
-          </div>
-        )}
-      </div>
-      <div>
-        {!activo ? <PanelVacio texto="Seleccioná un objeto para ver sus detalles" /> : <DetalleItem item={activo} />}
-      </div>
+  const listaObjetos = (
+    <div className="flex flex-col gap-2">
+      <Buscador value={query} onChange={setQuery} placeholder="Buscar objeto…" />
+      {loading ? <SinDatos texto="Cargando…" /> : (
+        <div className="flex flex-col gap-0.5 overflow-y-auto" style={{ maxHeight: "calc(100dvh - 200px)" }}>
+          {filtrados.map((it) => <FilaLista key={it.id} nombre={it.nombre} activo={activo?.id === it.id} onClick={() => setActivo(it)} />)}
+        </div>
+      )}
     </div>
+  );
+
+  return (
+    <MobileListaDetalle lista={listaObjetos} detalle={activo ? <DetalleItem item={activo} /> : null} tituloDetalle={activo?.nombre} onBack={() => setActivo(null)}>
+      <div className="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
+        {listaObjetos}
+        <div>{!activo ? <PanelVacio texto="Seleccioná un objeto para ver sus detalles" /> : <DetalleItem item={activo} />}</div>
+      </div>
+    </MobileListaDetalle>
   );
 }
 
@@ -1083,53 +1164,54 @@ function SubseccionPersonajes() {
     });
   }, [filtrados]);
 
-  return (
-    <div className="grid gap-4 lg:grid-cols-[240px_minmax(0,1fr)]">
-      <div className="flex flex-col gap-2">
-        <Buscador value={query} onChange={setQuery} placeholder="Buscar personaje…" />
-        {/* Filtro por reino */}
-        <select value={filtroReino} onChange={(e) => setFiltroReino(e.target.value)}
-          className="rounded-lg border px-2.5 py-1.5 text-[10px] font-black bg-transparent outline-none"
-          style={{ borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)", color: "color-mix(in srgb, var(--primary) 65%, transparent)" }}>
-          {reinos.map((r) => <option key={r} value={r} style={{ background: "var(--bg-main)" }}>{r === "todos" ? "Todos los reinos" : r}</option>)}
-        </select>
-        {loading ? <SinDatos texto="Cargando…" /> : filtrados.length === 0 ? <SinDatos texto="Sin resultados." /> : (
-          <div className="flex flex-col overflow-y-auto" style={{ maxHeight: "calc(100dvh - 230px)" }}>
-            {porReino.map(([reino, items], gi) => (
-              <div key={reino}>
-                <div className="flex items-center gap-2 px-1 py-1.5" style={{ marginTop: gi > 0 ? "8px" : 0 }}>
-                  <span className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest whitespace-nowrap" style={{ color: MUTED }}>
-                    <Crown size={8} />{reino}
-                  </span>
-                  <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
-                </div>
-                <div className="flex flex-col gap-0.5">
-                  {items.map((p) => (
-                    <button key={p.id} type="button" onClick={() => setActivo(activo?.id === p.id ? null : p)}
-                      className="flex items-center gap-2 rounded-lg px-3 py-2 text-left transition-colors"
-                      style={{ background: activo?.id === p.id ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "transparent", color: activo?.id === p.id ? "var(--primary)" : "color-mix(in srgb, var(--primary) 65%, transparent)" }}>
-                      {p.img_url
-                        ? <img src={p.img_url} alt={p.nombre} className="h-6 w-6 rounded-full object-cover flex-shrink-0" />
-                        : <UserCircle2 size={16} style={{ flexShrink: 0, opacity: 0.4 }} />}
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-xs font-black">{p.nombre}</p>
-                        {p.especie && <p className="text-[9px] capitalize" style={{ color: MUTED }}>{p.especie}</p>}
-                      </div>
-                      <ChevronRight size={12} style={{ flexShrink: 0 }} />
-                    </button>
-                  ))}
-                </div>
+  const listaPersonajes = (
+    <div className="flex flex-col gap-2">
+      <Buscador value={query} onChange={setQuery} placeholder="Buscar personaje…" />
+      <select value={filtroReino} onChange={(e) => setFiltroReino(e.target.value)}
+        className="rounded-lg border px-2.5 py-1.5 text-[10px] font-black bg-transparent outline-none"
+        style={{ borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)", color: "color-mix(in srgb, var(--primary) 65%, transparent)" }}>
+        {reinos.map((r) => <option key={r} value={r} style={{ background: "var(--bg-main)" }}>{r === "todos" ? "Todos los reinos" : r}</option>)}
+      </select>
+      {loading ? <SinDatos texto="Cargando…" /> : filtrados.length === 0 ? <SinDatos texto="Sin resultados." /> : (
+        <div className="flex flex-col overflow-y-auto" style={{ maxHeight: "calc(100dvh - 230px)" }}>
+          {porReino.map(([reino, items], gi) => (
+            <div key={reino}>
+              <div className="flex items-center gap-2 px-1 py-1.5" style={{ marginTop: gi > 0 ? "8px" : 0 }}>
+                <span className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest whitespace-nowrap" style={{ color: MUTED }}>
+                  <Crown size={8} />{reino}
+                </span>
+                <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
               </div>
-            ))}
-          </div>
-        )}
-      </div>
-      <div>
-        {!activo ? <PanelVacio texto="Seleccioná un personaje para ver sus detalles" /> : (
-          <DetallePersonaje personaje={activo} />
-        )}
-      </div>
+              <div className="flex flex-col gap-0.5">
+                {items.map((p) => (
+                  <button key={p.id} type="button" onClick={() => setActivo(p)}
+                    className="flex items-center gap-2 rounded-lg px-3 py-2 text-left transition-colors"
+                    style={{ background: activo?.id === p.id ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "transparent", color: activo?.id === p.id ? "var(--primary)" : "color-mix(in srgb, var(--primary) 65%, transparent)" }}>
+                    {p.img_url
+                      ? <img src={p.img_url} alt={p.nombre} className="h-6 w-6 rounded-full object-cover flex-shrink-0" />
+                      : <UserCircle2 size={16} style={{ flexShrink: 0, opacity: 0.4 }} />}
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-xs font-black">{p.nombre}</p>
+                      {p.especie && <p className="text-[9px] capitalize" style={{ color: MUTED }}>{p.especie}</p>}
+                    </div>
+                    <ChevronRight size={12} style={{ flexShrink: 0 }} />
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
+  );
+
+  return (
+    <MobileListaDetalle lista={listaPersonajes} detalle={activo ? <DetallePersonaje personaje={activo} /> : null} tituloDetalle={activo?.nombre} onBack={() => setActivo(null)}>
+      <div className="grid gap-4 lg:grid-cols-[240px_minmax(0,1fr)]">
+        {listaPersonajes}
+        <div>{!activo ? <PanelVacio texto="Seleccioná un personaje para ver sus detalles" /> : <DetallePersonaje personaje={activo} />}</div>
+      </div>
+    </MobileListaDetalle>
   );
 }
 
@@ -1411,28 +1493,32 @@ function SubseccionLibros() {
     return libros.filter((l) => l.titulo.toLowerCase().includes(q));
   }, [libros, query]);
 
-  return (
-    <div className="grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)]">
-      <div className="flex flex-col gap-2">
-        <Buscador value={query} onChange={setQuery} placeholder="Buscar libro…" />
-        {loading ? <SinDatos texto="Cargando…" /> : filtrados.length === 0 ? <SinDatos texto="Sin libros." /> : (
-          <div className="flex flex-col gap-0.5 overflow-y-auto" style={{ maxHeight: "calc(100dvh - 200px)" }}>
-            {filtrados.map((l) => (
-              <button key={l.id} type="button" onClick={() => setActivo(activo?.id === l.id ? null : l)}
-                className="flex items-center gap-2 rounded-lg px-3 py-2 text-left transition-colors"
-                style={{ background: activo?.id === l.id ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "transparent", color: activo?.id === l.id ? "var(--primary)" : "color-mix(in srgb, var(--primary) 65%, transparent)" }}>
-                <Scroll size={12} style={{ flexShrink: 0, opacity: 0.6 }} />
-                <p className="min-w-0 flex-1 truncate text-xs font-black">{l.titulo}</p>
-                <ChevronRight size={12} style={{ flexShrink: 0 }} />
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-      <div>
-        {!activo ? <PanelVacio texto="Seleccioná un libro para leerlo" /> : <VisorLibro libro={activo} />}
-      </div>
+  const listaLibros = (
+    <div className="flex flex-col gap-2">
+      <Buscador value={query} onChange={setQuery} placeholder="Buscar libro…" />
+      {loading ? <SinDatos texto="Cargando…" /> : filtrados.length === 0 ? <SinDatos texto="Sin libros." /> : (
+        <div className="flex flex-col gap-0.5 overflow-y-auto" style={{ maxHeight: "calc(100dvh - 200px)" }}>
+          {filtrados.map((l) => (
+            <button key={l.id} type="button" onClick={() => setActivo(l)}
+              className="flex items-center gap-2 rounded-lg px-3 py-2 text-left transition-colors"
+              style={{ background: activo?.id === l.id ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "transparent", color: activo?.id === l.id ? "var(--primary)" : "color-mix(in srgb, var(--primary) 65%, transparent)" }}>
+              <Scroll size={12} style={{ flexShrink: 0, opacity: 0.6 }} />
+              <p className="min-w-0 flex-1 truncate text-xs font-black">{l.titulo}</p>
+              <ChevronRight size={12} style={{ flexShrink: 0 }} />
+            </button>
+          ))}
+        </div>
+      )}
     </div>
+  );
+
+  return (
+    <MobileListaDetalle lista={listaLibros} detalle={activo ? <VisorLibro libro={activo} /> : null} tituloDetalle={activo?.titulo} onBack={() => setActivo(null)}>
+      <div className="grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)]">
+        {listaLibros}
+        <div>{!activo ? <PanelVacio texto="Seleccioná un libro para leerlo" /> : <VisorLibro libro={activo} />}</div>
+      </div>
+    </MobileListaDetalle>
   );
 }
 
@@ -1608,60 +1694,60 @@ function SubseccionIdeas() {
     catch { return iso; }
   };
 
-  return (
-    <div className="grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)]">
-      {/* Lista de lienzos */}
-      <div className="flex flex-col gap-2">
-        <p className={`${LABEL_CLS} px-1`} style={{ color: MUTED }}>Lienzos ({lienzos.length})</p>
-        {loading ? <SinDatos texto="Cargando…" /> : lienzos.length === 0 ? <SinDatos texto="No hay lienzos creados." /> : (
-          <div className="flex flex-col gap-0.5 overflow-y-auto" style={{ maxHeight: "calc(100dvh - 200px)" }}>
-            {lienzos.map((l) => (
-              <button key={l.id} type="button" onClick={() => setActivo(activo?.id === l.id ? null : l)}
-                className="flex flex-col gap-0.5 rounded-lg px-3 py-2.5 text-left transition-colors"
-                style={{ background: activo?.id === l.id ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "transparent", color: activo?.id === l.id ? "var(--primary)" : "color-mix(in srgb, var(--primary) 65%, transparent)" }}>
-                <p className="truncate text-xs font-black">{l.nombre}</p>
-                <p className="text-[9px]" style={{ color: MUTED }}>{formatFecha(l.updated_at)}</p>
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Notas del lienzo activo */}
-      <div>
-        {!activo ? (
-          <PanelVacio texto="Seleccioná un lienzo para ver sus ideas y notas" />
-        ) : (
-          <div className="flex flex-col gap-4">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-base font-black" style={{ color: "var(--primary)" }}>{activo.nombre}</p>
-                {activo.descripcion && <p className="text-[11px]" style={{ color: MUTED }}>{activo.descripcion}</p>}
-              </div>
-              <Sparkles size={18} style={{ color: "var(--accent)", flexShrink: 0 }} />
-            </div>
-
-            {loadingNotas ? (
-              <SinDatos texto="Cargando notas…" />
-            ) : notas.length === 0 ? (
-              <SinDatos texto="Este lienzo no tiene nodos con texto todavía." />
-            ) : (
-              <div className="columns-1 sm:columns-2 gap-3">
-                {notas.map((nota) => (
-                  <div key={nota.id} className="break-inside-avoid mb-3 rounded-xl p-4"
-                    style={{ background: "color-mix(in srgb, var(--accent) 6%, transparent)", border: "1px solid color-mix(in srgb, var(--accent) 15%, transparent)" }}>
-                    <p className="text-[12px] leading-5 whitespace-pre-wrap"
-                      style={{ color: "color-mix(in srgb, var(--primary) 75%, transparent)" }}>
-                      {nota.label}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+  const listaIdeas = (
+    <div className="flex flex-col gap-2">
+      <p className={`${LABEL_CLS} px-1`} style={{ color: MUTED }}>Lienzos ({lienzos.length})</p>
+      {loading ? <SinDatos texto="Cargando…" /> : lienzos.length === 0 ? <SinDatos texto="No hay lienzos creados." /> : (
+        <div className="flex flex-col gap-0.5 overflow-y-auto" style={{ maxHeight: "calc(100dvh - 200px)" }}>
+          {lienzos.map((l) => (
+            <button key={l.id} type="button" onClick={() => setActivo(l)}
+              className="flex flex-col gap-0.5 rounded-lg px-3 py-2.5 text-left transition-colors"
+              style={{ background: activo?.id === l.id ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "transparent", color: activo?.id === l.id ? "var(--primary)" : "color-mix(in srgb, var(--primary) 65%, transparent)" }}>
+              <p className="truncate text-xs font-black">{l.nombre}</p>
+              <p className="text-[9px]" style={{ color: MUTED }}>{formatFecha(l.updated_at)}</p>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
+  );
+
+  const detalleIdea = activo ? (
+    <div className="flex flex-col gap-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-base font-black" style={{ color: "var(--primary)" }}>{activo.nombre}</p>
+          {activo.descripcion && <p className="text-[11px]" style={{ color: MUTED }}>{activo.descripcion}</p>}
+        </div>
+        <Sparkles size={18} style={{ color: "var(--accent)", flexShrink: 0 }} />
+      </div>
+      {loadingNotas ? (
+        <SinDatos texto="Cargando notas…" />
+      ) : notas.length === 0 ? (
+        <SinDatos texto="Este lienzo no tiene nodos con texto todavía." />
+      ) : (
+        <div className="columns-1 sm:columns-2 gap-3">
+          {notas.map((nota) => (
+            <div key={nota.id} className="break-inside-avoid mb-3 rounded-xl p-4"
+              style={{ background: "color-mix(in srgb, var(--accent) 6%, transparent)", border: "1px solid color-mix(in srgb, var(--accent) 15%, transparent)" }}>
+              <p className="text-[12px] leading-5 whitespace-pre-wrap"
+                style={{ color: "color-mix(in srgb, var(--primary) 75%, transparent)" }}>
+                {nota.label}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  ) : null;
+
+  return (
+    <MobileListaDetalle lista={listaIdeas} detalle={detalleIdea} tituloDetalle={activo?.nombre} onBack={() => setActivo(null)}>
+      <div className="grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)]">
+        {listaIdeas}
+        <div>{!activo ? <PanelVacio texto="Seleccioná un lienzo para ver sus ideas y notas" /> : detalleIdea}</div>
+      </div>
+    </MobileListaDetalle>
   );
 }
 
@@ -1671,6 +1757,14 @@ function SubseccionIdeas() {
 
 type NavItem = { key: Subseccion; label: string; icon: React.ReactNode };
 type NavGroup = { group: Grupo_Nav; icon: React.ReactNode; items: NavItem[] };
+
+// Íconos por grupo, parametrizables por size
+const GRUPO_ICONS: Record<Grupo_Nav, (size: number) => React.ReactNode> = {
+  Mundo:   (s) => <Globe size={s} />,
+  Vida:    (s) => <Leaf size={s} />,
+  Objetos: (s) => <Package size={s} />,
+  Lore:    (s) => <BookOpen size={s} />,
+};
 
 const NAV_GROUPS: NavGroup[] = [
   {
@@ -1714,6 +1808,9 @@ export function EscritorSection() {
   const [subseccion, setSubseccion] = useState<Subseccion>("reinos");
   const [gruposExpandidos, setGruposExpandidos] = useState<Set<Grupo_Nav>>(new Set(["Mundo"]));
 
+  // Grupo activo en mobile (derivado de la subsección actual)
+  const grupoActualMobile = NAV_GROUPS.find((g) => g.items.some((i) => i.key === subseccion))?.group ?? "Mundo";
+
   const toggleGrupo = (g: Grupo_Nav) =>
     setGruposExpandidos((prev) => {
       const next = new Set(prev);
@@ -1726,11 +1823,20 @@ export function EscritorSection() {
     setGruposExpandidos((prev) => new Set([...prev, group]));
   };
 
+  // Cuando el usuario toca un grupo en el bottom tab, activa la primera subsección de ese grupo
+  const handleGrupoMobile = (grp: NavGroup) => {
+    const primerItem = grp.items[0];
+    if (primerItem) setSubseccion(primerItem.key);
+  };
+
+  const itemsGrupoActual = NAV_GROUPS.find((g) => g.group === grupoActualMobile)?.items ?? [];
+  const labelActual = NAV_GROUPS.flatMap((g) => g.items).find((i) => i.key === subseccion)?.label ?? "Escritor";
+
   return (
-    <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+    <div className="flex-1 flex flex-col min-h-0 overflow-hidden relative">
       <div className="grid flex-1 min-h-0 lg:grid-cols-[140px_minmax(0,1fr)]">
 
-        {/* ── Sidebar nav ─────────────────────────────────────────────────── */}
+        {/* ── Sidebar nav (desktop) ────────────────────────────────────────── */}
         <aside className="hidden lg:flex flex-col border-r overflow-y-auto py-4 px-2"
           style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", scrollbarWidth: "none" }}>
           <p className={`mb-4 px-2 ${LABEL_CLS}`} style={{ color: MUTED }}>Escritor</p>
@@ -1769,28 +1875,32 @@ export function EscritorSection() {
           </nav>
         </aside>
 
-        {/* ── Mobile: nav horizontal scrollable ───────────────────────────── */}
-        <div className="lg:hidden flex overflow-x-auto gap-1 px-4 pt-4 pb-2 border-b"
-          style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", scrollbarWidth: "none" }}>
-          {NAV_GROUPS.flatMap((grp) => grp.items).map((item) => {
-            const sel = item.key === subseccion;
-            return (
-              <button key={item.key} type="button" onClick={() => setSubseccion(item.key)}
-                className="flex items-center gap-1.5 whitespace-nowrap rounded-xl px-3 py-2 text-xs font-black transition-colors flex-shrink-0"
-                style={{ background: sel ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "color-mix(in srgb, var(--primary) 4%, transparent)", color: sel ? "var(--primary)" : MUTED, border: `1px solid ${sel ? "color-mix(in srgb, var(--primary) 20%, transparent)" : "color-mix(in srgb, var(--primary) 8%, transparent)"}` }}>
-                {item.icon}{item.label}
-              </button>
-            );
-          })}
-        </div>
+        {/* ── Mobile: sub-tabs del grupo activo (top strip) ───────────────── */}
+        {itemsGrupoActual.length > 1 && (
+          <div className="lg:hidden flex gap-1 px-4 pt-3 pb-2 border-b"
+            style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+            {itemsGrupoActual.map((item) => {
+              const sel = item.key === subseccion;
+              return (
+                <button key={item.key} type="button" onClick={() => setSubseccion(item.key)}
+                  className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11px] font-black transition-colors flex-shrink-0"
+                  style={{
+                    background: sel ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent",
+                    color: sel ? "var(--primary)" : MUTED,
+                    borderBottom: sel ? `2px solid var(--accent)` : "2px solid transparent",
+                  }}>
+                  {item.icon}{item.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         {/* ── Contenido principal ─────────────────────────────────────────── */}
-        <main className="flex-1 min-w-0 overflow-y-auto px-4 py-6 sm:px-6">
+        <main className="flex-1 min-w-0 overflow-y-auto px-4 py-5 sm:px-6 pb-24 lg:pb-6">
           {/* Header */}
           <div className="mb-5 flex items-center justify-between">
-            <p className={PAGE_TITLE_CLS}>
-              {NAV_GROUPS.flatMap((g) => g.items).find((i) => i.key === subseccion)?.label ?? "Escritor"}
-            </p>
+            <p className={PAGE_TITLE_CLS}>{labelActual}</p>
           </div>
 
           {subseccion === "reinos"     && <SubseccionReinos />}
@@ -1805,7 +1915,33 @@ export function EscritorSection() {
           {subseccion === "linea"      && <SubseccionLineaTiempo />}
           {subseccion === "ideas"      && <SubseccionIdeas />}
         </main>
+
       </div>
+
+      {/* ── Mobile: Bottom tab bar (fuera del grid, fijo en pantalla) ────── */}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 flex items-stretch border-t"
+        style={{
+          background: "color-mix(in srgb, var(--bg-main, #0a0a0a) 94%, transparent)",
+          backdropFilter: "blur(16px)",
+          WebkitBackdropFilter: "blur(16px)",
+          borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
+        }}>
+        {NAV_GROUPS.map((grp) => {
+          const estaActivo = grp.items.some((i) => i.key === subseccion);
+          return (
+            <button
+              key={grp.group}
+              type="button"
+              onClick={() => handleGrupoMobile(grp)}
+              className="flex flex-1 flex-col items-center justify-center gap-1 py-3 transition-colors"
+              style={{ color: estaActivo ? "var(--accent)" : MUTED }}
+            >
+              <span style={{ display: "flex" }}>{GRUPO_ICONS[grp.group](20)}</span>
+              <span className="text-[9px] font-black uppercase tracking-widest">{grp.group}</span>
+            </button>
+          );
+        })}
+      </nav>
     </div>
   );
 }
