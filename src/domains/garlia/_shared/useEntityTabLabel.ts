@@ -59,6 +59,8 @@ const SECTION_TABLE: Record<SectionKey, string | null> = {
   pizarron: null,
   // "escritor" es la sección de consulta para worldbuilders, no abre pestañas puntuales.
   escritor: null,
+  // "garumis" es el catálogo de especies Garumi, no abre pestañas de entidad puntual todavía.
+  garumis: null,
 };
 
 /**
