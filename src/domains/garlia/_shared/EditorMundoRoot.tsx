@@ -95,6 +95,11 @@ const EscritorSection = lazy(() =>
     default: m.EscritorSection,
   })),
 );
+const GarumisSection = lazy(() =>
+  import("@/domains/garlia/garumis/GarumisSection").then((m) => ({
+    default: m.GarumisSection,
+  })),
+);
 
 function SectionFallback() {
   return (
@@ -154,6 +159,8 @@ function ActiveSection() {
       return <IdiomasSection />;
     case "escritor":
       return <EscritorSection />;
+    case "garumis":
+      return <GarumisSection />;
     default: {
       const _exhaustive: never = section;
       void _exhaustive;

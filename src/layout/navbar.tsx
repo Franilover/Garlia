@@ -35,6 +35,7 @@ import {
   TreePine,
   Thermometer,
   Sword,
+  Dna,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -1010,6 +1011,14 @@ const Navbar = () => {
       icon: BookOpen,
       active: isGarliaeditor && mundoSection === "escritor",
       onSelect: () => mundoSelectSection("escritor"),
+    },
+    { key: "div-8", divider: true },
+    {
+      key: "garumis",
+      label: "Garumis",
+      icon: Dna,
+      active: isGarliaeditor && mundoSection === "garumis",
+      onSelect: () => mundoSelectSection("garumis"),
     },
   ];
 
