@@ -37,6 +37,9 @@ import {
   UserCircle2,
   Scroll,
   ChevronDown,
+  Clock,
+  Heart,
+  Link2,
 } from "lucide-react";
 
 import { supabase } from "@/infra/supabase/supabase";
@@ -60,7 +63,9 @@ interface Criatura {
   descripcion_dnd?: string | null;
 }
 interface FloraMin { id: string; nombre: string; imagen_url?: string | null; descripcion?: string | null; notas?: string | null }
-interface Personaje { id: string; nombre: string; img_url?: string | null; especie?: string | null; sobre?: string | null; reino?: string | null; caracteristicas?: string | null }
+interface Personaje { id: string; nombre: string; img_url?: string | null; especie?: string | null; sobre?: string | null; reino?: string | null; caracteristicas?: string | null; don?: string | null; fecha_nacimiento?: number | null }
+interface PersonajeRelacion { id: string; personaje_rel_id: string; tipo: string; nota?: string | null; rel_nombre?: string | null; rel_img_url?: string | null }
+interface PersonajeEra { id: string; momento: number; label: string; rasgos: string[]; notas: string; img_url: string | null }
 interface Grupo { id: string; nombre: string; tipo: string; subtipo?: string | null; descripcion?: string | null }
 interface LibroMin { id: string; titulo: string; created_at: string }
 interface LibroPagina { id: string; libro_id: string; orden: number; contenido: string }
@@ -1046,7 +1051,7 @@ function SubseccionPersonajes() {
   const [filtroReino, setFiltroReino] = useState<string>("todos");
 
   useEffect(() => {
-    supabase.from("personajes").select("id, nombre, img_url, especie, sobre, reino, caracteristicas").order("nombre").limit(300)
+    supabase.from("personajes").select("id, nombre, img_url, especie, sobre, reino, caracteristicas, don, fecha_nacimiento").order("nombre").limit(300)
       .then(({ data }) => { setPersonajes(data ?? []); setLoading(false); });
   }, []);
 
@@ -1122,35 +1127,196 @@ function SubseccionPersonajes() {
       </div>
       <div>
         {!activo ? <PanelVacio texto="Seleccioná un personaje para ver sus detalles" /> : (
-          <div className="flex flex-col gap-5 rounded-2xl border p-5" style={{ borderColor: CARD_BORDER }}>
-            <div className="flex items-start gap-4">
-              {activo.img_url
-                ? <img src={activo.img_url} alt={activo.nombre} className="h-16 w-16 rounded-xl object-cover flex-shrink-0" style={{ border: `1px solid ${CARD_BORDER}` }} />
-                : <div className="flex h-16 w-16 items-center justify-center rounded-xl flex-shrink-0" style={{ background: MUTED_BG }}><UserCircle2 size={28} style={{ opacity: 0.3 }} /></div>}
-              <div>
-                <p className="text-base font-black" style={{ color: "var(--primary)" }}>{activo.nombre}</p>
-                {activo.especie && <p className="text-[11px] font-bold capitalize" style={{ color: MUTED }}>{activo.especie}</p>}
-                {activo.reino && (
-                  <span className="mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-bold" style={{ background: MUTED_BG, color: MUTED }}>
-                    <Crown size={8} />{activo.reino}
-                  </span>
-                )}
-              </div>
-            </div>
-            {activo.sobre
-              ? <p className="text-[12px] leading-5" style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}>{activo.sobre}</p>
-              : <SinDatos texto="Sin descripción." />}
-            {activo.caracteristicas && (
-              <div className="mt-3 pt-3" style={{ borderTop: `1px solid color-mix(in srgb, var(--primary) 8%, transparent)` }}>
-                <SectionLabel icon={<Sparkles size={10} />}>Características de especie</SectionLabel>
-                <p className="text-[12px] leading-5" style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}>
-                  {activo.caracteristicas.slice(0, 400)}{activo.caracteristicas.length > 400 ? "…" : ""}
-                </p>
-              </div>
-            )}
-          </div>
+          <DetallePersonaje personaje={activo} />
         )}
       </div>
+    </div>
+  );
+}
+
+// ── Detalle de personaje completo (eras + relaciones + don) ────────────────────
+
+function DetallePersonaje({ personaje }: { personaje: Personaje }) {
+  const [relaciones, setRelaciones] = useState<PersonajeRelacion[]>([]);
+  const [eras, setEras] = useState<PersonajeEra[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [expandidoEras, setExpandidoEras] = useState(false);
+  const [expandidoRels, setExpandidoRels] = useState(false);
+
+  useEffect(() => {
+    setLoading(true);
+    setRelaciones([]);
+    setEras([]);
+    Promise.all([
+      // Relaciones: join con personajes para traer nombre e imagen del relacionado
+      supabase.from("relaciones")
+        .select("id, personaje_rel_id, tipo, nota, personajes!personaje_rel_id(nombre, img_url)")
+        .eq("personaje_id", personaje.id)
+        .order("tipo")
+        .limit(60),
+      // Eras del personaje
+      (supabase as any).from("personaje_eras")
+        .select("id, momento, label, rasgos, notas, img_url")
+        .eq("personaje_id", personaje.id)
+        .order("momento"),
+    ]).then(([relRes, erasRes]) => {
+      if (!relRes.error) {
+        const raw = relRes.data ?? [];
+        setRelaciones(raw.map((r: any) => {
+          const rel = Array.isArray(r.personajes) ? r.personajes[0] : r.personajes;
+          return {
+            id: r.id,
+            personaje_rel_id: r.personaje_rel_id,
+            tipo: r.tipo,
+            nota: r.nota ?? null,
+            rel_nombre: rel?.nombre ?? null,
+            rel_img_url: rel?.img_url ?? null,
+          };
+        }));
+      }
+      if (!erasRes.error) {
+        setEras((erasRes.data ?? []).map((e: any) => ({
+          id: e.id,
+          momento: e.momento,
+          label: e.label ?? "",
+          rasgos: e.rasgos ?? [],
+          notas: e.notas ?? "",
+          img_url: e.img_url ?? null,
+        })));
+      }
+      setLoading(false);
+    });
+  }, [personaje.id]);
+
+  // Agrupa relaciones por tipo
+  const porTipoRel = useMemo(() => {
+    const map = new Map<string, PersonajeRelacion[]>();
+    for (const r of relaciones) {
+      if (!map.has(r.tipo)) map.set(r.tipo, []);
+      map.get(r.tipo)!.push(r);
+    }
+    return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b));
+  }, [relaciones]);
+
+  return (
+    <div className="flex flex-col gap-5 rounded-2xl border p-5" style={{ borderColor: CARD_BORDER }}>
+      {/* Header */}
+      <div className="flex items-start gap-4">
+        {personaje.img_url
+          ? <img src={personaje.img_url} alt={personaje.nombre} className="h-16 w-16 rounded-xl object-cover flex-shrink-0" style={{ border: `1px solid ${CARD_BORDER}` }} />
+          : <div className="flex h-16 w-16 items-center justify-center rounded-xl flex-shrink-0" style={{ background: MUTED_BG }}><UserCircle2 size={28} style={{ opacity: 0.3 }} /></div>}
+        <div className="min-w-0">
+          <p className="text-base font-black" style={{ color: "var(--primary)" }}>{personaje.nombre}</p>
+          {personaje.especie && <p className="text-[11px] font-bold capitalize" style={{ color: MUTED }}>{personaje.especie}</p>}
+          <div className="mt-1 flex flex-wrap gap-1">
+            {personaje.reino && (
+              <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-bold" style={{ background: MUTED_BG, color: MUTED }}>
+                <Crown size={8} />{personaje.reino}
+              </span>
+            )}
+            {personaje.don && (
+              <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-bold" style={{ background: "color-mix(in srgb, var(--accent) 10%, transparent)", color: "var(--accent)" }}>
+                <Sparkles size={8} />{personaje.don}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Descripción */}
+      {personaje.sobre
+        ? <p className="text-[12px] leading-5" style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}>{personaje.sobre}</p>
+        : <SinDatos texto="Sin descripción." />}
+
+      {/* Características de especie */}
+      {personaje.caracteristicas && (
+        <div className="pt-3" style={{ borderTop: `1px solid color-mix(in srgb, var(--primary) 8%, transparent)` }}>
+          <SectionLabel icon={<Sparkles size={10} />}>Características de especie</SectionLabel>
+          <p className="text-[12px] leading-5" style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}>
+            {personaje.caracteristicas.slice(0, 400)}{personaje.caracteristicas.length > 400 ? "…" : ""}
+          </p>
+        </div>
+      )}
+
+      {loading ? <SinDatos texto="Cargando…" /> : (
+        <>
+          {/* ── RELACIONES ─────────────────────────────── */}
+          {relaciones.length > 0 && (
+            <div className="pt-3" style={{ borderTop: `1px solid color-mix(in srgb, var(--primary) 8%, transparent)` }}>
+              <button type="button" onClick={() => setExpandidoRels(v => !v)}
+                className="flex items-center gap-1.5 mb-2 w-full"
+                style={{ color: MUTED }}>
+                <ChevronDown size={11} style={{ transform: expandidoRels ? "rotate(0deg)" : "rotate(-90deg)", transition: "transform 0.15s" }} />
+                <span className={LABEL_CLS}>
+                  <Link2 size={10} className="inline mr-1" />
+                  Relaciones ({relaciones.length}){expandidoRels ? "" : " · click para ver"}
+                </span>
+              </button>
+              {expandidoRels && (
+                <div className="flex flex-wrap gap-x-4 gap-y-2">
+                  {porTipoRel.map(([tipo, rels]) => (
+                    <div key={tipo} className="flex-1 min-w-[100px]">
+                      <p className="text-[9px] font-black uppercase tracking-widest mb-1" style={{ color: MUTED }}>{tipo} ({rels.length})</p>
+                      <div className="flex flex-col gap-0.5">
+                        {rels.map(r => (
+                          <div key={r.id} className="flex items-center gap-1.5 rounded-lg px-2 py-1" style={{ background: MUTED_BG }}>
+                            {r.rel_img_url
+                              ? <img src={r.rel_img_url} alt={r.rel_nombre ?? ""} className="h-4 w-4 rounded-full object-cover flex-shrink-0" />
+                              : <UserCircle2 size={12} style={{ opacity: 0.3, flexShrink: 0 }} />}
+                            <span className="text-[10px] font-bold truncate" style={{ color: "color-mix(in srgb, var(--primary) 65%, transparent)" }}>{r.rel_nombre ?? r.personaje_rel_id}</span>
+                            {r.nota && <span className="text-[9px] italic ml-auto flex-shrink-0" style={{ color: MUTED }}>{r.nota}</span>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── ERAS DEL PERSONAJE ─────────────────────── */}
+          {eras.length > 0 && (
+            <div className="pt-3" style={{ borderTop: `1px solid color-mix(in srgb, var(--primary) 8%, transparent)` }}>
+              <button type="button" onClick={() => setExpandidoEras(v => !v)}
+                className="flex items-center gap-1.5 mb-2 w-full"
+                style={{ color: MUTED }}>
+                <ChevronDown size={11} style={{ transform: expandidoEras ? "rotate(0deg)" : "rotate(-90deg)", transition: "transform 0.15s" }} />
+                <span className={LABEL_CLS}>
+                  <Clock size={10} className="inline mr-1" />
+                  Eras del personaje ({eras.length}){expandidoEras ? "" : " · click para ver"}
+                </span>
+              </button>
+              {expandidoEras && (
+                <div className="flex flex-col gap-2">
+                  {eras.map((era, i) => (
+                    <div key={era.id} className="flex items-start gap-3 rounded-xl p-3"
+                      style={{ background: i % 2 === 0 ? "color-mix(in srgb, var(--primary) 3%, transparent)" : "transparent", border: `1px solid color-mix(in srgb, var(--primary) 7%, transparent)` }}>
+                      {era.img_url && (
+                        <img src={era.img_url} alt={era.label} className="h-10 w-10 rounded-lg object-cover flex-shrink-0" />
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-2 flex-wrap">
+                          <p className="text-xs font-black" style={{ color: "var(--primary)" }}>{era.label || `Era ${i + 1}`}</p>
+                          <span className="text-[9px] font-bold flex-shrink-0" style={{ color: MUTED }}>Día {era.momento}</span>
+                        </div>
+                        {era.rasgos.length > 0 && (
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            {era.rasgos.map((r, ri) => <Tag key={ri}>{r}</Tag>)}
+                          </div>
+                        )}
+                        {era.notas && (
+                          <p className="mt-1 text-[11px] leading-4 italic" style={{ color: MUTED }}>{era.notas.slice(0, 150)}{era.notas.length > 150 ? "…" : ""}</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }
