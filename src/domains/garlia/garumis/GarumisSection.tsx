@@ -3,12 +3,13 @@
 /**
  * GarumisSection
  * ─────────────────────────────────────────────────────────────────────────────
- * Tablas Supabase usadas:
- *   garumis, garumi_originales, garumi_evoluciones, garumi_rasgos
- *
- * Al hacer click en cualquier tarjeta (catálogo, arbol, originales) se abre
- * GarumiEditorPortal — el mismo patrón de panel flotante que usan Criaturas,
- * Items, Personajes, etc.
+ * Columnas reales en Supabase (corregidas):
+ *   garumi_originales:  id, nombre, descripcion, rasgo_linaje, estado_documentacion
+ *   garumis:            id, nombre, concepto, original_id, estado_evolutivo,
+ *                       descripcion, estado_documentacion, manifestacion_rasgo_linaje
+ *   garumi_rasgos:      id, garumi_id, nombre_rasgo, tipo_rasgo, descripcion
+ *   garumi_evoluciones: id, especie_origen_id, especie_destino_id,
+ *                       tipo_relacion, descripcion_cambio
  */
 
 import { Leaf, GitBranch, Plus, Sparkles, ChevronLeft, Loader2, GitMerge } from "lucide-react";
@@ -23,36 +24,37 @@ interface Original {
   id: string;
   nombre: string;
   descripcion: string | null;
-  rasgo_comun: string | null;
-  estado: string;
+  rasgo_linaje: string | null;
+  estado_documentacion: string;
 }
 
 interface Rasgo {
   id: string;
-  nombre: string;
+  nombre_rasgo: string;
   descripcion: string | null;
-  tipo: string | null;
+  tipo_rasgo: string | null;
 }
 
 interface Garumi {
   id: string;
   nombre: string;
-  nombre_cientifico: string | null;
+  concepto: string | null;
   original_id: string | null;
-  etapa_evolutiva: string | null;
+  estado_evolutivo: string | null;
   descripcion: string | null;
-  estado: string;
+  estado_documentacion: string;
+  manifestacion_rasgo_linaje: string | null;
 }
 
 interface Evolucion {
   id: string;
-  garumi_origen_id: string | null;
-  garumi_destino_id: string | null;
-  original_id: string | null;
-  tipo_evolucion: string | null;
-  descripcion: string | null;
+  especie_origen_id: string | null;
+  especie_destino_id: string | null;
+  tipo_relacion: string | null;
+  descripcion_cambio: string | null;
   origen_nombre?: string | null;
   destino_nombre?: string | null;
+  original_id?: string | null;
   original_nombre?: string | null;
 }
 
@@ -68,7 +70,7 @@ function useOriginales() {
     let cancelado = false;
     void supabase
       .from("garumi_originales")
-      .select("id, nombre, descripcion, rasgo_comun, estado")
+      .select("id, nombre, descripcion, rasgo_linaje, estado_documentacion")
       .order("nombre")
       .then(({ data: rows }) => {
         if (cancelado) return;
@@ -81,25 +83,25 @@ function useOriginales() {
   return { originales: data, loading };
 }
 
-function useRasgosPorOriginal(originalId: string | null) {
+function useRasgosPorGarumi(garumiId: string | null) {
   const [data, setData] = useState<Rasgo[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!originalId) { setData([]); return; }
+    if (!garumiId) { setData([]); return; }
     let cancelado = false;
     setLoading(true);
     void supabase
       .from("garumi_rasgos")
-      .select("id, nombre, descripcion, tipo")
-      .eq("original_id", originalId)
+      .select("id, nombre_rasgo, descripcion, tipo_rasgo")
+      .eq("garumi_id", garumiId)
       .then(({ data: rows }) => {
         if (cancelado) return;
         setData((rows ?? []) as Rasgo[]);
         setLoading(false);
       });
     return () => { cancelado = true; };
-  }, [originalId]);
+  }, [garumiId]);
 
   return { rasgos: data, loading };
 }
@@ -113,7 +115,7 @@ function useGarumis(originalId?: string | null) {
     setLoading(true);
     let query = supabase
       .from("garumis")
-      .select("id, nombre, nombre_cientifico, original_id, etapa_evolutiva, descripcion, estado");
+      .select("id, nombre, concepto, original_id, estado_evolutivo, descripcion, estado_documentacion, manifestacion_rasgo_linaje");
     if (originalId) query = query.eq("original_id", originalId);
     void query.order("nombre").then(({ data: rows }) => {
       if (cancelado) return;
@@ -123,7 +125,6 @@ function useGarumis(originalId?: string | null) {
     return () => { cancelado = true; };
   }, [originalId]);
 
-  // Actualizaciones locales desde el editor
   function actualizarLocal(g: GarumiEditorItem) {
     setData((prev) => prev.map((item) => item.id === g.id ? { ...item, ...g } : item));
   }
@@ -143,23 +144,20 @@ function useEvoluciones() {
     void supabase
       .from("garumi_evoluciones")
       .select(`
-        id, garumi_origen_id, garumi_destino_id, original_id, tipo_evolucion, descripcion,
-        origen:garumis!garumi_evoluciones_garumi_origen_id_fkey(nombre),
-        destino:garumis!garumi_evoluciones_garumi_destino_id_fkey(nombre),
-        original:garumi_originales!garumi_evoluciones_original_id_fkey(nombre)
+        id, especie_origen_id, especie_destino_id, tipo_relacion, descripcion_cambio,
+        origen:garumis!garumi_evoluciones_especie_origen_id_fkey(nombre),
+        destino:garumis!garumi_evoluciones_especie_destino_id_fkey(nombre)
       `)
       .then(({ data: rows }) => {
         if (cancelado) return;
         const mapped: Evolucion[] = (rows ?? []).map((r: Record<string, unknown>) => ({
           id: r.id as string,
-          garumi_origen_id: r.garumi_origen_id as string | null,
-          garumi_destino_id: r.garumi_destino_id as string | null,
-          original_id: r.original_id as string | null,
-          tipo_evolucion: r.tipo_evolucion as string | null,
-          descripcion: r.descripcion as string | null,
+          especie_origen_id: r.especie_origen_id as string | null,
+          especie_destino_id: r.especie_destino_id as string | null,
+          tipo_relacion: r.tipo_relacion as string | null,
+          descripcion_cambio: r.descripcion_cambio as string | null,
           origen_nombre: (r.origen as { nombre: string } | null)?.nombre ?? null,
           destino_nombre: (r.destino as { nombre: string } | null)?.nombre ?? null,
-          original_nombre: (r.original as { nombre: string } | null)?.nombre ?? null,
         }));
         setData(mapped);
         setLoading(false);
@@ -211,6 +209,21 @@ function RasgoChip({ nombre, tipo }: { nombre: string; tipo?: string | null }) {
   );
 }
 
+// ── Helpers para convertir Garumi → GarumiEditorItem ──────────────────────────
+
+function toEditorItem(g: Garumi): GarumiEditorItem {
+  return {
+    id: g.id,
+    nombre: g.nombre,
+    concepto: g.concepto,
+    original_id: g.original_id,
+    estado_evolutivo: g.estado_evolutivo,
+    descripcion: g.descripcion,
+    estado_documentacion: g.estado_documentacion,
+    manifestacion_rasgo_linaje: g.manifestacion_rasgo_linaje,
+  };
+}
+
 // ── Tarjeta de Garumi reutilizable ────────────────────────────────────────────
 
 function TarjetaGarumi({
@@ -248,14 +261,14 @@ function TarjetaGarumi({
       <p className="font-black uppercase tracking-widest" style={{ fontSize: 11, color: "var(--primary)" }}>
         {garumi.nombre}
       </p>
-      {garumi.nombre_cientifico && (
+      {garumi.concepto && (
         <p style={{ fontSize: 10, color: "color-mix(in srgb, var(--primary) 45%, transparent)", fontStyle: "italic" }}>
-          {garumi.nombre_cientifico}
+          {garumi.concepto}
         </p>
       )}
       <div className="flex flex-wrap gap-1 mt-0.5">
         {nombreOriginal && <RasgoChip nombre={nombreOriginal} tipo="linaje" />}
-        {garumi.etapa_evolutiva && <RasgoChip nombre={garumi.etapa_evolutiva} tipo="etapa" />}
+        {garumi.estado_evolutivo && <RasgoChip nombre={garumi.estado_evolutivo} tipo="etapa" />}
       </div>
     </button>
   );
@@ -332,7 +345,7 @@ function VistaOriginales({
   onAbrirEditor: (g: Garumi) => void;
 }) {
   const [activoId, setActivoId] = useState<string | null>(null);
-  const { rasgos, loading: loadingRasgos } = useRasgosPorOriginal(activoId);
+  const { rasgos: rasgosActivo, loading: loadingRasgos } = useRasgosPorGarumi(activoId);
   const { garumis: descendientes } = useGarumis(activoId);
 
   if (loading) return <Spinner />;
@@ -365,7 +378,7 @@ function VistaOriginales({
                 <span className="font-black uppercase tracking-widest" style={{ fontSize: 12, color: "var(--primary)" }}>
                   {o.nombre}
                 </span>
-                {o.estado === "borrador" && (
+                {o.estado_documentacion === "borrador" && (
                   <span className="font-semibold uppercase" style={{ fontSize: 9, color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
                     Borrador
                   </span>
@@ -391,31 +404,32 @@ function VistaOriginales({
                   </p>
                 )}
 
-                {o.rasgo_comun && (
+                {o.rasgo_linaje && (
                   <div>
                     <p className="font-black uppercase tracking-widest mb-1.5" style={{ fontSize: 10, color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}>
-                      Rasgo heredado
+                      Rasgo de linaje
                     </p>
-                    <RasgoChip nombre={o.rasgo_comun} />
+                    <RasgoChip nombre={o.rasgo_linaje} />
                   </div>
                 )}
 
-                <div>
-                  <p className="font-black uppercase tracking-widest mb-1.5" style={{ fontSize: 10, color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}>
-                    Rasgos del Original
-                  </p>
-                  {loadingRasgos ? (
-                    <Spinner />
-                  ) : rasgos.length === 0 ? (
-                    <p style={{ fontSize: 11, color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>Sin rasgos adicionales</p>
-                  ) : (
-                    <div className="flex flex-wrap gap-1.5">
-                      {rasgos.map((r) => <RasgoChip key={r.id} nombre={r.nombre} tipo={r.tipo} />)}
-                    </div>
-                  )}
-                </div>
+                {/* Rasgos del Original — cargados via garumi_id del propio Original si existe */}
+                {rasgosActivo.length > 0 && (
+                  <div>
+                    <p className="font-black uppercase tracking-widest mb-1.5" style={{ fontSize: 10, color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}>
+                      Rasgos del Original
+                    </p>
+                    {loadingRasgos ? (
+                      <Spinner />
+                    ) : (
+                      <div className="flex flex-wrap gap-1.5">
+                        {rasgosActivo.map((r) => <RasgoChip key={r.id} nombre={r.nombre_rasgo} tipo={r.tipo_rasgo} />)}
+                      </div>
+                    )}
+                  </div>
+                )}
 
-                {/* Descendientes como tarjetas clickeables */}
+                {/* Descendientes */}
                 {descendientes.length > 0 && (
                   <div>
                     <p className="font-black uppercase tracking-widest mb-1.5" style={{ fontSize: 10, color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}>
@@ -454,11 +468,19 @@ function VistaArbol({
 }) {
   const { evoluciones, loading } = useEvoluciones();
   const [filtroOriginal, setFiltroOriginal] = useState<string | null>(null);
-  // Para poder abrir el editor necesitamos los garumis cargados
   const { garumis } = useGarumis();
 
-  const evolucionesFiltradas = filtroOriginal
-    ? evoluciones.filter((e) => e.original_id === filtroOriginal)
+  // Sin original_id en evoluciones, filtramos por nombre de origen/destino en garumis del linaje
+  const garumisDelLinaje = filtroOriginal
+    ? garumis.filter((g) => g.original_id === filtroOriginal).map((g) => g.nombre)
+    : null;
+
+  const evolucionesFiltradas = garumisDelLinaje
+    ? evoluciones.filter(
+        (e) =>
+          (e.origen_nombre && garumisDelLinaje.includes(e.origen_nombre)) ||
+          (e.destino_nombre && garumisDelLinaje.includes(e.destino_nombre))
+      )
     : evoluciones;
 
   function abrirPorNombre(nombre: string | null | undefined) {
@@ -511,14 +533,6 @@ function VistaArbol({
             >
               {/* Origen — clickeable */}
               <div className="flex flex-col gap-0.5 min-w-0" style={{ flex: "1 1 0" }}>
-                {e.original_nombre && !e.garumi_origen_id && (
-                  <div className="flex items-center gap-1.5">
-                    <Sparkles size={10} strokeWidth={2} style={{ color: "var(--primary)", flexShrink: 0 }} />
-                    <span className="font-black uppercase tracking-widest truncate" style={{ fontSize: 10, color: "var(--primary)" }}>
-                      {e.original_nombre}
-                    </span>
-                  </div>
-                )}
                 {e.origen_nombre && (
                   <button
                     type="button"
@@ -533,9 +547,9 @@ function VistaArbol({
 
               <div className="flex items-center gap-1.5 flex-shrink-0">
                 <GitMerge size={13} strokeWidth={1.5} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
-                {e.tipo_evolucion && (
+                {e.tipo_relacion && (
                   <span className="font-semibold uppercase" style={{ fontSize: 9, color: "color-mix(in srgb, var(--primary) 35%, transparent)", letterSpacing: "0.06em" }}>
-                    {e.tipo_evolucion}
+                    {e.tipo_relacion}
                   </span>
                 )}
               </div>
@@ -552,9 +566,9 @@ function VistaArbol({
                     {e.destino_nombre}
                   </button>
                 )}
-                {e.descripcion && (
+                {e.descripcion_cambio && (
                   <span className="truncate" style={{ fontSize: 10, color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}>
-                    {e.descripcion}
+                    {e.descripcion_cambio}
                   </span>
                 )}
               </div>
@@ -595,7 +609,6 @@ export function GarumisSection() {
   const [subseccion, setSubseccion] = useState<SubseccionKey | null>(null);
   const { originales, loading: loadingOriginales } = useOriginales();
 
-  // Editor flotante
   const [garumiEditando, setGarumiEditando] = useState<Garumi | null>(null);
 
   function abrirEditor(g: Garumi) {
@@ -694,16 +707,15 @@ export function GarumisSection() {
 
       </div>
 
-      {/* ── Editor flotante — portal a document.body ─────────────────────── */}
+      {/* ── Editor flotante ─────────────────────────────────────────────── */}
       {garumiEditando && (
         <GarumiEditorPortal
-          item={garumiEditando}
+          item={toEditorItem(garumiEditando)}
           originales={originales}
           onGuardado={(g) => {
-            // Refleja cambios en la tarjeta sin refetch
             setGarumiEditando((prev) => (prev?.id === g.id ? { ...prev, ...g } : prev));
           }}
-          onEliminado={(_id) => {
+          onEliminado={() => {
             setGarumiEditando(null);
           }}
           onCerrar={cerrarEditor}

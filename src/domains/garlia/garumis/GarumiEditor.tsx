@@ -6,19 +6,12 @@
  * Panel flotante editor para un Garumi individual.
  * Mismo layout, tokens y ShellPortalFlotante que EditorCriatura / EditorItem.
  *
- * Layout:
- *   ┌─────────────────── Header bar (nombre, guardar, eliminar) ───────────────┐
- *   ├─────────────┬────────────────────────────────────────────────────────────┤
- *   │  Identidad  │  Descripción                                               │
- *   │  (linaje,   │  (textarea libre)                                          │
- *   │   etapa,    │                                                            │
- *   │   nombre    │                                                            │
- *   │   científ.) │                                                            │
- *   ├─────────────┴────────────────────────────────────────────────────────────┤
- *   │  Rasgos (chips editables)                                                │
- *   ├──────────────────────────────────────────────────────────────────────────┤
- *   │  Evoluciones (origen → tipo → destino)                                   │
- *   └──────────────────────────────────────────────────────────────────────────┘
+ * Columnas reales en Supabase (corregidas):
+ *   garumis:           id, nombre, concepto, original_id, estado_evolutivo,
+ *                      descripcion, estado_documentacion, manifestacion_rasgo_linaje
+ *   garumi_rasgos:     id, garumi_id, nombre_rasgo, tipo_rasgo, descripcion
+ *   garumi_evoluciones: id, especie_origen_id, especie_destino_id,
+ *                       tipo_relacion, descripcion_cambio
  */
 
 import {
@@ -46,11 +39,12 @@ const BORDER_MED = "color-mix(in srgb, var(--primary) 12%, transparent)";
 export interface GarumiEditorItem {
   id: string;
   nombre: string;
-  nombre_cientifico: string | null;
+  concepto: string | null;
   original_id: string | null;
-  etapa_evolutiva: string | null;
+  estado_evolutivo: string | null;
   descripcion: string | null;
-  estado: string;
+  estado_documentacion: string;
+  manifestacion_rasgo_linaje: string | null;
 }
 
 interface Original {
@@ -60,25 +54,22 @@ interface Original {
 
 interface Rasgo {
   id: string;
-  nombre: string;
-  tipo: string | null;
+  nombre_rasgo: string;
+  tipo_rasgo: string | null;
   descripcion: string | null;
 }
 
 interface Evolucion {
   id: string;
-  garumi_origen_id: string | null;
-  garumi_destino_id: string | null;
-  original_id: string | null;
-  tipo_evolucion: string | null;
-  descripcion: string | null;
+  especie_origen_id: string | null;
+  especie_destino_id: string | null;
+  tipo_relacion: string | null;
+  descripcion_cambio: string | null;
   origen_nombre?: string | null;
   destino_nombre?: string | null;
-  original_nombre?: string | null;
 }
 
 // ── ShellPortalFlotante ───────────────────────────────────────────────────────
-// Idéntico al de EditorCriatura: backdrop blur + centrado.
 
 export function ShellPortalFlotante({
   children,
@@ -126,7 +117,7 @@ function useGarumiRasgosEditor(garumiId: string) {
     setLoading(true);
     void supabase
       .from("garumi_rasgos")
-      .select("id, nombre, tipo, descripcion")
+      .select("id, nombre_rasgo, tipo_rasgo, descripcion")
       .eq("garumi_id", garumiId)
       .then(({ data }) => {
         if (cancelado) return;
@@ -136,11 +127,11 @@ function useGarumiRasgosEditor(garumiId: string) {
     return () => { cancelado = true; };
   }, [garumiId]);
 
-  async function agregarRasgo(nombre: string, tipo: string) {
+  async function agregarRasgo(nombre_rasgo: string, tipo_rasgo: string) {
     const { data } = await supabase
       .from("garumi_rasgos")
-      .insert({ garumi_id: garumiId, nombre, tipo: tipo || null })
-      .select("id, nombre, tipo, descripcion")
+      .insert({ garumi_id: garumiId, nombre_rasgo, tipo_rasgo: tipo_rasgo || null })
+      .select("id, nombre_rasgo, tipo_rasgo, descripcion")
       .single();
     if (data) setRasgos((prev) => [...prev, data as Rasgo]);
   }
@@ -165,24 +156,21 @@ function useGarumiEvoluciones(garumiId: string) {
     void supabase
       .from("garumi_evoluciones")
       .select(`
-        id, garumi_origen_id, garumi_destino_id, original_id, tipo_evolucion, descripcion,
-        origen:garumis!garumi_evoluciones_garumi_origen_id_fkey(nombre),
-        destino:garumis!garumi_evoluciones_garumi_destino_id_fkey(nombre),
-        original:garumi_originales!garumi_evoluciones_original_id_fkey(nombre)
+        id, especie_origen_id, especie_destino_id, tipo_relacion, descripcion_cambio,
+        origen:garumis!garumi_evoluciones_especie_origen_id_fkey(nombre),
+        destino:garumis!garumi_evoluciones_especie_destino_id_fkey(nombre)
       `)
-      .or(`garumi_origen_id.eq.${garumiId},garumi_destino_id.eq.${garumiId}`)
+      .or(`especie_origen_id.eq.${garumiId},especie_destino_id.eq.${garumiId}`)
       .then(({ data }) => {
         if (cancelado) return;
         const mapped: Evolucion[] = (data ?? []).map((r: Record<string, unknown>) => ({
           id: r.id as string,
-          garumi_origen_id: r.garumi_origen_id as string | null,
-          garumi_destino_id: r.garumi_destino_id as string | null,
-          original_id: r.original_id as string | null,
-          tipo_evolucion: r.tipo_evolucion as string | null,
-          descripcion: r.descripcion as string | null,
+          especie_origen_id: r.especie_origen_id as string | null,
+          especie_destino_id: r.especie_destino_id as string | null,
+          tipo_relacion: r.tipo_relacion as string | null,
+          descripcion_cambio: r.descripcion_cambio as string | null,
           origen_nombre: (r.origen as { nombre: string } | null)?.nombre ?? null,
           destino_nombre: (r.destino as { nombre: string } | null)?.nombre ?? null,
-          original_nombre: (r.original as { nombre: string } | null)?.nombre ?? null,
         }));
         setEvoluciones(mapped);
         setLoading(false);
@@ -273,8 +261,8 @@ function PanelRasgos({ garumiId }: { garumiId: string }) {
           {rasgos.map((r) => (
             <RasgoChip
               key={r.id}
-              nombre={r.nombre}
-              tipo={r.tipo}
+              nombre={r.nombre_rasgo}
+              tipo={r.tipo_rasgo}
               onEliminar={() => void eliminarRasgo(r.id)}
             />
           ))}
@@ -335,7 +323,7 @@ function PanelEvoluciones({ garumiId }: { garumiId: string }) {
   return (
     <div className="flex flex-col gap-1 p-3">
       {evoluciones.map((e) => {
-        const esOrigen = e.garumi_origen_id === garumiId;
+        const esOrigen = e.especie_origen_id === garumiId;
         return (
           <div
             key={e.id}
@@ -357,22 +345,15 @@ function PanelEvoluciones({ garumiId }: { garumiId: string }) {
                 fontWeight: esOrigen ? 800 : 500,
               }}
             >
-              {e.original_nombre && !e.garumi_origen_id ? (
-                <span className="flex items-center gap-1">
-                  <Sparkles size={9} className="shrink-0" style={{ color: "var(--primary)" }} />
-                  {e.original_nombre}
-                </span>
-              ) : (
-                e.origen_nombre ?? "—"
-              )}
+              {e.origen_nombre ?? "—"}
             </span>
 
             {/* Flecha + tipo */}
             <div className="shrink-0 flex items-center gap-1">
               <GitMerge size={11} strokeWidth={1.5} style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }} />
-              {e.tipo_evolucion && (
+              {e.tipo_relacion && (
                 <span className="uppercase font-semibold" style={{ fontSize: 8, color: "color-mix(in srgb, var(--primary) 30%, transparent)", letterSpacing: "0.08em" }}>
-                  {e.tipo_evolucion}
+                  {e.tipo_relacion}
                 </span>
               )}
             </div>
@@ -416,7 +397,6 @@ export function GarumiEditor({
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [confirmandoEliminar, setConfirmandoEliminar] = useState(false);
 
-  // Sync si cambia el item externamente
   useEffect(() => {
     setForm(item);
     setStatus("idle");
@@ -431,10 +411,12 @@ export function GarumiEditor({
         .from("garumis")
         .update({
           nombre: form.nombre,
-          nombre_cientifico: form.nombre_cientifico || null,
+          concepto: form.concepto || null,
           original_id: form.original_id || null,
-          etapa_evolutiva: form.etapa_evolutiva || null,
+          estado_evolutivo: form.estado_evolutivo || null,
           descripcion: form.descripcion || null,
+          estado_documentacion: form.estado_documentacion,
+          manifestacion_rasgo_linaje: form.manifestacion_rasgo_linaje || null,
         })
         .eq("id", form.id);
       if (error) throw error;
@@ -508,7 +490,6 @@ export function GarumiEditor({
 
         {/* Acciones */}
         <div className="shrink-0 flex items-center gap-1.5 ml-1">
-          {/* Indicador de estado */}
           {status === "saving" && (
             <span className="text-[9px] font-black uppercase tracking-widest text-primary/30">Guardando…</span>
           )}
@@ -519,7 +500,6 @@ export function GarumiEditor({
             <span className="text-[9px] font-black uppercase tracking-widest text-red-400/70">Error</span>
           )}
 
-          {/* Eliminar */}
           {confirmandoEliminar ? (
             <div className="flex items-center gap-1.5">
               <span className="text-micro font-black uppercase text-red-400 tracking-wide">¿Eliminar?</span>
@@ -562,7 +542,6 @@ export function GarumiEditor({
             </button>
           )}
 
-          {/* Guardar */}
           <button
             type="button"
             onClick={() => void guardar()}
@@ -596,29 +575,43 @@ export function GarumiEditor({
             <SectionLabel>Identidad</SectionLabel>
             <div className="flex flex-col gap-3 p-3">
 
-              {/* Nombre científico */}
+              {/* Concepto */}
               <div className="flex flex-col gap-1">
                 <label className="text-[9px] font-black uppercase tracking-[0.18em] text-primary/25">
-                  Nombre científico
+                  Concepto
                 </label>
                 <input
-                  placeholder="ej. Garumia vespera…"
-                  value={form.nombre_cientifico ?? ""}
-                  onChange={(e) => setForm((f) => ({ ...f, nombre_cientifico: e.target.value }))}
+                  placeholder="ej. Garumi del viento…"
+                  value={form.concepto ?? ""}
+                  onChange={(e) => setForm((f) => ({ ...f, concepto: e.target.value }))}
                   className="bg-transparent text-micro text-primary/70 outline-none border-b pb-0.5 placeholder:text-primary/20"
                   style={{ borderColor: BORDER }}
                 />
               </div>
 
-              {/* Etapa evolutiva */}
+              {/* Estado evolutivo */}
               <div className="flex flex-col gap-1">
                 <label className="text-[9px] font-black uppercase tracking-[0.18em] text-primary/25">
-                  Etapa evolutiva
+                  Estado evolutivo
                 </label>
                 <input
                   placeholder="larva, juvenil, adulto…"
-                  value={form.etapa_evolutiva ?? ""}
-                  onChange={(e) => setForm((f) => ({ ...f, etapa_evolutiva: e.target.value }))}
+                  value={form.estado_evolutivo ?? ""}
+                  onChange={(e) => setForm((f) => ({ ...f, estado_evolutivo: e.target.value }))}
+                  className="bg-transparent text-micro text-primary/70 outline-none border-b pb-0.5 placeholder:text-primary/20"
+                  style={{ borderColor: BORDER }}
+                />
+              </div>
+
+              {/* Manifestación del rasgo de linaje */}
+              <div className="flex flex-col gap-1">
+                <label className="text-[9px] font-black uppercase tracking-[0.18em] text-primary/25">
+                  Manifestación de linaje
+                </label>
+                <input
+                  placeholder="cómo expresa el rasgo heredado…"
+                  value={form.manifestacion_rasgo_linaje ?? ""}
+                  onChange={(e) => setForm((f) => ({ ...f, manifestacion_rasgo_linaje: e.target.value }))}
                   className="bg-transparent text-micro text-primary/70 outline-none border-b pb-0.5 placeholder:text-primary/20"
                   style={{ borderColor: BORDER }}
                 />
@@ -642,14 +635,14 @@ export function GarumiEditor({
                 </select>
               </div>
 
-              {/* Estado */}
+              {/* Estado documentación */}
               <div className="flex flex-col gap-1">
                 <label className="text-[9px] font-black uppercase tracking-[0.18em] text-primary/25">
                   Estado
                 </label>
                 <select
-                  value={form.estado}
-                  onChange={(e) => setForm((f) => ({ ...f, estado: e.target.value }))}
+                  value={form.estado_documentacion}
+                  onChange={(e) => setForm((f) => ({ ...f, estado_documentacion: e.target.value }))}
                   className="bg-transparent text-micro text-primary/70 outline-none border-b pb-0.5"
                   style={{ borderColor: BORDER }}
                 >
@@ -693,7 +686,6 @@ export function GarumiEditor({
 }
 
 // ── GarumiEditorPortal ────────────────────────────────────────────────────────
-// Wrapper que monta el editor dentro de un ShellPortalFlotante via portal.
 
 export function GarumiEditorPortal({
   item,
