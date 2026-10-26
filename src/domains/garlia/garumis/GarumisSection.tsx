@@ -16,6 +16,7 @@ interface Original {
   descripcion: string | null;
   rasgo_linaje: string | null;
   estado_documentacion: string;
+  numero_global: number | null;
 }
 
 interface Garumi {
@@ -27,6 +28,8 @@ interface Garumi {
   descripcion: string | null;
   estado_documentacion: string;
   manifestacion_rasgo_linaje: string | null;
+  numero_global: number | null;
+  numero_origen: number | null;
 }
 
 interface Rasgo {
@@ -58,7 +61,7 @@ function useOriginales() {
     let off = false;
     void supabase
       .from("garumi_originales")
-      .select("id, nombre, descripcion, rasgo_linaje, estado_documentacion")
+      .select("id, nombre, descripcion, rasgo_linaje, estado_documentacion, numero_global")
       .order("nombre")
       .then(({ data: rows }) => {
         if (off) return;
@@ -77,8 +80,8 @@ function useGarumis() {
     let off = false;
     void supabase
       .from("garumis")
-      .select("id, nombre, concepto, original_id, estado_evolutivo, descripcion, estado_documentacion, manifestacion_rasgo_linaje")
-      .order("nombre")
+      .select("id, nombre, concepto, original_id, estado_evolutivo, descripcion, estado_documentacion, manifestacion_rasgo_linaje, numero_global, numero_origen")
+      .order("numero_global", { ascending: true, nullsFirst: false })
       .then(({ data: rows }) => {
         if (off) return;
         setData((rows ?? []) as Garumi[]);
@@ -215,8 +218,16 @@ function TarjetaGarumi({
         ((e.currentTarget as HTMLElement).style.background = "transparent")
       }
     >
-      {/* Fila 1: nombre + pills de elementos */}
+      {/* Fila 1: número global + nombre + pills de elementos */}
       <div className="flex items-center gap-2 flex-wrap">
+        {garumi.numero_global != null && (
+          <span
+            className="shrink-0 tabular-nums"
+            style={{ fontSize: 9, color: "color-mix(in srgb, var(--primary) 25%, transparent)", letterSpacing: "0.04em", minWidth: 24 }}
+          >
+            {String(garumi.numero_global).padStart(3, "0")}
+          </span>
+        )}
         <span
           className="font-black uppercase tracking-widest"
           style={{ fontSize: 11, color: "var(--primary)" }}
@@ -297,11 +308,16 @@ function BloqueOriginal({
           type="button"
           onClick={() => original && onAbrirOriginal(original)}
           disabled={!original}
-          className="font-black uppercase tracking-widest transition-colors disabled:cursor-default"
+          className="flex items-center gap-2 font-black uppercase tracking-widest transition-colors disabled:cursor-default"
           style={{ fontSize: 11, color: "var(--primary)", background: "none", border: "none", padding: 0, cursor: original ? "pointer" : "default" }}
           onMouseEnter={(e) => { if (original) (e.currentTarget as HTMLElement).style.opacity = "0.7"; }}
           onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.opacity = "1"; }}
         >
+          {original?.numero_global != null && (
+            <span className="tabular-nums" style={{ fontSize: 9, fontWeight: 400, color: "color-mix(in srgb, var(--primary) 30%, transparent)", letterSpacing: "0.04em" }}>
+              {String(original.numero_global).padStart(3, "0")}
+            </span>
+          )}
           {original?.nombre ?? "Sin Original"}
         </button>
 
