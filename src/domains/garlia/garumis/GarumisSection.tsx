@@ -370,7 +370,7 @@ function BloqueOriginal({
   evoluciones: Evolucion[];
   onAbrirEditor: (g: Garumi) => void;
 }) {
-  if (garumis.length === 0 && original !== null) return null;
+  
 
   const label = original?.nombre ?? "Sin Original";
   const esBorrador = original?.estado_documentacion === "borrador";
