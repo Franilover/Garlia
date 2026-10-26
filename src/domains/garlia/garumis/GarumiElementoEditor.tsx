@@ -3,10 +3,13 @@
 /**
  * GarumiElementoEditor.tsx
  * ─────────────────────────────────────────────────────────────────────────────
- * Panel flotante con:
- *  - Lista lateral de todos los garumi_elementos
- *  - Editor derecho del elemento seleccionado
- * Mismo shell visual (ShellPortalFlotante) que GarumiEditor.
+ * Panel flotante con lista lateral de todos los garumi_elementos y editor
+ * derecho del elemento seleccionado.
+ *
+ * Columnas reales en garumi_elementos:
+ *   id, codigo, nombre, familia_manifestacion, principio, descripcion,
+ *   fenomenos (text[]), capacidades (text[]), limites (text[]),
+ *   relacion_ium, relacion_oris, estado_documentacion, notas_internas, orden
  */
 
 import { Check, Loader2, Save, Trash2, X } from "lucide-react";
@@ -18,7 +21,7 @@ import { ShellPortalFlotante } from "./GarumiEditor";
 
 // ── Tokens ────────────────────────────────────────────────────────────────────
 
-const BORDER = "color-mix(in srgb, var(--primary) 8%, transparent)";
+const BORDER     = "color-mix(in srgb, var(--primary) 8%, transparent)";
 const BORDER_MED = "color-mix(in srgb, var(--primary) 12%, transparent)";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
@@ -27,13 +30,16 @@ export interface GarumiElemento {
   id: string;
   codigo: string;
   nombre: string;
+  familia_manifestacion: string | null;
   principio: string | null;
   descripcion: string | null;
-  fenomenos: string | null;
-  capacidades: string | null;
-  limites: string | null;
-  relaciones: string | null;
+  fenomenos: string[] | null;
+  capacidades: string[] | null;
+  limites: string[] | null;
+  relacion_ium: string | null;
+  relacion_oris: string | null;
   estado_documentacion: string;
+  notas_internas: string | null;
 }
 
 // ── Hook ──────────────────────────────────────────────────────────────────────
@@ -46,11 +52,11 @@ export function useGarumiElementos() {
     let off = false;
     void supabase
       .from("garumi_elementos")
-      .select("id, codigo, nombre, principio, descripcion, fenomenos, capacidades, limites, relaciones, estado_documentacion")
-      .order("nombre")
-      .then(({ data: rows }) => {
+      .select("id, codigo, nombre, familia_manifestacion, principio, descripcion, fenomenos, capacidades, limites, relacion_ium, relacion_oris, estado_documentacion, notas_internas")
+      .order("orden", { ascending: true })
+      .then(({ data: rows, error }) => {
         if (off) return;
-        setData((rows ?? []) as GarumiElemento[]);
+        if (!error) setData((rows ?? []) as GarumiElemento[]);
         setLoading(false);
       });
     return () => { off = true; };
@@ -59,51 +65,102 @@ export function useGarumiElementos() {
   return { elementos: data, loading, setElementos: setData };
 }
 
-// ── Campo de texto reutilizable ───────────────────────────────────────────────
+// ── Helpers de UI ─────────────────────────────────────────────────────────────
 
-function Campo({
-  label,
-  value,
-  onChange,
-  multiline,
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="px-0 pt-3 pb-1" style={{ borderBottom: `1px solid ${BORDER}` }}>
+      <span className="text-[9px] font-black uppercase tracking-[0.22em]"
+        style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>
+        {children}
+      </span>
+    </div>
+  );
+}
+
+/** Campo texto simple */
+function CampoTexto({
+  label, value, onChange, placeholder, multiline,
 }: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  multiline?: boolean;
+  label: string; value: string; onChange: (v: string) => void;
+  placeholder?: string; multiline?: boolean;
 }) {
-  const base = {
-    borderColor: BORDER,
-    color: "color-mix(in srgb, var(--primary) 70%, transparent)",
+  const style: React.CSSProperties = {
     fontSize: 11,
-  } as React.CSSProperties;
-
+    color: "color-mix(in srgb, var(--primary) 70%, transparent)",
+    borderColor: BORDER,
+  };
   return (
     <div className="flex flex-col gap-1">
-      <label
-        className="font-black uppercase tracking-[0.18em]"
-        style={{ fontSize: 9, color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}
-      >
+      <label className="text-[9px] font-black uppercase tracking-[0.18em]"
+        style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>
         {label}
       </label>
       {multiline ? (
-        <textarea
-          rows={3}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder="—"
+        <textarea rows={3} value={value} onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder ?? "—"}
           className="bg-transparent outline-none border-b resize-none placeholder:text-primary/20 leading-relaxed"
-          style={base}
-        />
+          style={style} />
       ) : (
-        <input
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder="—"
+        <input value={value} onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder ?? "—"}
           className="bg-transparent outline-none border-b pb-0.5 placeholder:text-primary/20"
-          style={base}
-        />
+          style={style} />
       )}
+    </div>
+  );
+}
+
+/** Campo array: muestra cada item en una línea editable; Enter agrega, botón x elimina */
+function CampoArray({
+  label, value, onChange,
+}: {
+  label: string; value: string[]; onChange: (v: string[]) => void;
+}) {
+  const [draft, setDraft] = useState("");
+
+  function agregar() {
+    const t = draft.trim();
+    if (!t) return;
+    onChange([...value, t]);
+    setDraft("");
+  }
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label className="text-[9px] font-black uppercase tracking-[0.18em]"
+        style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>
+        {label}
+      </label>
+      {value.length > 0 && (
+        <div className="flex flex-col gap-0.5">
+          {value.map((item, i) => (
+            <div key={i} className="flex items-center gap-1.5 group">
+              <span style={{ fontSize: 11, color: "color-mix(in srgb, var(--primary) 60%, transparent)", flex: 1 }}>
+                {item}
+              </span>
+              <button type="button" onClick={() => onChange(value.filter((_, j) => j !== i))}
+                className="opacity-0 group-hover:opacity-100 transition-opacity text-primary/25 hover:text-red-400">
+                <X size={9} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="flex items-center gap-1">
+        <input
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); agregar(); } }}
+          placeholder="Agregar…"
+          className="flex-1 bg-transparent outline-none border-b pb-0.5 placeholder:text-primary/15"
+          style={{ fontSize: 10, color: "color-mix(in srgb, var(--primary) 60%, transparent)", borderColor: BORDER }}
+        />
+        <button type="button" onClick={agregar}
+          className="text-primary/30 hover:text-primary transition-colors">
+          <Check size={10} />
+        </button>
+      </div>
     </div>
   );
 }
@@ -119,7 +176,7 @@ function EditorElemento({
   onGuardado: (e: GarumiElemento) => void;
   onEliminado: (id: string) => void;
 }) {
-  const [form, setForm] = useState<GarumiElemento>(elemento);
+  const [form, setForm]     = useState<GarumiElemento>(elemento);
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [confirmando, setConfirmando] = useState(false);
 
@@ -129,22 +186,22 @@ function EditorElemento({
     setConfirmando(false);
   }, [elemento.id]);
 
-  const set = (k: keyof GarumiElemento) => (v: string) =>
-    setForm((f) => ({ ...f, [k]: v || null }));
-
   async function guardar() {
     setStatus("saving");
     const { error } = await supabase
       .from("garumi_elementos")
       .update({
-        nombre: form.nombre,
-        principio: form.principio || null,
-        descripcion: form.descripcion || null,
-        fenomenos: form.fenomenos || null,
-        capacidades: form.capacidades || null,
-        limites: form.limites || null,
-        relaciones: form.relaciones || null,
+        nombre:               form.nombre,
+        familia_manifestacion: form.familia_manifestacion || null,
+        principio:            form.principio    || null,
+        descripcion:          form.descripcion  || null,
+        fenomenos:            form.fenomenos    ?? [],
+        capacidades:          form.capacidades  ?? [],
+        limites:              form.limites      ?? [],
+        relacion_ium:         form.relacion_ium  || null,
+        relacion_oris:        form.relacion_oris || null,
         estado_documentacion: form.estado_documentacion,
+        notas_internas:       form.notas_internas || null,
       })
       .eq("id", form.id);
     if (error) { setStatus("error"); return; }
@@ -158,30 +215,24 @@ function EditorElemento({
     onEliminado(form.id);
   }
 
+  const set = (k: keyof GarumiElemento) => (v: string) =>
+    setForm((f) => ({ ...f, [k]: v || null }));
+
   return (
     <div className="flex flex-col h-full overflow-hidden" style={{ borderLeft: `1px solid ${BORDER}` }}>
+
       {/* Header */}
-      <div
-        className="shrink-0 flex items-center gap-2 px-4 py-2"
-        style={{
-          borderBottom: `1px solid ${BORDER}`,
-          background: "color-mix(in srgb, var(--primary) 3%, transparent)",
-        }}
-      >
+      <div className="shrink-0 flex items-center gap-2 px-4 py-2"
+        style={{ borderBottom: `1px solid ${BORDER}`, background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}>
+
         {/* Código */}
-        <span
-          className="shrink-0 font-black uppercase tracking-widest px-2 py-0.5"
-          style={{
-            fontSize: 10,
-            borderRadius: "var(--radius-btn)",
-            border: `1px solid ${BORDER_MED}`,
-            color: "color-mix(in srgb, var(--primary) 50%, transparent)",
-          }}
-        >
+        <span className="shrink-0 font-black uppercase tracking-widest px-2 py-0.5"
+          style={{ fontSize: 10, borderRadius: "var(--radius-btn)", border: `1px solid ${BORDER_MED}`,
+            color: "color-mix(in srgb, var(--primary) 50%, transparent)" }}>
           {form.codigo}
         </span>
 
-        {/* Nombre editable */}
+        {/* Nombre */}
         <input
           className="flex-1 min-w-0 bg-transparent text-sm font-black text-primary outline-none placeholder:text-primary/25"
           placeholder="Nombre del elemento"
@@ -189,174 +240,150 @@ function EditorElemento({
           onChange={(e) => setForm((f) => ({ ...f, nombre: e.target.value }))}
         />
 
-        {/* Estado doc */}
-        <select
-          value={form.estado_documentacion}
+        {/* Estado */}
+        <select value={form.estado_documentacion}
           onChange={(e) => setForm((f) => ({ ...f, estado_documentacion: e.target.value }))}
           className="bg-transparent outline-none"
-          style={{ fontSize: 9, color: "color-mix(in srgb, var(--primary) 35%, transparent)", letterSpacing: "0.06em" }}
-        >
+          style={{ fontSize: 9, color: "color-mix(in srgb, var(--primary) 35%, transparent)", letterSpacing: "0.06em" }}>
           <option value="borrador">borrador</option>
           <option value="aprobado">aprobado</option>
           <option value="canon">canon</option>
         </select>
 
-        {/* Status */}
-        {status === "saving" && (
-          <span className="text-[9px] font-black uppercase tracking-widest text-primary/30">Guardando…</span>
-        )}
-        {status === "saved" && (
-          <span className="text-[9px] font-black uppercase tracking-widest text-green-500/70">Guardado</span>
-        )}
-        {status === "error" && (
-          <span className="text-[9px] font-black uppercase tracking-widest text-red-400/70">Error</span>
-        )}
+        {/* Status label */}
+        {status === "saving" && <span className="text-[9px] font-black uppercase tracking-widest text-primary/30">Guardando…</span>}
+        {status === "saved"  && <span className="text-[9px] font-black uppercase tracking-widest text-green-500/70">Guardado</span>}
+        {status === "error"  && <span className="text-[9px] font-black uppercase tracking-widest text-red-400/70">Error</span>}
 
         {/* Eliminar */}
         {confirmando ? (
           <div className="flex items-center gap-1.5">
             <span className="text-[9px] font-black uppercase text-red-400 tracking-wide">¿Eliminar?</span>
-            <button
-              type="button"
-              onClick={() => void eliminar()}
+            <button type="button" onClick={() => void eliminar()}
               className="flex items-center justify-center w-6 h-6 bg-red-500 text-white hover:bg-red-600 transition-all"
-              style={{ borderRadius: "var(--radius-btn)" }}
-            >
+              style={{ borderRadius: "var(--radius-btn)" }}>
               <Check size={11} />
             </button>
-            <button
-              type="button"
-              onClick={() => setConfirmando(false)}
+            <button type="button" onClick={() => setConfirmando(false)}
               className="flex items-center justify-center w-6 h-6 text-primary/40 hover:text-primary transition-all"
-              style={{ borderRadius: "var(--radius-btn)", border: `1px solid ${BORDER_MED}` }}
-            >
+              style={{ borderRadius: "var(--radius-btn)", border: `1px solid ${BORDER_MED}` }}>
               <X size={11} />
             </button>
           </div>
         ) : (
-          <button
-            type="button"
-            onClick={() => setConfirmando(true)}
+          <button type="button" onClick={() => setConfirmando(true)}
             className="flex items-center justify-center w-6 h-6 text-red-400/40 hover:text-red-400 transition-colors"
-            style={{ borderRadius: "var(--radius-btn)" }}
-          >
+            style={{ borderRadius: "var(--radius-btn)" }}>
             <Trash2 size={11} />
           </button>
         )}
 
         {/* Guardar */}
-        <button
-          type="button"
-          onClick={() => void guardar()}
-          disabled={status === "saving"}
+        <button type="button" onClick={() => void guardar()} disabled={status === "saving"}
           className="flex items-center gap-1 px-3 py-1 text-[9px] font-black uppercase tracking-widest transition-all disabled:opacity-50"
-          style={{
-            borderRadius: "var(--radius-btn)",
-            background: "var(--primary)",
-            color: "var(--btn-text, #fff)",
-          }}
-        >
+          style={{ borderRadius: "var(--radius-btn)", background: "var(--primary)", color: "var(--btn-text, #fff)" }}>
           <Save size={10} /> Guardar
         </button>
       </div>
 
-      {/* Cuerpo */}
-      <div className="flex-1 min-h-0 overflow-y-auto p-4 flex flex-col gap-4" style={{ scrollbarWidth: "none" }}>
-        <Campo label="Principio" value={form.principio ?? ""} onChange={set("principio")} />
-        <Campo label="Descripción" value={form.descripcion ?? ""} onChange={set("descripcion")} multiline />
-        <Campo label="Fenómenos" value={form.fenomenos ?? ""} onChange={set("fenomenos")} multiline />
-        <Campo label="Capacidades" value={form.capacidades ?? ""} onChange={set("capacidades")} multiline />
-        <Campo label="Límites" value={form.limites ?? ""} onChange={set("limites")} multiline />
-        <Campo label="Relaciones" value={form.relaciones ?? ""} onChange={set("relaciones")} multiline />
+      {/* Cuerpo en dos columnas */}
+      <div className="flex-1 min-h-0 overflow-y-auto" style={{ scrollbarWidth: "none" }}>
+        <div className="grid h-full" style={{ gridTemplateColumns: "1fr 1fr", alignItems: "start" }}>
+
+          {/* Col izquierda */}
+          <div className="flex flex-col gap-4 p-4" style={{ borderRight: `1px solid ${BORDER}` }}>
+            <CampoTexto label="Familia / manifestación" value={form.familia_manifestacion ?? ""}
+              onChange={set("familia_manifestacion")} placeholder="ej. Térmica" />
+            <CampoTexto label="Principio" value={form.principio ?? ""}
+              onChange={set("principio")} placeholder="Qué define a este elemento…" />
+            <CampoTexto label="Descripción" value={form.descripcion ?? ""}
+              onChange={set("descripcion")} multiline />
+            <CampoTexto label="Relación con IUMs" value={form.relacion_ium ?? ""}
+              onChange={set("relacion_ium")} multiline />
+            <CampoTexto label="Relación con Oris" value={form.relacion_oris ?? ""}
+              onChange={set("relacion_oris")} multiline />
+          </div>
+
+          {/* Col derecha */}
+          <div className="flex flex-col gap-4 p-4">
+            <SectionLabel>Fenómenos</SectionLabel>
+            <CampoArray label="" value={form.fenomenos ?? []}
+              onChange={(v) => setForm((f) => ({ ...f, fenomenos: v }))} />
+            <SectionLabel>Capacidades</SectionLabel>
+            <CampoArray label="" value={form.capacidades ?? []}
+              onChange={(v) => setForm((f) => ({ ...f, capacidades: v }))} />
+            <SectionLabel>Límites</SectionLabel>
+            <CampoArray label="" value={form.limites ?? []}
+              onChange={(v) => setForm((f) => ({ ...f, limites: v }))} />
+            <div style={{ borderTop: `1px solid ${BORDER}`, paddingTop: 12 }}>
+              <CampoTexto label="Notas internas" value={form.notas_internas ?? ""}
+                onChange={set("notas_internas")} multiline />
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
 
-// ── Panel completo de elementos ───────────────────────────────────────────────
+// ── Panel completo ────────────────────────────────────────────────────────────
 
 function PanelElementos({ onCerrar }: { onCerrar: () => void }) {
   const { elementos, loading, setElementos } = useGarumiElementos();
   const [seleccionado, setSeleccionado] = useState<GarumiElemento | null>(null);
 
-  // Seleccionar el primero automáticamente
   useEffect(() => {
-    if (!seleccionado && elementos.length > 0) {
-      setSeleccionado(elementos[0]);
-    }
+    if (!seleccionado && elementos.length > 0) setSeleccionado(elementos[0]);
   }, [elementos, seleccionado]);
 
   return (
-    <div
-      className="flex flex-col h-full overflow-hidden"
-      style={{
-        borderRadius: "var(--radius-card)",
-        border: `1px solid ${BORDER_MED}`,
-        background: "var(--bg-main)",
-      }}
-    >
-      {/* Header principal */}
-      <div
-        className="shrink-0 flex items-center gap-3 px-4 py-2"
-        style={{
-          borderBottom: `1px solid ${BORDER}`,
-          background: "color-mix(in srgb, var(--primary) 3%, transparent)",
-        }}
-      >
-        <span className="flex-1 text-sm font-black text-primary uppercase tracking-widest" style={{ fontSize: 11 }}>
+    <div className="flex flex-col h-full overflow-hidden"
+      style={{ borderRadius: "var(--radius-card)", border: `1px solid ${BORDER_MED}`, background: "var(--bg-main)" }}>
+
+      {/* Header */}
+      <div className="shrink-0 flex items-center gap-3 px-4 py-2"
+        style={{ borderBottom: `1px solid ${BORDER}`, background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}>
+        <span className="flex-1 font-black text-primary uppercase tracking-widest" style={{ fontSize: 11 }}>
           Elementos Garumi
         </span>
         <span style={{ fontSize: 10, color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>
           {elementos.length} elementos
         </span>
-        <button
-          type="button"
-          onClick={onCerrar}
+        <button type="button" onClick={onCerrar}
           className="flex items-center justify-center w-7 h-7 text-primary/30 hover:text-primary transition-colors"
-          style={{ borderRadius: "var(--radius-btn)" }}
-        >
+          style={{ borderRadius: "var(--radius-btn)" }}>
           <X size={14} />
         </button>
       </div>
 
-      {/* Cuerpo: lista + editor */}
+      {/* Lista + editor */}
       <div className="flex-1 min-h-0 flex overflow-hidden">
+
         {/* Lista lateral */}
-        <div
-          className="shrink-0 flex flex-col overflow-y-auto"
-          style={{ width: 180, borderRight: `1px solid ${BORDER}`, scrollbarWidth: "none" }}
-        >
+        <div className="shrink-0 flex flex-col overflow-y-auto"
+          style={{ width: 170, borderRight: `1px solid ${BORDER}`, scrollbarWidth: "none" }}>
           {loading ? (
             <div className="flex justify-center py-8">
-              <Loader2 size={14} strokeWidth={2} className="animate-spin" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
+              <Loader2 size={14} strokeWidth={2} className="animate-spin"
+                style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
             </div>
           ) : (
             elementos.map((el) => {
               const activo = seleccionado?.id === el.id;
               return (
-                <button
-                  key={el.id}
-                  type="button"
-                  onClick={() => setSeleccionado(el)}
+                <button key={el.id} type="button" onClick={() => setSeleccionado(el)}
                   className="flex flex-col gap-0.5 text-left px-3 py-2.5 transition-colors w-full"
                   style={{
-                    background: activo
-                      ? "color-mix(in srgb, var(--primary) 8%, transparent)"
-                      : "transparent",
+                    background: activo ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "transparent",
                     borderBottom: `1px solid ${BORDER}`,
-                  }}
-                >
-                  <span
-                    className="font-black uppercase tracking-widest"
-                    style={{
-                      fontSize: 10,
-                      color: activo ? "var(--primary)" : "color-mix(in srgb, var(--primary) 50%, transparent)",
-                    }}
-                  >
+                  }}>
+                  <span className="font-black uppercase tracking-widest"
+                    style={{ fontSize: 10, color: activo ? "var(--primary)" : "color-mix(in srgb, var(--primary) 50%, transparent)" }}>
                     {el.nombre}
                   </span>
                   <span style={{ fontSize: 9, color: "color-mix(in srgb, var(--primary) 25%, transparent)", letterSpacing: "0.06em" }}>
                     {el.codigo}
+                    {el.familia_manifestacion && ` · ${el.familia_manifestacion}`}
                   </span>
                 </button>
               );
