@@ -6,6 +6,7 @@ import React, { useEffect, useState } from "react";
 import { supabase } from "@/infra/supabase/supabase";
 import { GarumiEditorPortal, type GarumiEditorItem } from "./GarumiEditor";
 import { GarumiElementosPortal } from "./GarumiElementoEditor";
+import { OriginalEditorPortal, type OriginalItem } from "./OriginalEditor";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -336,6 +337,7 @@ function BloqueOriginal({
   evoluciones,
   elementoMap,
   onAbrirEditor,
+  onAbrirOriginal,
 }: {
   original: Original | null;
   garumis: Garumi[];
@@ -343,6 +345,7 @@ function BloqueOriginal({
   evoluciones: Evolucion[];
   elementoMap: ElementoMap;
   onAbrirEditor: (g: Garumi) => void;
+  onAbrirOriginal: (o: Original) => void;
 }) {
   return (
     <div className="flex flex-col gap-0">
@@ -351,12 +354,17 @@ function BloqueOriginal({
         className="flex items-baseline gap-3 px-1 pb-2"
         style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)" }}
       >
-        <span
-          className="font-black uppercase tracking-widest"
-          style={{ fontSize: 11, color: "var(--primary)" }}
+        <button
+          type="button"
+          onClick={() => original && onAbrirOriginal(original)}
+          disabled={!original}
+          className="font-black uppercase tracking-widest transition-colors disabled:cursor-default"
+          style={{ fontSize: 11, color: "var(--primary)", background: "none", border: "none", padding: 0, cursor: original ? "pointer" : "default" }}
+          onMouseEnter={(e) => { if (original) (e.currentTarget as HTMLElement).style.opacity = "0.7"; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.opacity = "1"; }}
         >
           {original?.nombre ?? "Sin Original"}
-        </span>
+        </button>
 
         {original?.rasgo_linaje && (
           <span style={{ fontSize: 9, color: "color-mix(in srgb, var(--primary) 40%, transparent)", letterSpacing: "0.07em" }}>
@@ -417,6 +425,7 @@ export function GarumisSection() {
   const elementoMap = useElementosPorGarumi();
 
   const [editando, setEditando] = useState<Garumi | null>(null);
+  const [editandoOriginal, setEditandoOriginal] = useState<Original | null>(null);
   const [verElementos, setVerElementos] = useState(false);
 
   const garumisDeOriginal = (id: string) =>
@@ -513,6 +522,7 @@ export function GarumisSection() {
                 evoluciones={evoluciones}
                 elementoMap={elementoMap}
                 onAbrirEditor={setEditando}
+                onAbrirOriginal={setEditandoOriginal}
               />
             ))}
             {huerfanos.length > 0 && (
@@ -524,6 +534,7 @@ export function GarumisSection() {
                 evoluciones={evoluciones}
                 elementoMap={elementoMap}
                 onAbrirEditor={setEditando}
+                onAbrirOriginal={setEditandoOriginal}
               />
             )}
           </div>
@@ -544,6 +555,19 @@ export function GarumisSection() {
             setEditando(null);
           }}
           onCerrar={() => setEditando(null)}
+        />
+      )}
+
+      {/* Editor flotante de Original */}
+      {editandoOriginal && (
+        <OriginalEditorPortal
+          item={editandoOriginal as OriginalItem}
+          onGuardado={(o) => {
+            // update originales list via prop — propagate upward via a local re-read
+            setEditandoOriginal((prev) => prev?.id === o.id ? { ...prev, ...o } : prev);
+          }}
+          onEliminado={() => setEditandoOriginal(null)}
+          onCerrar={() => setEditandoOriginal(null)}
         />
       )}
 
