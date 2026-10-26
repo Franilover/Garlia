@@ -1,6 +1,6 @@
 "use client";
 
-import { GitMerge, Layers, Loader2, Plus } from "lucide-react";
+import { Layers, Loader2, Plus } from "lucide-react";
 import React, { useEffect, useState } from "react";
 
 import { supabase } from "@/infra/supabase/supabase";
@@ -188,18 +188,15 @@ function toEditorItem(g: Garumi): GarumiEditorItem {
 
 function TarjetaGarumi({
   garumi,
-  rasgos,
   evoluciones,
   elementos,
   onClick,
 }: {
   garumi: Garumi;
-  rasgos: Rasgo[];
   evoluciones: Evolucion[];
   elementos: string[];
   onClick: () => void;
 }) {
-  const propios = rasgos.filter((r) => r.garumi_id === garumi.id);
   const evolDe = evoluciones.filter(
     (e) => e.especie_origen_id === garumi.id || e.especie_destino_id === garumi.id
   );
@@ -208,118 +205,62 @@ function TarjetaGarumi({
     <button
       type="button"
       onClick={onClick}
-      className="text-left flex flex-col gap-1.5 p-3 w-full transition-colors"
-      style={{
-        borderRadius: "var(--radius-card)",
-        border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-      }}
+      className="w-full text-left flex flex-col gap-0.5 py-2 px-1 transition-colors"
+      style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }}
       onMouseEnter={(e) =>
-        ((e.currentTarget as HTMLElement).style.borderColor =
-          "color-mix(in srgb, var(--primary) 25%, transparent)")
+        ((e.currentTarget as HTMLElement).style.background =
+          "color-mix(in srgb, var(--primary) 3%, transparent)")
       }
       onMouseLeave={(e) =>
-        ((e.currentTarget as HTMLElement).style.borderColor =
-          "color-mix(in srgb, var(--primary) 10%, transparent)")
+        ((e.currentTarget as HTMLElement).style.background = "transparent")
       }
     >
-      {/* Nombre + estado + elementos */}
-      <div className="flex items-baseline gap-2 flex-wrap">
+      {/* Fila 1: nombre + pills de elementos */}
+      <div className="flex items-center gap-2 flex-wrap">
         <span
           className="font-black uppercase tracking-widest"
           style={{ fontSize: 11, color: "var(--primary)" }}
         >
           {garumi.nombre}
         </span>
-        {garumi.estado_documentacion === "borrador" && (
-          <span style={{ fontSize: 9, color: "color-mix(in srgb, var(--primary) 30%, transparent)", letterSpacing: "0.08em" }}>
-            borrador
+        {elementos.map((nombre) => (
+          <span
+            key={nombre}
+            style={{
+              fontSize: 8,
+              fontWeight: 700,
+              letterSpacing: "0.1em",
+              textTransform: "uppercase",
+              color: "color-mix(in srgb, var(--primary) 40%, transparent)",
+              background: "color-mix(in srgb, var(--primary) 5%, transparent)",
+              border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+              borderRadius: "var(--radius-btn)",
+              padding: "0 5px",
+              lineHeight: "16px",
+            }}
+          >
+            {nombre}
           </span>
-        )}
-        {/* Labels de elementos */}
-        {elementos.length > 0 && (
-          <div className="flex items-center gap-1 flex-wrap">
-            {elementos.map((nombre) => (
-              <span
-                key={nombre}
-                style={{
-                  fontSize: 8,
-                  fontWeight: 700,
-                  letterSpacing: "0.1em",
-                  textTransform: "uppercase",
-                  color: "color-mix(in srgb, var(--primary) 45%, transparent)",
-                  background: "color-mix(in srgb, var(--primary) 6%, transparent)",
-                  border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-                  borderRadius: "var(--radius-btn)",
-                  padding: "0 5px",
-                  lineHeight: "16px",
-                }}
-              >
-                {nombre}
-              </span>
-            ))}
-          </div>
-        )}
+        ))}
       </div>
 
-      {/* Concepto */}
+      {/* Fila 2: concepto */}
       {garumi.concepto && (
-        <p style={{ fontSize: 10, color: "color-mix(in srgb, var(--primary) 45%, transparent)", fontStyle: "italic", lineHeight: 1.4 }}>
+        <p style={{ fontSize: 10, color: "color-mix(in srgb, var(--primary) 35%, transparent)", fontStyle: "italic" }}>
           {garumi.concepto}
         </p>
       )}
 
-      {/* Meta en línea */}
-      {(garumi.estado_evolutivo || garumi.manifestacion_rasgo_linaje) && (
-        <p style={{ fontSize: 9, color: "color-mix(in srgb, var(--primary) 35%, transparent)", letterSpacing: "0.06em" }}>
-          {[garumi.estado_evolutivo, garumi.manifestacion_rasgo_linaje]
-            .filter(Boolean)
-            .join(" · ")}
-        </p>
-      )}
-
-      {/* Rasgos */}
-      {propios.length > 0 && (
-        <div
-          className="flex flex-wrap gap-1 pt-1.5"
-          style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }}
-        >
-          {propios.map((r) => (
-            <span
-              key={r.id}
-              style={{
-                fontSize: 9,
-                color: "color-mix(in srgb, var(--primary) 40%, transparent)",
-                letterSpacing: "0.05em",
-              }}
-            >
-              {r.tipo_rasgo ? `${r.tipo_rasgo} · ${r.nombre_rasgo}` : r.nombre_rasgo}
-            </span>
-          ))}
-        </div>
-      )}
-
-      {/* Evoluciones */}
+      {/* Fila 3: evoluciones (solo si hay) */}
       {evolDe.length > 0 && (
-        <div
-          className="flex flex-col gap-0.5 pt-1.5"
-          style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }}
-        >
+        <div className="flex items-center gap-2 flex-wrap pt-0.5">
           {evolDe.map((e) => {
             const esOrigen = e.especie_origen_id === garumi.id;
             return (
-              <div
-                key={e.id}
-                className="flex items-center gap-1"
-                style={{ fontSize: 9, color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
-              >
-                <GitMerge size={8} strokeWidth={1.5} className="shrink-0" />
-                <span className="truncate">
-                  {esOrigen ? `→ ${e.destino_nombre ?? "?"}` : `← ${e.origen_nombre ?? "?"}`}
-                  {e.tipo_relacion && (
-                    <span style={{ opacity: 0.6 }}>{" "}· {e.tipo_relacion}</span>
-                  )}
-                </span>
-              </div>
+              <span key={e.id} style={{ fontSize: 9, color: "color-mix(in srgb, var(--primary) 28%, transparent)" }}>
+                {esOrigen ? `→ ${e.destino_nombre ?? "?"}` : `← ${e.origen_nombre ?? "?"}`}
+                {e.tipo_relacion && <span style={{ opacity: 0.6 }}> · {e.tipo_relacion}</span>}
+              </span>
             );
           })}
         </div>
@@ -333,7 +274,6 @@ function TarjetaGarumi({
 function BloqueOriginal({
   original,
   garumis,
-  rasgos,
   evoluciones,
   elementoMap,
   onAbrirEditor,
@@ -341,7 +281,6 @@ function BloqueOriginal({
 }: {
   original: Original | null;
   garumis: Garumi[];
-  rasgos: Rasgo[];
   evoluciones: Evolucion[];
   elementoMap: ElementoMap;
   onAbrirEditor: (g: Garumi) => void;
@@ -395,15 +334,11 @@ function BloqueOriginal({
           Sin especies registradas.
         </p>
       ) : (
-        <div
-          className="pt-3 grid gap-2"
-          style={{ gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))" }}
-        >
+        <div className="flex flex-col pt-2">
           {garumis.map((g) => (
             <TarjetaGarumi
               key={g.id}
               garumi={g}
-              rasgos={rasgos}
               evoluciones={evoluciones}
               elementos={elementoMap[g.id] ?? []}
               onClick={() => onAbrirEditor(g)}
@@ -518,7 +453,6 @@ export function GarumisSection() {
                 key={o.id}
                 original={o}
                 garumis={garumisDeOriginal(o.id)}
-                rasgos={rasgos}
                 evoluciones={evoluciones}
                 elementoMap={elementoMap}
                 onAbrirEditor={setEditando}
@@ -530,7 +464,6 @@ export function GarumisSection() {
                 key="sin-original"
                 original={null}
                 garumis={huerfanos}
-                rasgos={rasgos}
                 evoluciones={evoluciones}
                 elementoMap={elementoMap}
                 onAbrirEditor={setEditando}
