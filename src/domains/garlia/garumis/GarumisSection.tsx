@@ -191,90 +191,55 @@ function toEditorItem(g: Garumi): GarumiEditorItem {
 
 function TarjetaGarumi({
   garumi,
-  evoluciones,
   elementos,
+  dim,
   onClick,
 }: {
   garumi: Garumi;
-  evoluciones: Evolucion[];
   elementos: string[];
+  dim?: boolean;
   onClick: () => void;
 }) {
-  const evolDe = evoluciones.filter(
-    (e) => e.especie_origen_id === garumi.id || e.especie_destino_id === garumi.id
-  );
-
   return (
     <button
       type="button"
       onClick={onClick}
-      className="w-full text-left flex flex-col gap-0.5 py-2 px-1 transition-colors"
-      style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }}
-      onMouseEnter={(e) =>
-        ((e.currentTarget as HTMLElement).style.background =
-          "color-mix(in srgb, var(--primary) 3%, transparent)")
-      }
-      onMouseLeave={(e) =>
-        ((e.currentTarget as HTMLElement).style.background = "transparent")
-      }
+      className="w-full text-left flex flex-col gap-0.5 py-2 px-2 transition-colors"
+      style={{ opacity: dim ? 0.35 : 1 }}
+      onMouseEnter={(e) => {
+        (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 3%, transparent)";
+        if (dim) (e.currentTarget as HTMLElement).style.opacity = "1";
+      }}
+      onMouseLeave={(e) => {
+        (e.currentTarget as HTMLElement).style.background = "transparent";
+        if (dim) (e.currentTarget as HTMLElement).style.opacity = "0.35";
+      }}
     >
-      {/* Fila 1: número global + nombre + pills de elementos */}
-      <div className="flex items-center gap-2 flex-wrap">
+      {/* Número + nombre + pill */}
+      <div className="flex items-center gap-1.5 flex-wrap">
         {garumi.numero_global != null && (
-          <span
-            className="shrink-0 tabular-nums"
-            style={{ fontSize: 9, color: "color-mix(in srgb, var(--primary) 25%, transparent)", letterSpacing: "0.04em", minWidth: 24 }}
-          >
+          <span className="shrink-0 tabular-nums" style={{ fontSize: 9, color: "color-mix(in srgb, var(--primary) 22%, transparent)", minWidth: 20 }}>
             {String(garumi.numero_global).padStart(3, "0")}
           </span>
         )}
-        <span
-          className="font-black uppercase tracking-widest"
-          style={{ fontSize: 11, color: "var(--primary)" }}
-        >
+        <span className="font-black uppercase tracking-widest" style={{ fontSize: 11, color: "var(--primary)" }}>
           {garumi.nombre}
         </span>
         {elementos.map((nombre) => (
-          <span
-            key={nombre}
-            style={{
-              fontSize: 8,
-              fontWeight: 700,
-              letterSpacing: "0.1em",
-              textTransform: "uppercase",
-              color: "color-mix(in srgb, var(--primary) 40%, transparent)",
-              background: "color-mix(in srgb, var(--primary) 5%, transparent)",
-              border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
-              borderRadius: "var(--radius-btn)",
-              padding: "0 5px",
-              lineHeight: "16px",
-            }}
-          >
-            {nombre}
-          </span>
+          <span key={nombre} style={{
+            fontSize: 8, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase",
+            color: "color-mix(in srgb, var(--primary) 40%, transparent)",
+            background: "color-mix(in srgb, var(--primary) 5%, transparent)",
+            border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+            borderRadius: "var(--radius-btn)", padding: "0 5px", lineHeight: "16px",
+          }}>{nombre}</span>
         ))}
       </div>
-
-      {/* Fila 2: concepto */}
+      {/* Concepto */}
       {garumi.concepto && (
         <p style={{ fontSize: 10, color: "color-mix(in srgb, var(--primary) 35%, transparent)", fontStyle: "italic" }}>
           {garumi.concepto}
         </p>
-      )}
-
-      {/* Fila 3: evoluciones (solo si hay) */}
-      {evolDe.length > 0 && (
-        <div className="flex items-center gap-2 flex-wrap pt-0.5">
-          {evolDe.map((e) => {
-            const esOrigen = e.especie_origen_id === garumi.id;
-            return (
-              <span key={e.id} style={{ fontSize: 9, color: "color-mix(in srgb, var(--primary) 28%, transparent)" }}>
-                {esOrigen ? `→ ${e.destino_nombre ?? "?"}` : `← ${e.origen_nombre ?? "?"}`}
-                {e.tipo_relacion && <span style={{ opacity: 0.6 }}> · {e.tipo_relacion}</span>}
-              </span>
-            );
-          })}
-        </div>
       )}
     </button>
   );
@@ -341,27 +306,64 @@ function BloqueOriginal({
         </span>
       </div>
 
-      {/* Grid de Garumis */}
+      {/* Columnas evolutivas */}
       {garumis.length === 0 ? (
-        <p
-          className="py-4 px-1"
-          style={{ fontSize: 10, color: "color-mix(in srgb, var(--primary) 20%, transparent)", fontStyle: "italic" }}
-        >
+        <p className="py-4 px-1" style={{ fontSize: 10, color: "color-mix(in srgb, var(--primary) 20%, transparent)", fontStyle: "italic" }}>
           Sin especies registradas.
         </p>
-      ) : (
-        <div className="flex flex-col pt-2">
-          {garumis.map((g) => (
-            <TarjetaGarumi
-              key={g.id}
-              garumi={g}
-              evoluciones={evoluciones}
-              elementos={elementoMap[g.id] ?? []}
-              onClick={() => onAbrirEditor(g)}
-            />
-          ))}
-        </div>
-      )}
+      ) : (() => {
+        // Build evolution chains: base → evolved
+        // A "base" is a garumi that is NOT the destination of any evolution within this group
+        const ids = new Set(garumis.map((g) => g.id));
+        const isDestino = new Set(
+          evoluciones
+            .filter((e) => e.especie_destino_id && ids.has(e.especie_destino_id))
+            .map((e) => e.especie_destino_id!)
+        );
+        // Bases: not a destination of any evolution
+        const bases = garumis.filter((g) => !isDestino.has(g.id));
+        // For each base, find its direct evolved form (if any)
+        const destinoDeBase = (baseId: string): Garumi | null => {
+          const rel = evoluciones.find((e) => e.especie_origen_id === baseId && e.especie_destino_id && ids.has(e.especie_destino_id));
+          return rel ? (garumis.find((g) => g.id === rel.especie_destino_id) ?? null) : null;
+        };
+        // Sort bases by numero_global
+        const sortedBases = [...bases].sort((a, b) => (a.numero_global ?? 999) - (b.numero_global ?? 999));
+        return (
+          <div className="pt-3 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
+            <div className="grid gap-x-1 gap-y-0" style={{ gridTemplateColumns: `repeat(${sortedBases.length}, minmax(160px, 1fr))` }}>
+              {/* Row 1: bases */}
+              {sortedBases.map((base) => (
+                <div key={base.id} style={{ borderLeft: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+                  <TarjetaGarumi
+                    garumi={base}
+                    elementos={elementoMap[base.id] ?? []}
+                    onClick={() => onAbrirEditor(base)}
+                  />
+                </div>
+              ))}
+              {/* Row 2: evolutions (or empty slot) */}
+              {sortedBases.map((base) => {
+                const evo = destinoDeBase(base.id);
+                return (
+                  <div key={base.id + "-evo"} style={{ borderLeft: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)", borderTop: "1px solid color-mix(in srgb, var(--primary) 5%, transparent)" }}>
+                    {evo ? (
+                      <TarjetaGarumi
+                        garumi={evo}
+                        elementos={elementoMap[evo.id] ?? []}
+                        onClick={() => onAbrirEditor(evo)}
+                        dim
+                      />
+                    ) : (
+                      <div className="py-2 px-2" style={{ minHeight: 36 }} />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
