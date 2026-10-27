@@ -1169,14 +1169,14 @@ function GarumiPanel({
     let cancelled = false;
     setPreloading(true);
     const queries: Promise<any>[] = [
-      supabase.from("garumi_estadisticas_combate").select("*").eq("garumi_id", garumi.id).maybeSingle().then(r => r.data),
-      supabase.from("garumi_elemento_asignaciones").select("id, elemento_id, rol, estado_documentacion, garumi_elementos(nombre, codigo)").eq("garumi_id", garumi.id).order("created_at").then(r => r.data ?? []),
-      supabase.from("garumi_dones_habilidades_asignaciones").select("id, capacidad_id, origen, es_innata, orden, estado_documentacion, garumi_dones_habilidades_catalogo(nombre, clase, categoria)").eq("garumi_id", garumi.id).order("orden").then(r => r.data ?? []),
-      supabase.from("garumi_manifestaciones").select("id, codigo, nombre, tipo_manifestacion, orden, es_manifestacion_base, estado_documentacion, coste_eterium, limite_uso").eq("garumi_id", garumi.id).order("orden").then(r => r.data ?? []),
-      supabase.from("garumi_rasgos").select("id, nombre_rasgo, tipo_rasgo, descripcion").eq("garumi_id", garumi.id).order("created_at").then(r => r.data ?? []),
-      supabase.from("garumi_evoluciones").select("id, especie_origen_id, especie_destino_id, tipo_relacion, descripcion_cambio, origen:garumis!garumi_evoluciones_especie_origen_id_fkey(nombre), destino:garumis!garumi_evoluciones_especie_destino_id_fkey(nombre)").or(`especie_origen_id.eq.${garumi.id},especie_destino_id.eq.${garumi.id}`).then(r => r.data ?? []),
+      Promise.resolve(supabase.from("garumi_estadisticas_combate").select("*").eq("garumi_id", garumi.id).maybeSingle()).then(r => r.data),
+      Promise.resolve(supabase.from("garumi_elemento_asignaciones").select("id, elemento_id, rol, estado_documentacion, garumi_elementos(nombre, codigo)").eq("garumi_id", garumi.id).order("created_at")).then(r => r.data ?? []),
+      Promise.resolve(supabase.from("garumi_dones_habilidades_asignaciones").select("id, capacidad_id, origen, es_innata, orden, estado_documentacion, garumi_dones_habilidades_catalogo(nombre, clase, categoria)").eq("garumi_id", garumi.id).order("orden")).then(r => r.data ?? []),
+      Promise.resolve(supabase.from("garumi_manifestaciones").select("id, codigo, nombre, tipo_manifestacion, orden, es_manifestacion_base, estado_documentacion, coste_eterium, limite_uso").eq("garumi_id", garumi.id).order("orden")).then(r => r.data ?? []),
+      Promise.resolve(supabase.from("garumi_rasgos").select("id, nombre_rasgo, tipo_rasgo, descripcion").eq("garumi_id", garumi.id).order("created_at")).then(r => r.data ?? []),
+      Promise.resolve(supabase.from("garumi_evoluciones").select("id, especie_origen_id, especie_destino_id, tipo_relacion, descripcion_cambio, origen:garumis!garumi_evoluciones_especie_origen_id_fkey(nombre), destino:garumis!garumi_evoluciones_especie_destino_id_fkey(nombre)").or(`especie_origen_id.eq.${garumi.id},especie_destino_id.eq.${garumi.id}`)).then(r => r.data ?? []),
       garumi.criatura_id
-        ? supabase.from("criaturas").select("id, nombre, comportamiento, dialogo, ia_config, stats_dnd, biologia, pensamiento, estado_documentacion").eq("id", garumi.criatura_id).maybeSingle().then(r => r.data)
+        ? Promise.resolve(supabase.from("criaturas").select("id, nombre, comportamiento, dialogo, ia_config, stats_dnd, biologia, pensamiento, estado_documentacion").eq("id", garumi.criatura_id).maybeSingle()).then(r => r.data)
         : Promise.resolve(null),
     ];
     Promise.all(queries).then(([stats, elems, dones, manes, rasgos, evols, criatura]) => {
