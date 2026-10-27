@@ -281,9 +281,26 @@ const EMPTY_STATS: Stats = {
   arquetipo_id: "", estado_documentacion: "borrador", notas_internas: "",
 };
 
-function TabStats({ garumiId, arquetipos }: { garumiId: string; arquetipos: any[] }) {
-  const [stats, setStats] = useState<Stats>(EMPTY_STATS);
-  const [loading, setLoading] = useState(true);
+function TabStats({ garumiId, arquetipos, initialData }: { garumiId: string; arquetipos: any[]; initialData?: any }) {
+  const parseData = (data: any): Stats => ({
+    id: data.id,
+    vida_maxima:    String(data.vida_maxima    ?? ""),
+    ataque:         String(data.ataque         ?? ""),
+    defensa:        String(data.defensa        ?? ""),
+    velocidad:      String(data.velocidad      ?? ""),
+    eterium_maximo: String(data.eterium_maximo ?? ""),
+    resistencia:    String(data.resistencia    ?? ""),
+    precision:      String(data.precision      ?? ""),
+    tenacidad:      String(data.tenacidad      ?? ""),
+    control:        String(data.control        ?? ""),
+    percepcion:     String(data.percepcion     ?? ""),
+    arquetipo_id:   data.arquetipo_id          ?? "",
+    estado_documentacion: data.estado_documentacion ?? "borrador",
+    notas_internas: data.notas_internas        ?? "",
+  });
+
+  const [stats, setStats] = useState<Stats>(initialData ? parseData(initialData) : EMPTY_STATS);
+  const [loading, setLoading] = useState(!initialData);
   const { saving, saved, run } = useSave();
 
   const load = useCallback(async () => {
@@ -293,30 +310,11 @@ function TabStats({ garumiId, arquetipos }: { garumiId: string; arquetipos: any[
       .select("*")
       .eq("garumi_id", garumiId)
       .maybeSingle();
-    if (data) {
-      setStats({
-        id: data.id,
-        vida_maxima:    String(data.vida_maxima    ?? ""),
-        ataque:         String(data.ataque         ?? ""),
-        defensa:        String(data.defensa        ?? ""),
-        velocidad:      String(data.velocidad      ?? ""),
-        eterium_maximo: String(data.eterium_maximo ?? ""),
-        resistencia:    String(data.resistencia    ?? ""),
-        precision:      String(data.precision      ?? ""),
-        tenacidad:      String(data.tenacidad      ?? ""),
-        control:        String(data.control        ?? ""),
-        percepcion:     String(data.percepcion     ?? ""),
-        arquetipo_id:   data.arquetipo_id          ?? "",
-        estado_documentacion: data.estado_documentacion ?? "borrador",
-        notas_internas: data.notas_internas        ?? "",
-      });
-    } else {
-      setStats({ ...EMPTY_STATS });
-    }
+    if (data) { setStats(parseData(data)); } else { setStats({ ...EMPTY_STATS }); }
     setLoading(false);
   }, [garumiId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { if (!initialData) load(); }, [load, initialData]);
 
   const set = (k: keyof Stats, v: string) => setStats(prev => ({ ...prev, [k]: v }));
 
@@ -411,9 +409,9 @@ function TabStats({ garumiId, arquetipos }: { garumiId: string; arquetipos: any[
 
 const ROLES_ELEMENTO = ["primario", "secundario", "latente", "opuesto"];
 
-function TabElementos({ garumiId, elementos }: { garumiId: string; elementos: any[] }) {
-  const [asigs, setAsigs] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+function TabElementos({ garumiId, elementos, initialData }: { garumiId: string; elementos: any[]; initialData?: any[] }) {
+  const [asigs, setAsigs] = useState<any[]>(initialData ?? []);
+  const [loading, setLoading] = useState(!initialData);
   const [selElem, setSelElem] = useState("");
   const [selRol,  setSelRol]  = useState("primario");
   const [adding,  setAdding]  = useState(false);
@@ -432,7 +430,7 @@ function TabElementos({ garumiId, elementos }: { garumiId: string; elementos: an
     setLoading(false);
   }, [garumiId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { if (!initialData) load(); }, [load, initialData]);
 
   const add = async () => {
     if (!selElem) return;
@@ -508,9 +506,9 @@ function TabElementos({ garumiId, elementos }: { garumiId: string; elementos: an
 // Sub-tab de Dones y Habilidades
 // ─────────────────────────────────────────────────────────────────────────────
 
-function TabDones({ garumiId, donesCatalogo }: { garumiId: string; donesCatalogo: any[] }) {
-  const [asigs,   setAsigs]   = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+function TabDones({ garumiId, donesCatalogo, initialData }: { garumiId: string; donesCatalogo: any[]; initialData?: any[] }) {
+  const [asigs,   setAsigs]   = useState<any[]>(initialData ?? []);
+  const [loading, setLoading] = useState(!initialData);
   const [selCap,  setSelCap]  = useState("");
   const [selOrigen, setSelOrigen] = useState("innato");
   const [adding,  setAdding]  = useState(false);
@@ -529,7 +527,7 @@ function TabDones({ garumiId, donesCatalogo }: { garumiId: string; donesCatalogo
     setLoading(false);
   }, [garumiId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { if (!initialData) load(); }, [load, initialData]);
 
   const add = async () => {
     if (!selCap) return;
@@ -618,13 +616,14 @@ function TabDones({ garumiId, donesCatalogo }: { garumiId: string; donesCatalogo
 // Sub-tab de Manifestaciones
 // ─────────────────────────────────────────────────────────────────────────────
 
-function TabManifestaciones({ garumiId }: { garumiId: string }) {
-  const [manes,   setManes]   = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+function TabManifestaciones({ garumiId, initialData }: { garumiId: string; initialData?: any[] }) {
+  const [manes,   setManes]   = useState<any[]>(initialData ?? []);
+  const [loading, setLoading] = useState(!initialData);
   const muted  = "color-mix(in srgb, var(--primary) 35%, transparent)";
   const border = "1px solid color-mix(in srgb, var(--primary) 12%, transparent)";
 
   useEffect(() => {
+    if (initialData) return;
     setLoading(true);
     supabase
       .from("garumi_manifestaciones")
@@ -682,9 +681,9 @@ function TabManifestaciones({ garumiId }: { garumiId: string }) {
 // Sub-tab de Rasgos
 // ─────────────────────────────────────────────────────────────────────────────
 
-function TabRasgos({ garumiId }: { garumiId: string }) {
-  const [rasgos,   setRasgos]   = useState<any[]>([]);
-  const [loading,  setLoading]  = useState(true);
+function TabRasgos({ garumiId, initialData }: { garumiId: string; initialData?: any[] }) {
+  const [rasgos,   setRasgos]   = useState<any[]>(initialData ?? []);
+  const [loading,  setLoading]  = useState(!initialData);
   const [agregando, setAgregando] = useState(false);
   const [nuevoNombre, setNuevoNombre] = useState("");
   const [nuevoTipo, setNuevoTipo] = useState("");
@@ -704,7 +703,7 @@ function TabRasgos({ garumiId }: { garumiId: string }) {
     setLoading(false);
   }, [garumiId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { if (!initialData) load(); }, [load, initialData]);
 
   const add = async () => {
     if (!nuevoNombre.trim()) return;
@@ -801,13 +800,14 @@ function TabRasgos({ garumiId }: { garumiId: string }) {
 // Sub-tab de Evoluciones
 // ─────────────────────────────────────────────────────────────────────────────
 
-function TabEvoluciones({ garumiId, garumis }: { garumiId: string; garumis: any[] }) {
-  const [evols,   setEvols]   = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+function TabEvoluciones({ garumiId, garumis, initialData }: { garumiId: string; garumis: any[]; initialData?: any[] }) {
+  const [evols,   setEvols]   = useState<any[]>(initialData ?? []);
+  const [loading, setLoading] = useState(!initialData);
   const muted  = "color-mix(in srgb, var(--primary) 35%, transparent)";
   const border = "1px solid color-mix(in srgb, var(--primary) 12%, transparent)";
 
   useEffect(() => {
+    if (initialData) return;
     setLoading(true);
     supabase
       .from("garumi_evoluciones")
@@ -867,18 +867,18 @@ function TabEvoluciones({ garumiId, garumis }: { garumiId: string; garumis: any[
 // Sub-tab de Criatura (ia_config, comportamiento, diálogo, stats_dnd)
 // ─────────────────────────────────────────────────────────────────────────────
 
-function TabCriatura({ garumiId, criaturaId }: { garumiId: string; criaturaId: string | null }) {
-  const [criatura,  setCriatura]  = useState<any>(null);
-  const [loading,   setLoading]   = useState(true);
+function TabCriatura({ garumiId, criaturaId, initialData }: { garumiId: string; criaturaId: string | null; initialData?: any }) {
+  const [criatura,  setCriatura]  = useState<any>(initialData ?? null);
+  const [loading,   setLoading]   = useState(!initialData && !!criaturaId);
   const [jsonError, setJsonError] = useState("");
   const { saving, saved, run } = useSave();
   const muted = "color-mix(in srgb, var(--primary) 35%, transparent)";
 
-  // campos editables
-  const [comportamiento, setComportamiento] = useState("");
-  const [dialogo,        setDialogo]        = useState("");
-  const [iaConfigStr,    setIaConfigStr]    = useState("");
-  const [statsDndStr,    setStatsDndStr]    = useState("");
+  // campos editables — inicializados desde datos precargados si existen
+  const [comportamiento, setComportamiento] = useState(initialData?.comportamiento ?? "");
+  const [dialogo,        setDialogo]        = useState(initialData?.dialogo ?? "");
+  const [iaConfigStr,    setIaConfigStr]    = useState(initialData?.ia_config ? JSON.stringify(initialData.ia_config, null, 2) : "");
+  const [statsDndStr,    setStatsDndStr]    = useState(initialData?.stats_dnd ? JSON.stringify(initialData.stats_dnd, null, 2) : "");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -898,7 +898,7 @@ function TabCriatura({ garumiId, criaturaId }: { garumiId: string; criaturaId: s
     setLoading(false);
   }, [criaturaId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { if (!initialData) load(); }, [load, initialData]);
 
   const save = () => {
     // Validar JSON antes de guardar
@@ -1000,17 +1000,17 @@ function TabCriatura({ garumiId, criaturaId }: { garumiId: string; criaturaId: s
 // Sub-tab Motor / Godot (biología, pensamiento, GarumiBrain)
 // ─────────────────────────────────────────────────────────────────────────────
 
-function TabMotor({ garumiId, criaturaId }: { garumiId: string; criaturaId: string | null }) {
-  const [loading, setLoading] = useState(true);
+function TabMotor({ garumiId, criaturaId, initialData }: { garumiId: string; criaturaId: string | null; initialData?: { garumi?: any; criatura?: any } }) {
+  const [loading, setLoading] = useState(!initialData);
   const { saving, saved, run } = useSave();
   const muted = "color-mix(in srgb, var(--primary) 35%, transparent)";
 
   // campos de criatura
-  const [biologia,    setBiologia]    = useState("");
-  const [pensamiento, setPensamiento] = useState("");
+  const [biologia,    setBiologia]    = useState(initialData?.criatura?.biologia ?? "");
+  const [pensamiento, setPensamiento] = useState(initialData?.criatura?.pensamiento ?? "");
   // campos de garumi
-  const [numGlobal,   setNumGlobal]   = useState<string>("");
-  const [numOrigen,   setNumOrigen]   = useState<string>("");
+  const [numGlobal,   setNumGlobal]   = useState<string>(String(initialData?.garumi?.numero_global ?? ""));
+  const [numOrigen,   setNumOrigen]   = useState<string>(String(initialData?.garumi?.numero_origen ?? ""));
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -1039,7 +1039,7 @@ function TabMotor({ garumiId, criaturaId }: { garumiId: string; criaturaId: stri
     setLoading(false);
   }, [garumiId, criaturaId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { if (!initialData) load(); }, [load, initialData]);
 
   const save = () => run(async () => {
     // Guardar numeración en garumis
@@ -1161,6 +1161,33 @@ function GarumiPanel({
   const [tab, setTab] = useState<GarumiTab>("base");
   const { saving, saved, run } = useSave();
 
+  // Pre-carga paralela: todos los datos del garumi en una sola explosión al abrir el panel
+  const [preloaded, setPreloaded] = useState<Record<string, any>>({});
+  const [preloading, setPreloading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    setPreloading(true);
+    const queries: Promise<any>[] = [
+      supabase.from("garumi_estadisticas_combate").select("*").eq("garumi_id", garumi.id).maybeSingle().then(r => r.data),
+      supabase.from("garumi_elemento_asignaciones").select("id, elemento_id, rol, estado_documentacion, garumi_elementos(nombre, codigo)").eq("garumi_id", garumi.id).order("created_at").then(r => r.data ?? []),
+      supabase.from("garumi_dones_habilidades_asignaciones").select("id, capacidad_id, origen, es_innata, orden, estado_documentacion, garumi_dones_habilidades_catalogo(nombre, clase, categoria)").eq("garumi_id", garumi.id).order("orden").then(r => r.data ?? []),
+      supabase.from("garumi_manifestaciones").select("id, codigo, nombre, tipo_manifestacion, orden, es_manifestacion_base, estado_documentacion, coste_eterium, limite_uso").eq("garumi_id", garumi.id).order("orden").then(r => r.data ?? []),
+      supabase.from("garumi_rasgos").select("id, nombre_rasgo, tipo_rasgo, descripcion").eq("garumi_id", garumi.id).order("created_at").then(r => r.data ?? []),
+      supabase.from("garumi_evoluciones").select("id, especie_origen_id, especie_destino_id, tipo_relacion, descripcion_cambio, origen:garumis!garumi_evoluciones_especie_origen_id_fkey(nombre), destino:garumis!garumi_evoluciones_especie_destino_id_fkey(nombre)").or(`especie_origen_id.eq.${garumi.id},especie_destino_id.eq.${garumi.id}`).then(r => r.data ?? []),
+      garumi.criatura_id
+        ? supabase.from("criaturas").select("id, nombre, comportamiento, dialogo, ia_config, stats_dnd, biologia, pensamiento, estado_documentacion").eq("id", garumi.criatura_id).maybeSingle().then(r => r.data)
+        : Promise.resolve(null),
+    ];
+    Promise.all(queries).then(([stats, elems, dones, manes, rasgos, evols, criatura]) => {
+      if (!cancelled) {
+        setPreloaded({ stats, elems, dones, manes, rasgos, evols, criatura });
+        setPreloading(false);
+      }
+    });
+    return () => { cancelled = true; };
+  }, [garumi.id, garumi.criatura_id]);
+
   // campos base
   const [nombre,    setNombre]    = useState(garumi.nombre    ?? "");
   const [concepto,  setConcepto]  = useState(garumi.concepto  ?? "");
@@ -1210,9 +1237,11 @@ function GarumiPanel({
       }
       icono={<Dna size={12} />}
       accionesDerecha={
-        tab === "base"
-          ? <SaveBtn saving={saving} saved={saved} disabled={!nombre.trim()} onClick={saveBase} />
-          : undefined
+        preloading
+          ? <Loader2 size={12} className="animate-spin" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }} />
+          : tab === "base"
+            ? <SaveBtn saving={saving} saved={saved} disabled={!nombre.trim()} onClick={saveBase} />
+            : undefined
       }
     >
       {/* Sub-tabs */}
@@ -1302,28 +1331,28 @@ function GarumiPanel({
       )}
 
       {tab === "stats" && (
-        <TabStats garumiId={garumi.id} arquetipos={arquetipos} />
+        <TabStats garumiId={garumi.id} arquetipos={arquetipos} initialData={preloaded.stats} />
       )}
       {tab === "elementos" && (
-        <TabElementos garumiId={garumi.id} elementos={elementos} />
+        <TabElementos garumiId={garumi.id} elementos={elementos} initialData={preloaded.elems} />
       )}
       {tab === "dones" && (
-        <TabDones garumiId={garumi.id} donesCatalogo={donesCatalogo} />
+        <TabDones garumiId={garumi.id} donesCatalogo={donesCatalogo} initialData={preloaded.dones} />
       )}
       {tab === "manifestaciones" && (
-        <TabManifestaciones garumiId={garumi.id} />
+        <TabManifestaciones garumiId={garumi.id} initialData={preloaded.manes} />
       )}
       {tab === "rasgos" && (
-        <TabRasgos garumiId={garumi.id} />
+        <TabRasgos garumiId={garumi.id} initialData={preloaded.rasgos} />
       )}
       {tab === "evoluciones" && (
-        <TabEvoluciones garumiId={garumi.id} garumis={garumis} />
+        <TabEvoluciones garumiId={garumi.id} garumis={garumis} initialData={preloaded.evols} />
       )}
       {tab === "criatura" && (
-        <TabCriatura garumiId={garumi.id} criaturaId={garumi.criatura_id ?? null} />
+        <TabCriatura garumiId={garumi.id} criaturaId={garumi.criatura_id ?? null} initialData={preloaded.criatura} />
       )}
       {tab === "motor" && (
-        <TabMotor garumiId={garumi.id} criaturaId={garumi.criatura_id ?? null} />
+        <TabMotor garumiId={garumi.id} criaturaId={garumi.criatura_id ?? null} initialData={preloaded.criatura ? { garumi, criatura: preloaded.criatura } : { garumi }} />
       )}
     </PanelModal>
   );
@@ -1338,11 +1367,12 @@ function GarumiChip({ g, onClick }: { g: any; onClick: () => void }) {
     <button
       type="button"
       onClick={onClick}
-      className="group flex flex-col gap-1.5 p-2.5 rounded-xl text-left transition-all hover:scale-[1.02] active:scale-[0.98]"
+      className="group flex flex-col gap-1.5 p-2.5 rounded-xl text-left transition-all"
       style={{
         background: "color-mix(in srgb, var(--primary) 4%, var(--bg-main))",
         border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
         minWidth: 120,
+        outline: "none",
       }}
     >
       {/* Número + nombre */}
