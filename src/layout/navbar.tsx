@@ -1144,6 +1144,13 @@ const Navbar = () => {
       active: isGame && gameSection === "modificadores",
       onSelect: () => selectGameSection("modificadores"),
     },
+    {
+      key: "garumis",
+      label: "Garumis",
+      icon: Dna,
+      active: isGame && gameSection === "garumis",
+      onSelect: () => selectGameSection("garumis"),
+    },
   ];
 
   // ── Atajos globales ──────────────────────────────────────────────────────

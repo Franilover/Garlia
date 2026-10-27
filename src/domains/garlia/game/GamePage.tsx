@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/infra/supabase/supabase";
 import { useGameNavigation } from "@/hooks/useGameNavigationStore";
+import { GarumiGameSection } from "@/domains/garlia/game/GarumiGameSection";
 import { PopoverFlotante } from "@/domains/garlia/_shared/PopoverFlotante";
 import { usePanelFlotante } from "@/domains/garlia/_shared/usePanelFlotanteStore";
 import { PanelFlotanteGlobal } from "@/domains/garlia/_shared/PanelFlotanteGlobal";
@@ -3110,6 +3111,7 @@ export default function GamePage() {
         {active === "ecologia"      && <EcologiaSection />}
         {active === "misiones"      && <MisionesSection />}
         {ambSubs.includes(active as AmbSub) && <AmbienteSection activeSub={active as AmbSub} />}
+        {active === "garumis"       && <GarumiGameSection />}
       </div>
     </div>
   );

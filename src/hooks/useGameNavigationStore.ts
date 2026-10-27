@@ -18,7 +18,8 @@ export type GameSectionKey =
   | "ecologia"
   | "misiones"
   | "factores"
-  | "modificadores";
+  | "modificadores"
+  | "garumis";
 
 interface GameNavState {
   section: GameSectionKey;
