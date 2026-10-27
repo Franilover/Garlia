@@ -71,25 +71,33 @@ function Sel(p: React.SelectHTMLAttributes<HTMLSelectElement> & { children: Reac
   );
 }
 
-function Bdg({ text, color }: { text: string; color?: "green" | "yellow" | "red" | "blue" | "default" }) {
+function Bdg({ text, emphasis }: { text: string; emphasis?: "hi" | "mid" | "lo" | "warn" }) {
+  // hi  = full primary (canon, ok, activo)
+  // mid = primary 55%  (roles, tipos, neutro)
+  // lo  = primary 20%  (borrador, default)
+  // warn= primary 30% con borde más visible (sin criatura, pendiente)
   const bg: Record<string, string> = {
-    green:  "color-mix(in srgb, #22c55e 20%, transparent)",
-    yellow: "color-mix(in srgb, #f59e0b 20%, transparent)",
-    red:    "color-mix(in srgb, #ef4444 20%, transparent)",
-    blue:   "color-mix(in srgb, #3b82f6 20%, transparent)",
-    default:"color-mix(in srgb, var(--primary) 10%, transparent)",
+    hi:   "color-mix(in srgb, var(--primary) 18%, transparent)",
+    mid:  "color-mix(in srgb, var(--primary) 10%, transparent)",
+    lo:   "color-mix(in srgb, var(--primary) 6%,  transparent)",
+    warn: "color-mix(in srgb, var(--primary) 8%,  transparent)",
   };
   const fg: Record<string, string> = {
-    green:  "color-mix(in srgb, #16a34a 80%, var(--primary))",
-    yellow: "color-mix(in srgb, #b45309 80%, var(--primary))",
-    red:    "color-mix(in srgb, #dc2626 80%, var(--primary))",
-    blue:   "color-mix(in srgb, #2563eb 80%, var(--primary))",
-    default:"color-mix(in srgb, var(--primary) 55%, transparent)",
+    hi:   "var(--primary)",
+    mid:  "color-mix(in srgb, var(--primary) 70%, transparent)",
+    lo:   "color-mix(in srgb, var(--primary) 40%, transparent)",
+    warn: "color-mix(in srgb, var(--primary) 55%, transparent)",
   };
-  const k = color ?? "default";
+  const border: Record<string, string> = {
+    hi:   "color-mix(in srgb, var(--primary) 35%, transparent)",
+    mid:  "color-mix(in srgb, var(--primary) 18%, transparent)",
+    lo:   "color-mix(in srgb, var(--primary) 10%, transparent)",
+    warn: "color-mix(in srgb, var(--primary) 25%, transparent)",
+  };
+  const k = emphasis ?? "lo";
   return (
     <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
-      style={{ background: bg[k], color: fg[k] }}>
+      style={{ background: bg[k], color: fg[k], border: `1px solid ${border[k]}` }}>
       {text}
     </span>
   );
@@ -118,6 +126,26 @@ function Divider({ label }: { label: string }) {
     <div className="shrink-0 text-xs font-semibold uppercase tracking-wide pt-2 pb-1"
       style={{ color: "var(--primary)", borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
       {label}
+    </div>
+  );
+}
+
+// emphasis="hi"  → primary fuerte (éxito / enlazado)
+// emphasis="warn" → primary atenuado con borde visible (advertencia / sin datos)
+// emphasis="lo"   → muy sutil (info)
+function Banner({ children, emphasis = "warn" }: {
+  children: React.ReactNode;
+  emphasis?: "hi" | "warn" | "lo";
+}) {
+  const styles: Record<string, React.CSSProperties> = {
+    hi:   { background: "color-mix(in srgb, var(--primary) 12%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 30%, transparent)", color: "var(--primary)" },
+    warn: { background: "color-mix(in srgb, var(--primary) 6%,  transparent)", border: "1px solid color-mix(in srgb, var(--primary) 22%, transparent)", color: "color-mix(in srgb, var(--primary) 65%, transparent)" },
+    lo:   { background: "color-mix(in srgb, var(--primary) 4%,  transparent)", border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)", color: "color-mix(in srgb, var(--primary) 45%, transparent)" },
+  };
+  return (
+    <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl text-xs"
+      style={styles[emphasis]}>
+      {children}
     </div>
   );
 }
@@ -199,17 +227,17 @@ function PanelModal({
 // Helpers de badge para estado
 // ─────────────────────────────────────────────────────────────────────────────
 
-function estadoColor(e: string): "green" | "yellow" | "blue" | "default" {
-  if (e === "canon")      return "green";
-  if (e === "borrador")   return "yellow";
-  if (e === "en_revision")return "blue";
-  return "default";
+function estadoEmphasis(e: string): "hi" | "mid" | "lo" | "warn" {
+  if (e === "canon")       return "hi";
+  if (e === "en_revision") return "mid";
+  if (e === "borrador")    return "lo";
+  return "lo";
 }
 
-function evoBadgeColor(e: string): "blue" | "green" | "default" {
-  if (e === "inicial") return "blue";
-  if (e === "final")   return "green";
-  return "default";
+function evoEmphasis(e: string): "hi" | "mid" | "lo" {
+  if (e === "final")   return "hi";
+  if (e === "inicial") return "mid";
+  return "lo";
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -322,11 +350,10 @@ function TabStats({ garumiId, arquetipos }: { garumiId: string; arquetipos: any[
   return (
     <div className="flex flex-col gap-3">
       {noStats && (
-        <div className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs"
-          style={{ background: "color-mix(in srgb, #f59e0b 8%, transparent)", border: "1px solid color-mix(in srgb, #f59e0b 20%, transparent)", color: "color-mix(in srgb, #b45309 80%, var(--primary))" }}>
-          <AlertCircle size={12} />
+        <Banner emphasis="warn">
+          <AlertCircle size={12} className="shrink-0 mt-0.5" />
           Sin estadísticas registradas — se crearán al guardar.
-        </div>
+        </Banner>
       )}
 
       {/* Grid de stats numéricos */}
@@ -462,8 +489,8 @@ function TabElementos({ garumiId, elementos }: { garumiId: string; elementos: an
             <span className="flex-1 text-sm font-medium" style={{ color: "var(--primary)" }}>
               {a.garumi_elementos?.nombre ?? a.elemento_id.slice(0, 8)}
             </span>
-            <Bdg text={a.rol} color={a.rol === "primario" ? "green" : a.rol === "secundario" ? "blue" : "default"} />
-            <Bdg text={a.estado_documentacion} color={estadoColor(a.estado_documentacion)} />
+            <Bdg text={a.rol} emphasis={a.rol === "primario" ? "hi" : a.rol === "secundario" ? "mid" : "lo"} />
+            <Bdg text={a.estado_documentacion} emphasis={estadoEmphasis(a.estado_documentacion)} />
             <button type="button" onClick={() => del(a.id)}
               className="opacity-0 group-hover:opacity-100 transition-opacity"
               style={{ color: muted }}
@@ -572,8 +599,8 @@ function TabDones({ garumiId, donesCatalogo }: { garumiId: string; donesCatalogo
                 </p>
               )}
             </div>
-            <Bdg text={a.origen} color="default" />
-            <Bdg text={a.estado_documentacion} color={estadoColor(a.estado_documentacion)} />
+            <Bdg text={a.origen} emphasis="lo" />
+            <Bdg text={a.estado_documentacion} emphasis={estadoEmphasis(a.estado_documentacion)} />
             <button type="button" onClick={() => del(a.id)}
               className="opacity-0 group-hover:opacity-100 transition-opacity"
               style={{ color: muted }}
@@ -627,9 +654,9 @@ function TabManifestaciones({ garumiId }: { garumiId: string }) {
             <span className="flex-1 text-xs font-semibold" style={{ color: "var(--primary)" }}>
               {m.nombre}
             </span>
-            {m.es_manifestacion_base && <Bdg text="base" color="blue" />}
-            <Bdg text={m.tipo_manifestacion} color="default" />
-            <Bdg text={m.estado_documentacion} color={estadoColor(m.estado_documentacion)} />
+            {m.es_manifestacion_base && <Bdg text="base" emphasis="mid" />}
+            <Bdg text={m.tipo_manifestacion} emphasis="lo" />
+            <Bdg text={m.estado_documentacion} emphasis={estadoEmphasis(m.estado_documentacion)} />
           </div>
           {(m.coste_eterium || m.limite_uso) && (
             <div className="flex gap-2 pl-5">
@@ -908,12 +935,13 @@ function TabCriatura({ garumiId, criaturaId }: { garumiId: string; criaturaId: s
 
   if (!criaturaId) return (
     <div className="flex flex-col gap-3 py-4">
-      <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs"
-        style={{ background: "color-mix(in srgb, #ef4444 8%, transparent)", border: "1px solid color-mix(in srgb, #ef4444 20%, transparent)", color: "color-mix(in srgb, #dc2626 80%, var(--primary))" }}>
-        <AlertCircle size={12} />
-        Este Garumi no tiene criatura enlazada. Enlaza una criatura en Supabase para editar
-        su comportamiento, IA y diálogos.
-      </div>
+      <Banner emphasis="warn">
+        <AlertCircle size={12} className="shrink-0 mt-0.5" />
+        <span>
+          Este Garumi no tiene criatura enlazada. Enlaza una criatura en Supabase para editar
+          su comportamiento, IA y diálogos.
+        </span>
+      </Banner>
       <p className="text-[11px] px-1" style={{ color: muted }}>
         Para enlazar: asigna el <code className="font-mono">criatura_id</code> en la tabla{" "}
         <code className="font-mono">garumis</code> con el id de la criatura ejecutable correspondiente.
@@ -924,11 +952,11 @@ function TabCriatura({ garumiId, criaturaId }: { garumiId: string; criaturaId: s
   return (
     <div className="flex flex-col gap-4">
       {criatura && (
-        <div className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs"
-          style={{ background: "color-mix(in srgb, #22c55e 8%, transparent)", border: "1px solid color-mix(in srgb, #22c55e 20%, transparent)", color: "color-mix(in srgb, #16a34a 80%, var(--primary))" }}>
-          <Check size={11} /> Criatura: <strong>{criatura.nombre}</strong>
-          <span className="ml-1 font-mono text-[10px] opacity-60">{criaturaId?.slice(0,8)}</span>
-        </div>
+        <Banner emphasis="hi">
+          <Check size={11} className="shrink-0" />
+          <span>Criatura: <strong>{criatura.nombre}</strong>
+          <span className="ml-1 font-mono text-[10px] opacity-60">{criaturaId?.slice(0,8)}</span></span>
+        </Banner>
       )}
 
       <label className="flex flex-col gap-1">
@@ -956,10 +984,9 @@ function TabCriatura({ garumiId, criaturaId }: { garumiId: string; criaturaId: s
       </label>
 
       {jsonError && (
-        <div className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs"
-          style={{ background: "color-mix(in srgb, #ef4444 8%, transparent)", border: "1px solid color-mix(in srgb, #ef4444 20%, transparent)", color: "color-mix(in srgb, #dc2626 80%, var(--primary))" }}>
-          <AlertCircle size={12} /> {jsonError}
-        </div>
+        <Banner emphasis="warn">
+          <AlertCircle size={12} className="shrink-0" /> {jsonError}
+        </Banner>
       )}
 
       <div className="flex justify-end">
@@ -1039,11 +1066,10 @@ function TabMotor({ garumiId, criaturaId }: { garumiId: string; criaturaId: stri
     <div className="flex flex-col gap-4">
       {/* Advertencia si no hay criatura */}
       {!criaturaId && (
-        <div className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs"
-          style={{ background: "color-mix(in srgb, #f59e0b 8%, transparent)", border: "1px solid color-mix(in srgb, #f59e0b 20%, transparent)", color: "color-mix(in srgb, #b45309 80%, var(--primary))" }}>
-          <AlertCircle size={12} />
+        <Banner emphasis="warn">
+          <AlertCircle size={12} className="shrink-0" />
           Sin criatura enlazada — biología y pensamiento no se pueden editar hasta enlazar.
-        </div>
+        </Banner>
       )}
 
       <Divider label="Numeración Godot" />
@@ -1087,15 +1113,13 @@ function TabMotor({ garumiId, criaturaId }: { garumiId: string; criaturaId: stri
             <div className="w-4 h-4 rounded-md flex items-center justify-center shrink-0"
               style={{
                 background: item.ok
-                  ? "color-mix(in srgb, #22c55e 15%, transparent)"
+                  ? "color-mix(in srgb, var(--primary) 18%, transparent)"
                   : "color-mix(in srgb, var(--primary) 6%, transparent)",
-                border: `1px solid ${item.ok
-                  ? "color-mix(in srgb, #22c55e 30%, transparent)"
-                  : "color-mix(in srgb, var(--primary) 12%, transparent)"}`,
+                border: `1px solid color-mix(in srgb, var(--primary) ${item.ok ? "35" : "12"}%, transparent)`,
               }}>
-              {item.ok && <Check size={9} style={{ color: "#22c55e" }} />}
+              {item.ok && <Check size={9} style={{ color: "var(--primary)" }} />}
             </div>
-            <span style={{ color: item.ok ? "color-mix(in srgb, #16a34a 70%, var(--primary))" : muted }}>
+            <span style={{ color: item.ok ? "var(--primary)" : muted }}>
               {item.label}
             </span>
           </div>
@@ -1179,9 +1203,9 @@ function GarumiPanel({
         <span className="flex items-center gap-2">
           <span className="text-xs font-mono opacity-50">#{garumi.numero_global}</span>
           {nombre}
-          <Bdg text={estEvo}  color={evoBadgeColor(estEvo)} />
-          <Bdg text={estDoc}  color={estadoColor(estDoc)} />
-          {!garumi.criatura_id && <Bdg text="sin criatura" color="red" />}
+          <Bdg text={estEvo}  emphasis={evoEmphasis(estEvo)} />
+          <Bdg text={estDoc}  emphasis={estadoEmphasis(estDoc)} />
+          {!garumi.criatura_id && <Bdg text="sin criatura" emphasis="warn" />}
         </span>
       }
       icono={<Dna size={12} />}
@@ -1265,22 +1289,11 @@ function GarumiPanel({
               {originales.map(o => <option key={o.id} value={o.id}>{o.nombre}</option>)}
             </Sel>
           </label>
-          <div className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs"
-            style={{
-              background: garumi.criatura_id
-                ? "color-mix(in srgb, #22c55e 8%, transparent)"
-                : "color-mix(in srgb, #ef4444 8%, transparent)",
-              border: `1px solid ${garumi.criatura_id
-                ? "color-mix(in srgb, #22c55e 20%, transparent)"
-                : "color-mix(in srgb, #ef4444 20%, transparent)"}`,
-              color: garumi.criatura_id
-                ? "color-mix(in srgb, #16a34a 80%, var(--primary))"
-                : "color-mix(in srgb, #dc2626 80%, var(--primary))",
-            }}>
+          <Banner emphasis={garumi.criatura_id ? "hi" : "warn"}>
             {garumi.criatura_id
-              ? <><Check size={11} /> Enlazado a criatura ejecutable</>
-              : <><AlertCircle size={11} /> Sin criatura — no disponible en Godot</>}
-          </div>
+              ? <><Check size={11} className="shrink-0" /> Enlazado a criatura ejecutable</>
+              : <><AlertCircle size={11} className="shrink-0" /> Sin criatura — no disponible en Godot</>}
+          </Banner>
           <label className="flex flex-col gap-1">
             <FL label="Notas internas" />
             <TA value={notas} onChange={e => setNotas(e.target.value)} rows={2} />
@@ -1351,9 +1364,9 @@ function GarumiChip({ g, onClick }: { g: any; onClick: () => void }) {
       )}
       {/* Badges */}
       <div className="flex flex-wrap gap-1">
-        <Bdg text={g.estado_evolutivo} color={evoBadgeColor(g.estado_evolutivo)} />
-        <Bdg text={g.estado_documentacion} color={estadoColor(g.estado_documentacion)} />
-        {!g.criatura_id && <Bdg text="sin criatura" color="red" />}
+        <Bdg text={g.estado_evolutivo} emphasis={evoEmphasis(g.estado_evolutivo)} />
+        <Bdg text={g.estado_documentacion} emphasis={estadoEmphasis(g.estado_documentacion)} />
+        {!g.criatura_id && <Bdg text="sin criatura" emphasis="warn" />}
       </div>
     </button>
   );
@@ -1428,10 +1441,10 @@ export function GarumiGameSection() {
       {/* ── Resumen rápido ── */}
       <div className="flex flex-wrap gap-3 shrink-0">
         {[
-          { label: "Total Garumis",    value: garumis.length,  color: "default" as const },
-          { label: "Canon",            value: totalCanon,       color: "green"   as const },
-          { label: "Borradores",       value: garumis.length - totalCanon, color: "yellow" as const },
-          { label: "Sin criatura",     value: totalSinCria,     color: totalSinCria > 0 ? "red" as const : "default" as const },
+          { label: "Total Garumis", value: garumis.length,              emphasis: "mid"  as const },
+          { label: "Canon",         value: totalCanon,                   emphasis: "hi"   as const },
+          { label: "Borradores",    value: garumis.length - totalCanon,  emphasis: "lo"   as const },
+          { label: "Sin criatura",  value: totalSinCria,                 emphasis: totalSinCria > 0 ? "warn" as const : "lo" as const },
         ].map(s => (
           <div key={s.label}
             className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs"
@@ -1440,7 +1453,7 @@ export function GarumiGameSection() {
               border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
             }}>
             <span style={{ color: muted }}>{s.label}</span>
-            <Bdg text={String(s.value)} color={s.color} />
+            <Bdg text={String(s.value)} emphasis={s.emphasis} />
           </div>
         ))}
       </div>
