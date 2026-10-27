@@ -22,6 +22,7 @@ import {
   Check, ChevronRight, Dna, Layers, Loader2,
   Plus, Save, Search, Trash2, X, Zap, Shield,
   Wind, FlaskConical, Star, AlertCircle,
+  Brain, Cpu, GitMerge, Leaf, Pencil,
 } from "lucide-react";
 import { supabase } from "@/infra/supabase/supabase";
 import { PopoverFlotante } from "@/domains/garlia/_shared/PopoverFlotante";
@@ -651,10 +652,468 @@ function TabManifestaciones({ garumiId }: { garumiId: string }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Sub-tab de Rasgos
+// ─────────────────────────────────────────────────────────────────────────────
+
+function TabRasgos({ garumiId }: { garumiId: string }) {
+  const [rasgos,   setRasgos]   = useState<any[]>([]);
+  const [loading,  setLoading]  = useState(true);
+  const [agregando, setAgregando] = useState(false);
+  const [nuevoNombre, setNuevoNombre] = useState("");
+  const [nuevoTipo, setNuevoTipo] = useState("");
+  const [savingNew, setSavingNew] = useState(false);
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const muted  = "color-mix(in srgb, var(--primary) 35%, transparent)";
+  const border = "1px solid color-mix(in srgb, var(--primary) 12%, transparent)";
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const { data } = await supabase
+      .from("garumi_rasgos")
+      .select("id, nombre_rasgo, tipo_rasgo, descripcion")
+      .eq("garumi_id", garumiId)
+      .order("created_at");
+    setRasgos(data ?? []);
+    setLoading(false);
+  }, [garumiId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const add = async () => {
+    if (!nuevoNombre.trim()) return;
+    setSavingNew(true);
+    await supabase.from("garumi_rasgos").insert({
+      garumi_id: garumiId,
+      nombre_rasgo: nuevoNombre.trim(),
+      tipo_rasgo: nuevoTipo.trim() || null,
+    });
+    setNuevoNombre(""); setNuevoTipo("");
+    setSavingNew(false); setAgregando(false);
+    await load();
+  };
+
+  const del = async (id: string) => {
+    setDeleting(id);
+    await supabase.from("garumi_rasgos").delete().eq("id", id);
+    setDeleting(null);
+    await load();
+  };
+
+  if (loading) return (
+    <div className="flex items-center justify-center py-8">
+      <Loader2 size={16} className="animate-spin" style={{ color: muted }} />
+    </div>
+  );
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-wrap gap-1.5">
+        {rasgos.map(r => (
+          <div key={r.id}
+            className="group flex items-center gap-1.5 px-2 py-1 rounded-xl text-xs"
+            style={{ background: "color-mix(in srgb, var(--primary) 5%, transparent)", border }}>
+            {r.tipo_rasgo && (
+              <span className="text-[9px] font-bold uppercase tracking-wide"
+                style={{ color: muted }}>{r.tipo_rasgo} ·</span>
+            )}
+            <span style={{ color: "var(--primary)" }}>{r.nombre_rasgo}</span>
+            <button type="button" onClick={() => del(r.id)}
+              className="opacity-0 group-hover:opacity-100 transition-opacity ml-0.5"
+              style={{ color: muted }} disabled={deleting === r.id}>
+              {deleting === r.id ? <Loader2 size={10} className="animate-spin" /> : <X size={10} />}
+            </button>
+          </div>
+        ))}
+      </div>
+
+      {agregando ? (
+        <div className="flex items-center gap-2 flex-wrap">
+          <Inp
+            placeholder="tipo (ej. físico)…"
+            value={nuevoTipo}
+            onChange={e => setNuevoTipo(e.target.value)}
+            style={{ ...inputStyle, width: 120 }}
+          />
+          <Inp
+            autoFocus
+            placeholder="nombre del rasgo…"
+            value={nuevoNombre}
+            onChange={e => setNuevoNombre(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === "Enter") void add();
+              if (e.key === "Escape") setAgregando(false);
+            }}
+            style={{ ...inputStyle, flex: 1 }}
+          />
+          <button type="button" onClick={add} disabled={savingNew || !nuevoNombre.trim()}
+            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold"
+            style={{ background: "var(--primary)", color: "var(--btn-text,#fff)", opacity: !nuevoNombre.trim() ? 0.4 : 1 }}>
+            {savingNew ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}
+            Agregar
+          </button>
+          <button type="button" onClick={() => setAgregando(false)}
+            className="px-2 py-1.5 rounded-lg text-xs"
+            style={{ color: muted }}>Cancelar</button>
+        </div>
+      ) : (
+        <button type="button" onClick={() => setAgregando(true)}
+          className="flex items-center gap-1.5 self-start text-xs font-semibold"
+          style={{ color: muted }}>
+          <Plus size={12} /> Agregar rasgo
+        </button>
+      )}
+
+      {rasgos.length === 0 && !agregando && (
+        <p className="text-xs py-2" style={{ color: muted }}>Sin rasgos registrados</p>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Sub-tab de Evoluciones
+// ─────────────────────────────────────────────────────────────────────────────
+
+function TabEvoluciones({ garumiId, garumis }: { garumiId: string; garumis: any[] }) {
+  const [evols,   setEvols]   = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const muted  = "color-mix(in srgb, var(--primary) 35%, transparent)";
+  const border = "1px solid color-mix(in srgb, var(--primary) 12%, transparent)";
+
+  useEffect(() => {
+    setLoading(true);
+    supabase
+      .from("garumi_evoluciones")
+      .select(`
+        id, especie_origen_id, especie_destino_id, tipo_relacion, descripcion_cambio,
+        origen:garumis!garumi_evoluciones_especie_origen_id_fkey(nombre),
+        destino:garumis!garumi_evoluciones_especie_destino_id_fkey(nombre)
+      `)
+      .or(`especie_origen_id.eq.${garumiId},especie_destino_id.eq.${garumiId}`)
+      .then(({ data }) => {
+        setEvols(data ?? []);
+        setLoading(false);
+      });
+  }, [garumiId]);
+
+  if (loading) return (
+    <div className="flex items-center justify-center py-8">
+      <Loader2 size={16} className="animate-spin" style={{ color: muted }} />
+    </div>
+  );
+
+  if (evols.length === 0) return (
+    <p className="text-xs py-4 text-center" style={{ color: muted }}>Sin evoluciones registradas</p>
+  );
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      {evols.map(e => {
+        const esOrigen = e.especie_origen_id === garumiId;
+        return (
+          <div key={e.id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl"
+            style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", border }}>
+            <span className="flex-1 text-xs font-semibold truncate"
+              style={{ color: esOrigen ? "var(--primary)" : muted }}>
+              {(e.origen as any)?.nombre ?? "—"}
+            </span>
+            <div className="flex items-center gap-1 shrink-0">
+              <GitMerge size={11} style={{ color: muted }} />
+              {e.tipo_relacion && (
+                <span className="text-[9px] font-bold uppercase tracking-wide" style={{ color: muted }}>
+                  {e.tipo_relacion}
+                </span>
+              )}
+            </div>
+            <span className="flex-1 text-xs font-semibold truncate text-right"
+              style={{ color: !esOrigen ? "var(--primary)" : muted }}>
+              {(e.destino as any)?.nombre ?? "—"}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Sub-tab de Criatura (ia_config, comportamiento, diálogo, stats_dnd)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function TabCriatura({ garumiId, criaturaId }: { garumiId: string; criaturaId: string | null }) {
+  const [criatura,  setCriatura]  = useState<any>(null);
+  const [loading,   setLoading]   = useState(true);
+  const [jsonError, setJsonError] = useState("");
+  const { saving, saved, run } = useSave();
+  const muted = "color-mix(in srgb, var(--primary) 35%, transparent)";
+
+  // campos editables
+  const [comportamiento, setComportamiento] = useState("");
+  const [dialogo,        setDialogo]        = useState("");
+  const [iaConfigStr,    setIaConfigStr]    = useState("");
+  const [statsDndStr,    setStatsDndStr]    = useState("");
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    if (!criaturaId) { setLoading(false); return; }
+    const { data } = await supabase
+      .from("criaturas")
+      .select("id, nombre, comportamiento, dialogo, ia_config, stats_dnd, estado_documentacion")
+      .eq("id", criaturaId)
+      .maybeSingle();
+    if (data) {
+      setCriatura(data);
+      setComportamiento(data.comportamiento ?? "");
+      setDialogo(data.dialogo ?? "");
+      setIaConfigStr(data.ia_config ? JSON.stringify(data.ia_config, null, 2) : "");
+      setStatsDndStr(data.stats_dnd ? JSON.stringify(data.stats_dnd, null, 2) : "");
+    }
+    setLoading(false);
+  }, [criaturaId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const save = () => {
+    // Validar JSON antes de guardar
+    let ia_config: any = null;
+    let stats_dnd: any = null;
+    setJsonError("");
+    try {
+      if (iaConfigStr.trim()) ia_config = JSON.parse(iaConfigStr);
+    } catch {
+      setJsonError("ia_config JSON inválido");
+      return;
+    }
+    try {
+      if (statsDndStr.trim()) stats_dnd = JSON.parse(statsDndStr);
+    } catch {
+      setJsonError("stats_dnd JSON inválido");
+      return;
+    }
+    run(async () => {
+      await supabase.from("criaturas").update({
+        comportamiento: comportamiento || null,
+        dialogo: dialogo || null,
+        ia_config: ia_config,
+        stats_dnd: stats_dnd,
+      }).eq("id", criaturaId!);
+    });
+  };
+
+  if (loading) return (
+    <div className="flex items-center justify-center py-10">
+      <Loader2 size={16} className="animate-spin" style={{ color: muted }} />
+    </div>
+  );
+
+  if (!criaturaId) return (
+    <div className="flex flex-col gap-3 py-4">
+      <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs"
+        style={{ background: "color-mix(in srgb, #ef4444 8%, transparent)", border: "1px solid color-mix(in srgb, #ef4444 20%, transparent)", color: "color-mix(in srgb, #dc2626 80%, var(--primary))" }}>
+        <AlertCircle size={12} />
+        Este Garumi no tiene criatura enlazada. Enlaza una criatura en Supabase para editar
+        su comportamiento, IA y diálogos.
+      </div>
+      <p className="text-[11px] px-1" style={{ color: muted }}>
+        Para enlazar: asigna el <code className="font-mono">criatura_id</code> en la tabla{" "}
+        <code className="font-mono">garumis</code> con el id de la criatura ejecutable correspondiente.
+      </p>
+    </div>
+  );
+
+  return (
+    <div className="flex flex-col gap-4">
+      {criatura && (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs"
+          style={{ background: "color-mix(in srgb, #22c55e 8%, transparent)", border: "1px solid color-mix(in srgb, #22c55e 20%, transparent)", color: "color-mix(in srgb, #16a34a 80%, var(--primary))" }}>
+          <Check size={11} /> Criatura: <strong>{criatura.nombre}</strong>
+          <span className="ml-1 font-mono text-[10px] opacity-60">{criaturaId?.slice(0,8)}</span>
+        </div>
+      )}
+
+      <label className="flex flex-col gap-1">
+        <FL label="Comportamiento" />
+        <TA value={comportamiento} onChange={e => setComportamiento(e.target.value)} rows={4}
+          placeholder="Descripción del comportamiento en el juego…" />
+      </label>
+
+      <label className="flex flex-col gap-1">
+        <FL label="Diálogo / personalidad vocal" />
+        <TA value={dialogo} onChange={e => setDialogo(e.target.value)} rows={3}
+          placeholder="Estilo de diálogo, frases características…" />
+      </label>
+
+      <label className="flex flex-col gap-1">
+        <FL label="ia_config (JSON)" />
+        <TA value={iaConfigStr} onChange={e => setIaConfigStr(e.target.value)} rows={8}
+          placeholder="{}" style={{ ...inputStyle, fontFamily: "monospace", fontSize: 11 }} />
+      </label>
+
+      <label className="flex flex-col gap-1">
+        <FL label="stats_dnd (JSON)" />
+        <TA value={statsDndStr} onChange={e => setStatsDndStr(e.target.value)} rows={5}
+          placeholder="{}" style={{ ...inputStyle, fontFamily: "monospace", fontSize: 11 }} />
+      </label>
+
+      {jsonError && (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs"
+          style={{ background: "color-mix(in srgb, #ef4444 8%, transparent)", border: "1px solid color-mix(in srgb, #ef4444 20%, transparent)", color: "color-mix(in srgb, #dc2626 80%, var(--primary))" }}>
+          <AlertCircle size={12} /> {jsonError}
+        </div>
+      )}
+
+      <div className="flex justify-end">
+        <SaveBtn saving={saving} saved={saved} onClick={save} />
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Sub-tab Motor / Godot (biología, pensamiento, GarumiBrain)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function TabMotor({ garumiId, criaturaId }: { garumiId: string; criaturaId: string | null }) {
+  const [loading, setLoading] = useState(true);
+  const { saving, saved, run } = useSave();
+  const muted = "color-mix(in srgb, var(--primary) 35%, transparent)";
+
+  // campos de criatura
+  const [biologia,    setBiologia]    = useState("");
+  const [pensamiento, setPensamiento] = useState("");
+  // campos de garumi
+  const [numGlobal,   setNumGlobal]   = useState<string>("");
+  const [numOrigen,   setNumOrigen]   = useState<string>("");
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    // datos del garumi
+    const { data: g } = await supabase
+      .from("garumis")
+      .select("numero_global, numero_origen")
+      .eq("id", garumiId)
+      .maybeSingle();
+    if (g) {
+      setNumGlobal(String(g.numero_global ?? ""));
+      setNumOrigen(String(g.numero_origen ?? ""));
+    }
+    // datos de criatura
+    if (criaturaId) {
+      const { data: c } = await supabase
+        .from("criaturas")
+        .select("biologia, pensamiento")
+        .eq("id", criaturaId)
+        .maybeSingle();
+      if (c) {
+        setBiologia(c.biologia ?? "");
+        setPensamiento(c.pensamiento ?? "");
+      }
+    }
+    setLoading(false);
+  }, [garumiId, criaturaId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const save = () => run(async () => {
+    // Guardar numeración en garumis
+    await supabase.from("garumis").update({
+      numero_global: numGlobal !== "" ? Number(numGlobal) : null,
+      numero_origen: numOrigen !== "" ? Number(numOrigen) : null,
+    }).eq("id", garumiId);
+    // Guardar biología y pensamiento en criatura si existe
+    if (criaturaId) {
+      await supabase.from("criaturas").update({
+        biologia:    biologia    || null,
+        pensamiento: pensamiento || null,
+      }).eq("id", criaturaId);
+    }
+  });
+
+  if (loading) return (
+    <div className="flex items-center justify-center py-10">
+      <Loader2 size={16} className="animate-spin" style={{ color: muted }} />
+    </div>
+  );
+
+  return (
+    <div className="flex flex-col gap-4">
+      {/* Advertencia si no hay criatura */}
+      {!criaturaId && (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs"
+          style={{ background: "color-mix(in srgb, #f59e0b 8%, transparent)", border: "1px solid color-mix(in srgb, #f59e0b 20%, transparent)", color: "color-mix(in srgb, #b45309 80%, var(--primary))" }}>
+          <AlertCircle size={12} />
+          Sin criatura enlazada — biología y pensamiento no se pueden editar hasta enlazar.
+        </div>
+      )}
+
+      <Divider label="Numeración Godot" />
+      <div className="grid grid-cols-2 gap-3">
+        <label className="flex flex-col gap-1">
+          <FL label="Número global" />
+          <Inp type="number" value={numGlobal} onChange={e => setNumGlobal(e.target.value)}
+            placeholder="001" />
+        </label>
+        <label className="flex flex-col gap-1">
+          <FL label="Número de origen (linaje)" />
+          <Inp type="number" value={numOrigen} onChange={e => setNumOrigen(e.target.value)}
+            placeholder="01" />
+        </label>
+      </div>
+
+      <Divider label="GarumiBrain — datos para el motor" />
+      <label className="flex flex-col gap-1">
+        <FL label="Biología" />
+        <TA value={biologia} onChange={e => setBiologia(e.target.value)} rows={4}
+          placeholder="Estructura biológica, anatomía funcional para el motor…"
+          disabled={!criaturaId} />
+      </label>
+      <label className="flex flex-col gap-1">
+        <FL label="Pensamiento / cognición" />
+        <TA value={pensamiento} onChange={e => setPensamiento(e.target.value)} rows={4}
+          placeholder="Modelo cognitivo, toma de decisiones, instintos…"
+          disabled={!criaturaId} />
+      </label>
+
+      <Divider label="Checklist Godot" />
+      <div className="flex flex-col gap-1.5 text-xs" style={{ color: muted }}>
+        {[
+          { label: "Criatura enlazada", ok: !!criaturaId },
+          { label: "ia_config definida", ok: false },
+          { label: "Elemento primario asignado", ok: false },
+          { label: "Stats de combate registradas", ok: false },
+          { label: "Estado documental: canon", ok: false },
+        ].map(item => (
+          <div key={item.label} className="flex items-center gap-2">
+            <div className="w-4 h-4 rounded-md flex items-center justify-center shrink-0"
+              style={{
+                background: item.ok
+                  ? "color-mix(in srgb, #22c55e 15%, transparent)"
+                  : "color-mix(in srgb, var(--primary) 6%, transparent)",
+                border: `1px solid ${item.ok
+                  ? "color-mix(in srgb, #22c55e 30%, transparent)"
+                  : "color-mix(in srgb, var(--primary) 12%, transparent)"}`,
+              }}>
+              {item.ok && <Check size={9} style={{ color: "#22c55e" }} />}
+            </div>
+            <span style={{ color: item.ok ? "color-mix(in srgb, #16a34a 70%, var(--primary))" : muted }}>
+              {item.label}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex justify-end">
+        <SaveBtn saving={saving} saved={saved} onClick={save} />
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Panel completo de un Garumi
 // ─────────────────────────────────────────────────────────────────────────────
 
-type GarumiTab = "base" | "stats" | "elementos" | "dones" | "manifestaciones";
+type GarumiTab = "base" | "stats" | "elementos" | "dones" | "manifestaciones" | "rasgos" | "evoluciones" | "criatura" | "motor";
 
 function GarumiPanel({
   garumi,
@@ -662,6 +1121,7 @@ function GarumiPanel({
   arquetipos,
   elementos,
   donesCatalogo,
+  garumis,
   onClose,
   onSaved,
 }: {
@@ -670,6 +1130,7 @@ function GarumiPanel({
   arquetipos: any[];
   elementos: any[];
   donesCatalogo: any[];
+  garumis: any[];
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -698,12 +1159,16 @@ function GarumiPanel({
     onSaved();
   });
 
-  const TABS: { key: GarumiTab; label: string }[] = [
-    { key: "base",           label: "Identidad" },
-    { key: "stats",          label: "Stats" },
-    { key: "elementos",      label: "Elementos" },
-    { key: "dones",          label: "Dones" },
-    { key: "manifestaciones",label: "Manifestaciones" },
+  const TABS: { key: GarumiTab; label: string; icon?: React.ReactNode }[] = [
+    { key: "base",            label: "Identidad",      icon: <Leaf size={10} /> },
+    { key: "stats",           label: "Stats",          icon: <Shield size={10} /> },
+    { key: "elementos",       label: "Elementos",      icon: <Zap size={10} /> },
+    { key: "dones",           label: "Dones",          icon: <Star size={10} /> },
+    { key: "manifestaciones", label: "Manifest.",      icon: <Layers size={10} /> },
+    { key: "rasgos",          label: "Rasgos",         icon: <Leaf size={10} /> },
+    { key: "evoluciones",     label: "Evoluciones",    icon: <GitMerge size={10} /> },
+    { key: "criatura",        label: "Criatura / IA",  icon: <Brain size={10} /> },
+    { key: "motor",           label: "Motor",          icon: <Cpu size={10} /> },
   ];
 
   return (
@@ -731,12 +1196,12 @@ function GarumiPanel({
         style={{ background: "color-mix(in srgb, var(--primary) 6%, transparent)" }}>
         {TABS.map(t => (
           <button key={t.key} type="button" onClick={() => setTab(t.key)}
-            className="px-3 py-1 rounded-lg text-xs font-semibold transition-all"
+            className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all"
             style={{
               background: tab === t.key ? "var(--primary)" : "transparent",
               color: tab === t.key ? "var(--btn-text,#fff)" : "color-mix(in srgb, var(--primary) 50%, transparent)",
             }}>
-            {t.label}
+            {t.icon}{t.label}
           </button>
         ))}
       </div>
@@ -834,6 +1299,18 @@ function GarumiPanel({
       )}
       {tab === "manifestaciones" && (
         <TabManifestaciones garumiId={garumi.id} />
+      )}
+      {tab === "rasgos" && (
+        <TabRasgos garumiId={garumi.id} />
+      )}
+      {tab === "evoluciones" && (
+        <TabEvoluciones garumiId={garumi.id} garumis={garumis} />
+      )}
+      {tab === "criatura" && (
+        <TabCriatura garumiId={garumi.id} criaturaId={garumi.criatura_id ?? null} />
+      )}
+      {tab === "motor" && (
+        <TabMotor garumiId={garumi.id} criaturaId={garumi.criatura_id ?? null} />
       )}
     </PanelModal>
   );
@@ -1066,6 +1543,7 @@ export function GarumiGameSection() {
           arquetipos={arquetipos}
           elementos={elementos}
           donesCatalogo={donesCatalogo}
+          garumis={garumis}
           onClose={() => setSel(null)}
           onSaved={() => {
             load();
