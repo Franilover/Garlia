@@ -763,7 +763,7 @@ export function GarumiEditor({
                 >
                   <option value="borrador">Borrador</option>
                   <option value="aprobado">Aprobado</option>
-                  <option value="canonico">Canónico</option>
+                  <option value="canon">Canónico</option>
                 </select>
               </div>
             </div>
