@@ -59,7 +59,14 @@ interface Ventaja {
   estado_documentacion: string;
 }
 
-type Tab = "definicion" | "efectividades" | "ventajas";
+type Tab = "definicion" | "efectividades" | "ventajas" | "garumis";
+
+interface GarumiResumen {
+  id: string;
+  nombre: string;
+  concepto: string | null;
+  estado_documentacion: string;
+}
 
 // ── Hook principal ────────────────────────────────────────────────────────────
 
@@ -142,6 +149,49 @@ function useVentajas(elementoId: string) {
   }, [elementoId]);
 
   return { ventajas: data, loading };
+}
+
+// ── Hook: garumis de un elemento ──────────────────────────────────────────────
+
+function useGarumisDeElemento(elementoId: string) {
+  const [asignados, setAsignados] = useState<GarumiResumen[]>([]);
+  const [todos, setTodos] = useState<GarumiResumen[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let off = false;
+    setLoading(true);
+    void Promise.all([
+      supabase
+        .from("garumi_elemento_asignaciones")
+        .select("garumi_id, garumis(id, nombre, concepto, estado_documentacion)")
+        .eq("elemento_id", elementoId),
+      supabase
+        .from("garumis")
+        .select("id, nombre, concepto, estado_documentacion")
+        .order("nombre", { ascending: true }),
+    ]).then(([asigRes, todosRes]) => {
+      if (off) return;
+      const asigRows = (asigRes.data ?? []).map((r: Record<string, unknown>) => r.garumis as GarumiResumen);
+      setAsignados(asigRows.filter(Boolean));
+      setTodos((todosRes.data ?? []) as GarumiResumen[]);
+      setLoading(false);
+    });
+    return () => { off = true; };
+  }, [elementoId]);
+
+  async function asignar(garumiId: string) {
+    await supabase.from("garumi_elemento_asignaciones").insert({ elemento_id: elementoId, garumi_id: garumiId });
+    const found = todos.find((g) => g.id === garumiId);
+    if (found) setAsignados((prev) => [...prev, found]);
+  }
+
+  async function desasignar(garumiId: string) {
+    await supabase.from("garumi_elemento_asignaciones").delete().eq("elemento_id", elementoId).eq("garumi_id", garumiId);
+    setAsignados((prev) => prev.filter((g) => g.id !== garumiId));
+  }
+
+  return { asignados, todos, loading, asignar, desasignar };
 }
 
 // ── Helpers UI ────────────────────────────────────────────────────────────────
@@ -395,6 +445,96 @@ function TabVentajas({ elementoId }: { elementoId: string }) {
   );
 }
 
+// ── Tab: Garumis del elemento ─────────────────────────────────────────────────
+
+function TabGarumis({ elementoId }: { elementoId: string }) {
+  const { asignados, todos, loading, asignar, desasignar } = useGarumisDeElemento(elementoId);
+
+  const asignadosIds = new Set(asignados.map((g) => g.id));
+  const disponibles = todos.filter((g) => !asignadosIds.has(g.id));
+
+  if (loading) return (
+    <div className="flex justify-center py-12">
+      <Loader2 size={14} strokeWidth={2} className="animate-spin" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
+    </div>
+  );
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Lista de garumis asignados */}
+      <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: "none" }}>
+        {asignados.length === 0 ? (
+          <div className="flex items-center justify-center h-32">
+            <p style={{ fontSize: 11, color: "color-mix(in srgb, var(--primary) 20%, transparent)", fontStyle: "italic" }}>
+              Sin Garumis asignados a este elemento.
+            </p>
+          </div>
+        ) : (
+          asignados.map((g) => (
+            <div
+              key={g.id}
+              className="flex items-center gap-3 px-4 py-2.5 group"
+              style={{ borderBottom: `1px solid ${BORDER}` }}
+            >
+              <div className="flex-1 min-w-0">
+                <p className="font-black uppercase tracking-widest truncate"
+                  style={{ fontSize: 10, color: "var(--primary)" }}>
+                  {g.nombre}
+                </p>
+                {g.concepto && (
+                  <p className="truncate" style={{ fontSize: 9, color: "color-mix(in srgb, var(--primary) 35%, transparent)", marginTop: 1 }}>
+                    {g.concepto}
+                  </p>
+                )}
+              </div>
+              <span className="shrink-0 uppercase tracking-widest"
+                style={{ fontSize: 8, color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>
+                {g.estado_documentacion}
+              </span>
+              <button
+                type="button"
+                onClick={() => void desasignar(g.id)}
+                className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-primary/25 hover:text-red-400"
+              >
+                <X size={11} />
+              </button>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Selector para añadir */}
+      {disponibles.length > 0 && (
+        <div
+          className="shrink-0 flex items-center gap-3 px-4 py-2.5"
+          style={{ borderTop: `1px solid ${BORDER}`, background: "color-mix(in srgb, var(--primary) 2%, transparent)" }}
+        >
+          <span className="text-[9px] font-black uppercase tracking-[0.18em]"
+            style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>
+            Añadir
+          </span>
+          <select
+            defaultValue=""
+            className="flex-1 bg-transparent outline-none border-b pb-0.5"
+            style={{ fontSize: 10, color: "color-mix(in srgb, var(--primary) 60%, transparent)", borderColor: BORDER }}
+            onChange={(e) => {
+              if (e.target.value) {
+                void asignar(e.target.value);
+                e.target.value = "";
+              }
+            }}
+          >
+            <option value="" disabled>Seleccionar Garumi…</option>
+            {disponibles.map((g) => (
+              <option key={g.id} value={g.id}>{g.nombre}{g.concepto ? ` — ${g.concepto}` : ""}</option>
+            ))}
+          </select>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Editor completo de un elemento ───────────────────────────────────────────
 
 function EditorElemento({ elemento, onGuardado, onEliminado }: {
@@ -431,6 +571,7 @@ function EditorElemento({ elemento, onGuardado, onEliminado }: {
     { id: "definicion",    label: "Definición" },
     { id: "efectividades", label: "Efectividades" },
     { id: "ventajas",      label: "Ventajas" },
+    { id: "garumis",       label: "Garumis" },
   ];
 
   return (
@@ -489,6 +630,7 @@ function EditorElemento({ elemento, onGuardado, onEliminado }: {
         {tab === "definicion"    && <TabDefinicion form={form} setForm={setForm} />}
         {tab === "efectividades" && <TabEfectividades elementoId={elemento.id} />}
         {tab === "ventajas"      && <TabVentajas elementoId={elemento.id} />}
+        {tab === "garumis"       && <TabGarumis elementoId={elemento.id} />}
       </div>
     </div>
   );

@@ -28,6 +28,7 @@ import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { supabase } from "@/infra/supabase/supabase";
+import type { GarumiElemento } from "./GarumiElementoEditor";
 
 // ── Tokens ────────────────────────────────────────────────────────────────────
 
@@ -179,6 +180,120 @@ function useGarumiEvoluciones(garumiId: string) {
   }, [garumiId]);
 
   return { evoluciones, loading };
+}
+
+// ── Hook de elementos asignados ───────────────────────────────────────────────
+
+function useGarumiElementosAsignados(garumiId: string) {
+  const [asignados, setAsignados] = useState<GarumiElemento[]>([]);
+  const [todos, setTodos] = useState<GarumiElemento[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelado = false;
+    setLoading(true);
+
+    void Promise.all([
+      supabase
+        .from("garumi_elemento_asignaciones")
+        .select("elemento_id, garumi_elementos(id, codigo, nombre, familia_manifestacion, principio, descripcion, fenomenos, capacidades, limites, relacion_ium, relacion_oris, estado_documentacion, notas_internas)")
+        .eq("garumi_id", garumiId),
+      supabase
+        .from("garumi_elementos")
+        .select("id, codigo, nombre, familia_manifestacion, principio, descripcion, fenomenos, capacidades, limites, relacion_ium, relacion_oris, estado_documentacion, notas_internas")
+        .order("orden", { ascending: true }),
+    ]).then(([asigRes, todosRes]) => {
+      if (cancelado) return;
+      const asigRows = (asigRes.data ?? []).map((r: Record<string, unknown>) => r.garumi_elementos as GarumiElemento);
+      setAsignados(asigRows.filter(Boolean));
+      setTodos((todosRes.data ?? []) as GarumiElemento[]);
+      setLoading(false);
+    });
+
+    return () => { cancelado = true; };
+  }, [garumiId]);
+
+  async function asignar(elementoId: string) {
+    await supabase.from("garumi_elemento_asignaciones").insert({ garumi_id: garumiId, elemento_id: elementoId });
+    const found = todos.find((e) => e.id === elementoId);
+    if (found) setAsignados((prev) => [...prev, found]);
+  }
+
+  async function desasignar(elementoId: string) {
+    await supabase.from("garumi_elemento_asignaciones").delete().eq("garumi_id", garumiId).eq("elemento_id", elementoId);
+    setAsignados((prev) => prev.filter((e) => e.id !== elementoId));
+  }
+
+  return { asignados, todos, loading, asignar, desasignar };
+}
+
+// ── PanelElementos ────────────────────────────────────────────────────────────
+
+function PanelElementosAsignados({ garumiId }: { garumiId: string }) {
+  const { asignados, todos, loading, asignar, desasignar } = useGarumiElementosAsignados(garumiId);
+
+  const asignadosIds = new Set(asignados.map((e) => e.id));
+  const disponibles = todos.filter((e) => !asignadosIds.has(e.id));
+
+  return (
+    <div className="flex flex-col gap-2 p-3">
+      {loading ? (
+        <p className="text-micro text-primary/25 italic">Cargando…</p>
+      ) : asignados.length === 0 ? (
+        <p className="text-micro text-primary/25 italic">Sin elementos asignados.</p>
+      ) : (
+        <div className="flex flex-wrap gap-1.5">
+          {asignados.map((el) => (
+            <span
+              key={el.id}
+              className="inline-flex items-center gap-1 px-2 py-0.5"
+              style={{
+                borderRadius: "var(--radius-btn)",
+                background: "color-mix(in srgb, var(--primary) 7%, transparent)",
+                border: `1px solid ${BORDER_MED}`,
+                fontSize: 10,
+              }}
+            >
+              <span style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
+                {el.codigo} ·{" "}
+              </span>
+              <span style={{ color: "color-mix(in srgb, var(--primary) 70%, transparent)" }}>
+                {el.nombre}
+              </span>
+              <button
+                type="button"
+                onClick={() => void desasignar(el.id)}
+                className="ml-0.5 text-primary/25 hover:text-red-400 transition-colors"
+              >
+                <X size={8} />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+
+      {disponibles.length > 0 && (
+        <div className="flex items-center gap-2 mt-1">
+          <select
+            defaultValue=""
+            className="bg-transparent text-micro text-primary/60 outline-none border-b pb-0.5 flex-1"
+            style={{ borderColor: BORDER, fontSize: 10 }}
+            onChange={(e) => {
+              if (e.target.value) {
+                void asignar(e.target.value);
+                e.target.value = "";
+              }
+            }}
+          >
+            <option value="" disabled>Añadir elemento…</option>
+            {disponibles.map((el) => (
+              <option key={el.id} value={el.id}>{el.nombre} ({el.codigo})</option>
+            ))}
+          </select>
+        </div>
+      )}
+    </div>
+  );
 }
 
 // ── Subcomponentes internos ───────────────────────────────────────────────────
@@ -675,9 +790,15 @@ export function GarumiEditor({
         </div>
 
         {/* Fila 3: Evoluciones */}
-        <div>
+        <div style={{ borderBottom: `1px solid ${BORDER}` }}>
           <SectionLabel>Evoluciones</SectionLabel>
           <PanelEvoluciones garumiId={item.id} />
+        </div>
+
+        {/* Fila 4: Elementos */}
+        <div>
+          <SectionLabel>Elementos</SectionLabel>
+          <PanelElementosAsignados garumiId={item.id} />
         </div>
 
       </div>
