@@ -52,7 +52,10 @@ function TabsDropdown({
   onClose: (id: string) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [panelTop, setPanelTop] = useState(0);
   const ref = React.useRef<HTMLDivElement>(null);
+  const btnRef = React.useRef<HTMLButtonElement>(null);
+  const isMobile = typeof window !== "undefined" && window.innerWidth < 640;
 
   // Cerrar al hacer click fuera
   useEffect(() => {
@@ -66,10 +69,19 @@ function TabsDropdown({
     return () => document.removeEventListener("mousedown", handler);
   }, [open]);
 
+  const handleOpen = () => {
+    if (btnRef.current) {
+      const rect = btnRef.current.getBoundingClientRect();
+      setPanelTop(rect.bottom + 4);
+    }
+    setOpen((p) => !p);
+  };
+
   return (
     <div ref={ref} className="relative flex items-center" style={{ minWidth: 0 }}>
       {/* Botón principal */}
       <button
+        ref={btnRef}
         type="button"
         className="flex items-center gap-1.5 select-none"
         style={{
@@ -85,7 +97,7 @@ function TabsDropdown({
           transition: "background 0.1s, border-color 0.1s",
         }}
         title={`${ids.length} nota${ids.length !== 1 ? "s" : ""} abierta${ids.length !== 1 ? "s" : ""}`}
-        onClick={() => setOpen((p) => !p)}
+        onClick={handleOpen}
         onMouseEnter={(e) => {
           (e.currentTarget as HTMLElement).style.borderColor =
             "color-mix(in srgb, var(--foreground) 22%, transparent)";
@@ -151,7 +163,20 @@ function TabsDropdown({
             exit={{ opacity: 0, y: -4, scale: 0.98 }}
             initial={{ opacity: 0, y: -4, scale: 0.98 }}
             transition={{ duration: 0.12, ease: "easeOut" }}
-            style={{
+            style={isMobile ? {
+              position: "fixed",
+              top: panelTop,
+              left: 0,
+              right: 0,
+              zIndex: 200,
+              background: "var(--bg-menu)",
+              border: "1px solid color-mix(in srgb, var(--foreground) 10%, transparent)",
+              borderRadius: 8,
+              boxShadow: "0 8px 32px color-mix(in srgb, var(--bg-main) 40%, transparent)",
+              padding: "4px",
+              overflow: "hidden",
+              margin: "0 8px",
+            } : {
               position: "absolute",
               top: "calc(100% + 4px)",
               left: 0,
@@ -876,9 +901,26 @@ function EnsayosInner() {
           {/* Tabla de contenidos y SaveDot movidos a la barra interna del editor (EditorEnsayo toolbar) */}
         </div>
 
-          {/* Buscador + panel — centro */}
-          <div className="flex-1 flex justify-center">
-            <div ref={searchPanelRef} className="relative" style={{ width: "min(400px, 100%)" }}>
+          {/* Buscador + selector de nota activa — centro */}
+          <div className="flex-1 flex items-center justify-center gap-2" style={{ minWidth: 0 }}>
+            {/* TabsDropdown al lado del buscador en desktop; en móvil también pero el panel se expande al ancho completo */}
+            {openTabIds.length > 0 && (() => {
+              const activeEnsayo = (ensayos as any[]).find((e) => e.id === ensayoActivoId);
+              const activeTituloTab = openTabIds.includes(ensayoActivoId ?? "")
+                ? (activeEnsayo?.titulo ?? "Sin título")
+                : ((ensayos as any[]).find((e) => e.id === openTabIds[0])?.titulo ?? "Sin título");
+              return (
+                <TabsDropdown
+                  activeId={ensayoActivoId}
+                  activeLabel={activeTituloTab}
+                  ensayos={ensayos}
+                  ids={openTabIds}
+                  onClose={closeTab}
+                  onSelect={setEnsayoActivo}
+                />
+              );
+            })()}
+            <div ref={searchPanelRef} className="relative" style={{ width: "min(400px, 100%)", flex: 1, maxWidth: 400 }}>
               {/* Input */}
               <Search
                 className="absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none"
@@ -1106,31 +1148,6 @@ function EnsayosInner() {
             </div>
           </div>
         </div>
-
-        {/* ── Pestañas de notas abiertas — dropdown ── */}
-        {openTabIds.length > 0 && (() => {
-          const activeEnsayo = (ensayos as any[]).find((e) => e.id === ensayoActivoId);
-          const activeTituloTab = openTabIds.includes(ensayoActivoId ?? "")
-            ? (activeEnsayo?.titulo ?? "Sin título")
-            : ((ensayos as any[]).find((e) => e.id === openTabIds[0])?.titulo ?? "Sin título");
-
-          return (
-            <div
-              className="shrink-0 relative flex items-center gap-2 px-2 py-1"
-              style={{ borderBottom: "1px solid color-mix(in srgb, var(--foreground) 8%, transparent)" }}
-            >
-              {/* Botón dropdown — muestra la nota activa */}
-              <TabsDropdown
-                activeId={ensayoActivoId}
-                activeLabel={activeTituloTab}
-                ensayos={ensayos}
-                ids={openTabIds}
-                onClose={closeTab}
-                onSelect={setEnsayoActivo}
-              />
-            </div>
-          );
-        })()}
 
         {/* ── Contenido principal ── */}
         <main className="flex-1 flex flex-col min-w-0 bg-background overflow-y-auto">
