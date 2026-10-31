@@ -158,16 +158,17 @@ function previewIntervalo(carta: Carta, calidad: CalidadRespuesta): string {
 
 // ── Input compartido ──────────────────────────────────────────────────────────
 
-function Field({
-  as = "input",
-  label,
-  ...props
-}: { as?: "input" | "textarea"; label?: string } & React.InputHTMLAttributes<any>) {
+type FieldProps = { label?: string } & (
+  | ({ as?: "input" } & React.InputHTMLAttributes<HTMLInputElement>)
+  | ({ as: "textarea" } & React.TextareaHTMLAttributes<HTMLTextAreaElement>)
+);
+
+function Field({ label, as, ...rest }: FieldProps & { as?: "input" | "textarea" }) {
   const cls =
     "w-full px-4 py-2.5 rounded-[var(--radius-btn)] border font-semibold text-sm bg-transparent text-primary placeholder-primary/25 outline-none transition-all focus:border-primary/40";
   const style = {
     borderColor: "color-mix(in srgb, var(--primary) 14%, transparent)",
-    ...(props.style ?? {}),
+    ...(rest.style ?? {}),
   };
   return (
     <div className="flex flex-col gap-1.5">
@@ -177,9 +178,17 @@ function Field({
         </span>
       )}
       {as === "textarea" ? (
-        <textarea className={cls} style={style} {...(props as any)} />
+        <textarea
+          className={cls}
+          style={style}
+          {...(rest as React.TextareaHTMLAttributes<HTMLTextAreaElement>)}
+        />
       ) : (
-        <input className={cls} style={style} {...props} />
+        <input
+          className={cls}
+          style={style}
+          {...(rest as React.InputHTMLAttributes<HTMLInputElement>)}
+        />
       )}
     </div>
   );
