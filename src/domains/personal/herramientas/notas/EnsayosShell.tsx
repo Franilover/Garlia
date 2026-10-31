@@ -16,6 +16,7 @@ import { PaginaEjercicios } from "@/domains/personal/herramientas/ejercicios/eje
 import { HomeDashboard } from "@/domains/personal/herramientas/notas/HomeDashboard";
 import { LibrosDashboard } from "@/domains/personal/herramientas/notas/LibrosDashboard";
 import TeoriaMusicaPage from "@/domains/personal/herramientas/teoria-musical/TeoriaMusicaPage";
+import FlashCardsPage from "@/domains/personal/herramientas/flashcards/FlashCardsPage";
 import { useEscritorioNavigation } from "@/editor/notas/hooks/useEscritorioNavigationStore";
 import { useZotero } from "@/editor/notas/hooks/useZotero";
 
@@ -1157,7 +1158,9 @@ function EnsayosInner() {
             </div>
           ) : (
             <AnimatePresence mode="wait">
-              {escritorioSection === "teoria-musical" ? (
+              {escritorioSection === "flashcards" ? (
+                <FlashCardsPage key="flashcards" />
+              ) : escritorioSection === "teoria-musical" ? (
                 <TeoriaMusicaPage key="teoria-musical" />
               ) : escritorioSection === "cocina" ? (
                 <RecetasPage key="cocina" />

@@ -18,7 +18,8 @@ export type EscritorioSectionKey =
   | "ingredientes"
   | "ejercicio"
   | "ropa"
-  | "teoria-musical";
+  | "teoria-musical"
+  | "flashcards";
 
 interface EscritorioNavState {
   section: EscritorioSectionKey;

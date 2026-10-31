@@ -36,6 +36,7 @@ import {
   Thermometer,
   Sword,
   Dna,
+  Layers,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -1082,6 +1083,13 @@ const Navbar = () => {
       active: isEscritorio && escritorioSection === "teoria-musical",
       onSelect: () => selectEscritorioSection("teoria-musical"),
     },
+    {
+      key: "flashcards",
+      label: "FlashCards",
+      icon: Layers,
+      active: isEscritorio && escritorioSection === "flashcards",
+      onSelect: () => selectEscritorioSection("flashcards"),
+    },
   ];
 
   // ── Submenú Game ─────────────────────────────────────────────────────────
@@ -1215,6 +1223,10 @@ const Navbar = () => {
     gdm: () => {
       if (!isEscritorio) router.push("/myself/escritorio");
       selectEscritorioSection("teoria-musical");
+    },
+    gdf: () => {
+      if (!isEscritorio) router.push("/myself/escritorio");
+      selectEscritorioSection("flashcards");
     },
   });
 
