@@ -6,16 +6,16 @@ import {
   Plus,
   Trash2,
   RotateCcw,
-  ChevronLeft,
   ChevronRight,
   BookOpen,
   Layers,
   Shuffle,
-  Calendar,
   CheckCircle2,
-  Clock,
   Flame,
-  AlertCircle,
+  Brain,
+  Sparkles,
+  ArrowLeft,
+  X,
 } from "lucide-react";
 
 import { supabase } from "@/infra/supabase/supabase";
@@ -38,32 +38,24 @@ interface Carta {
   reverso: string;
   contexto: string | null;
   etiquetas: string[] | null;
-  // SRS
   srs_intervalo: number;
   srs_facilidad: number;
   srs_repeticiones: number;
-  srs_proxima_vez: string | null; // ISO date "YYYY-MM-DD"
+  srs_proxima_vez: string | null;
   srs_ultima_vez: string | null;
 }
 
-type CalidadRespuesta = 0 | 1 | 2 | 3; // 0=Muy difícil 1=Difícil 2=Normal 3=Fácil
+type CalidadRespuesta = 0 | 1 | 2 | 3;
 
-// ── SRS (SM-2 simplificado) ───────────────────────────────────────────────────
+// ── SRS (SM-2) ────────────────────────────────────────────────────────────────
 
-/**
- * Algoritmo SM-2 adaptado.
- * calidad: 0=muy difícil 1=difícil 2=bien 3=fácil
- * Devuelve los campos SRS actualizados.
- */
 function calcularSRS(carta: Carta, calidad: CalidadRespuesta) {
   let { srs_intervalo, srs_facilidad, srs_repeticiones } = carta;
 
   if (calidad <= 1) {
-    // Respuesta incorrecta / muy difícil → resetear
     srs_repeticiones = 0;
-    srs_intervalo = calidad === 0 ? 1 : 3; // muy difícil→mañana, difícil→3 días
+    srs_intervalo = calidad === 0 ? 1 : 3;
   } else {
-    // Respuesta correcta
     if (srs_repeticiones === 0) {
       srs_intervalo = 1;
     } else if (srs_repeticiones === 1) {
@@ -74,15 +66,12 @@ function calcularSRS(carta: Carta, calidad: CalidadRespuesta) {
     srs_repeticiones += 1;
   }
 
-  // Actualizar factor de facilidad
-  // EF' = EF + (0.1 - (3 - q) * (0.08 + (3 - q) * 0.02))
   const q = calidad;
   srs_facilidad = Math.max(
     1.3,
     srs_facilidad + 0.1 - (3 - q) * (0.08 + (3 - q) * 0.02),
   );
 
-  // Próxima fecha
   const hoy = new Date();
   hoy.setDate(hoy.getDate() + srs_intervalo);
   const srs_proxima_vez = hoy.toISOString().split("T")[0];
@@ -97,7 +86,6 @@ function calcularSRS(carta: Carta, calidad: CalidadRespuesta) {
   };
 }
 
-/** Cartas que deben estudiarse hoy (proxima_vez <= hoy o null) */
 function cartasDueHoy(cartas: Carta[]): Carta[] {
   const hoy = new Date().toISOString().split("T")[0];
   return cartas.filter(
@@ -107,15 +95,51 @@ function cartasDueHoy(cartas: Carta[]): Carta[] {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-const COLORES = [
+const COLORES_MAZO = [
   "var(--primary)",
-  "#7c6af2",
-  "#3b9eff",
-  "#22c55e",
-  "#f59e0b",
-  "#ef4444",
-  "#ec4899",
+  "color-mix(in srgb, var(--primary) 70%, #7c6af2)",
+  "color-mix(in srgb, var(--primary) 50%, #3b9eff)",
+  "color-mix(in srgb, var(--primary) 40%, #22c55e)",
+  "color-mix(in srgb, var(--primary) 30%, #f59e0b)",
+  "color-mix(in srgb, var(--primary) 20%, #ef4444)",
+  "color-mix(in srgb, var(--primary) 60%, #ec4899)",
 ];
+
+// Colores semánticos puros para SRS (rojo/amarillo/azul/verde)
+// Usamos opacidades sobre el canvas para suavizar
+const SRS_COLORS = {
+  muydificil: {
+    label: "Muy difícil",
+    value: 0 as CalidadRespuesta,
+    // CSS var fallback-safe: rojo semántico
+    fg: "oklch(55% 0.22 25)",
+    bg: "oklch(55% 0.22 25 / 0.1)",
+    border: "oklch(55% 0.22 25 / 0.25)",
+  },
+  dificil: {
+    label: "Difícil",
+    value: 1 as CalidadRespuesta,
+    fg: "oklch(72% 0.19 80)",
+    bg: "oklch(72% 0.19 80 / 0.1)",
+    border: "oklch(72% 0.19 80 / 0.25)",
+  },
+  normal: {
+    label: "Normal",
+    value: 2 as CalidadRespuesta,
+    fg: "oklch(62% 0.18 240)",
+    bg: "oklch(62% 0.18 240 / 0.1)",
+    border: "oklch(62% 0.18 240 / 0.25)",
+  },
+  facil: {
+    label: "Fácil",
+    value: 3 as CalidadRespuesta,
+    fg: "oklch(62% 0.2 145)",
+    bg: "oklch(62% 0.2 145 / 0.1)",
+    border: "oklch(62% 0.2 145 / 0.25)",
+  },
+} as const;
+
+const CALIDADES = Object.values(SRS_COLORS);
 
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
@@ -126,57 +150,95 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
-function diasHasta(fecha: string | null): string {
-  if (!fecha) return "Nueva";
-  const hoy = new Date();
-  hoy.setHours(0, 0, 0, 0);
-  const target = new Date(fecha + "T00:00:00");
-  const diff = Math.round(
-    (target.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24),
-  );
-  if (diff <= 0) return "Hoy";
-  if (diff === 1) return "Mañana";
-  return `En ${diff} días`;
+function previewIntervalo(carta: Carta, calidad: CalidadRespuesta): string {
+  const r = calcularSRS(carta, calidad);
+  if (r.srs_intervalo === 1) return "mañana";
+  return `${r.srs_intervalo}d`;
 }
 
-// ── Botones de calidad ────────────────────────────────────────────────────────
+// ── Input compartido ──────────────────────────────────────────────────────────
 
-const CALIDADES: {
-  label: string;
-  sub: string;
-  value: CalidadRespuesta;
-  color: string;
-  bg: string;
-}[] = [
-  {
-    label: "Muy difícil",
-    sub: "Mañana",
-    value: 0,
-    color: "#ef4444",
-    bg: "rgba(239,68,68,0.1)",
-  },
-  {
-    label: "Difícil",
-    sub: "3 días",
-    value: 1,
-    color: "#f59e0b",
-    bg: "rgba(245,158,11,0.1)",
-  },
-  {
-    label: "Normal",
-    sub: "×EF",
-    value: 2,
-    color: "#3b9eff",
-    bg: "rgba(59,158,255,0.1)",
-  },
-  {
-    label: "Fácil",
-    sub: "+bonus",
-    value: 3,
-    color: "#22c55e",
-    bg: "rgba(34,197,94,0.1)",
-  },
-];
+function Field({
+  as = "input",
+  label,
+  ...props
+}: { as?: "input" | "textarea"; label?: string } & React.InputHTMLAttributes<any>) {
+  const cls =
+    "w-full px-4 py-2.5 rounded-[var(--radius-btn)] border font-semibold text-sm bg-transparent text-primary placeholder-primary/25 outline-none transition-all focus:border-primary/40";
+  const style = {
+    borderColor: "color-mix(in srgb, var(--primary) 14%, transparent)",
+    ...(props.style ?? {}),
+  };
+  return (
+    <div className="flex flex-col gap-1.5">
+      {label && (
+        <span className="text-[10px] font-black uppercase tracking-[0.12em] text-primary/40 pl-0.5">
+          {label}
+        </span>
+      )}
+      {as === "textarea" ? (
+        <textarea className={cls} style={style} {...(props as any)} />
+      ) : (
+        <input className={cls} style={style} {...props} />
+      )}
+    </div>
+  );
+}
+
+// ── Modal wrapper ─────────────────────────────────────────────────────────────
+
+function Modal({
+  open,
+  onClose,
+  children,
+  width = "max-w-sm",
+}: {
+  open: boolean;
+  onClose: () => void;
+  children: React.ReactNode;
+  width?: string;
+}) {
+  return (
+    <AnimatePresence>
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <motion.div
+            className="absolute inset-0"
+            style={{
+              background: "color-mix(in srgb, var(--primary) 18%, transparent)",
+              backdropFilter: "blur(8px)",
+            }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+          />
+          <motion.div
+            className={`relative z-10 w-full ${width} rounded-[var(--radius-card)] border`}
+            style={{
+              background: "var(--white-custom)",
+              borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
+              boxShadow:
+                "0 24px 64px color-mix(in srgb, var(--primary) 14%, transparent)",
+            }}
+            initial={{ scale: 0.92, opacity: 0, y: 12 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.92, opacity: 0, y: 8 }}
+            transition={{ type: "spring", stiffness: 400, damping: 32 }}
+          >
+            <button
+              className="absolute top-4 right-4 text-primary/25 hover:text-primary/60 transition-colors"
+              onClick={onClose}
+            >
+              <X size={15} />
+            </button>
+            {children}
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+  );
+}
 
 // ── MazoCard ──────────────────────────────────────────────────────────────────
 
@@ -193,86 +255,94 @@ function MazoCard({
   onSelect: () => void;
   onDelete: () => void;
 }) {
+  const accent = mazo.color ?? "var(--primary)";
   return (
     <motion.div
       layout
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
-      className="relative group cursor-pointer rounded-[var(--radius-card)] p-5 border transition-all duration-200"
+      className="relative group cursor-pointer rounded-[var(--radius-card)] border overflow-hidden transition-all duration-200"
       style={{
         background: "var(--white-custom)",
-        borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
+        borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
         boxShadow: "var(--shadow-card)",
       }}
       onClick={onSelect}
-      whileHover={{
-        y: -2,
-        boxShadow:
-          "0 8px 24px color-mix(in srgb, var(--primary) 10%, transparent)",
-      }}
+      whileHover={{ y: -3 }}
     >
-      <div
-        className="absolute top-0 left-0 right-0 h-1 rounded-t-[var(--radius-card)]"
-        style={{ background: mazo.color ?? "var(--primary)" }}
-      />
+      {/* Accent bar */}
+      <div className="h-1 w-full" style={{ background: accent }} />
 
-      <div className="flex items-start justify-between mt-1">
-        <div className="flex-1 min-w-0">
-          <h3 className="font-black text-sm uppercase tracking-widest text-primary truncate">
-            {mazo.nombre}
-          </h3>
-          {mazo.descripcion && (
-            <p className="text-micro text-primary/50 mt-1 line-clamp-2">
-              {mazo.descripcion}
-            </p>
-          )}
-        </div>
-        <button
-          className="opacity-0 group-hover:opacity-100 transition-opacity ml-2 text-primary/30 hover:text-red-400"
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete();
-          }}
-        >
-          <Trash2 size={14} />
-        </button>
-      </div>
-
-      <div className="flex items-center justify-between mt-4">
-        <div className="flex items-center gap-2">
-          <Layers size={12} style={{ color: mazo.color ?? "var(--primary)" }} />
-          <span
-            className="text-micro font-black uppercase tracking-widest"
-            style={{ color: mazo.color ?? "var(--primary)" }}
+      <div className="p-5">
+        <div className="flex items-start justify-between">
+          <div className="flex-1 min-w-0 pr-3">
+            <div className="flex items-center gap-2 mb-1">
+              <Layers size={12} style={{ color: accent, flexShrink: 0 }} />
+              <h3
+                className="font-black text-xs uppercase tracking-widest truncate"
+                style={{ color: accent }}
+              >
+                {mazo.nombre}
+              </h3>
+            </div>
+            {mazo.descripcion && (
+              <p className="text-xs text-primary/40 font-medium line-clamp-2 mt-1 leading-relaxed">
+                {mazo.descripcion}
+              </p>
+            )}
+          </div>
+          <button
+            className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-0.5"
+            style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete();
+            }}
+            onMouseEnter={(e) =>
+              ((e.currentTarget as HTMLElement).style.color = "oklch(55% 0.22 25)")
+            }
+            onMouseLeave={(e) =>
+              ((e.currentTarget as HTMLElement).style.color =
+                "color-mix(in srgb, var(--primary) 25%, transparent)")
+            }
           >
+            <Trash2 size={13} />
+          </button>
+        </div>
+
+        <div className="flex items-center justify-between mt-5 pt-4"
+          style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }}>
+          <span className="text-[10px] font-black uppercase tracking-widest text-primary/40">
             {total} carta{total !== 1 ? "s" : ""}
           </span>
+          {pendientes > 0 ? (
+            <span
+              className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full"
+              style={{
+                background: "oklch(55% 0.22 25 / 0.1)",
+                color: "oklch(55% 0.22 25)",
+              }}
+            >
+              <Flame size={9} />
+              {pendientes} hoy
+            </span>
+          ) : total > 0 ? (
+            <span
+              className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest"
+              style={{ color: "oklch(62% 0.2 145)" }}
+            >
+              <CheckCircle2 size={11} />
+              Al día
+            </span>
+          ) : null}
         </div>
-        {pendientes > 0 && (
-          <span
-            className="flex items-center gap-1 text-micro font-black uppercase tracking-widest px-2 py-0.5 rounded-full"
-            style={{ background: "rgba(239,68,68,0.12)", color: "#ef4444" }}
-          >
-            <Flame size={10} />
-            {pendientes} hoy
-          </span>
-        )}
-        {pendientes === 0 && total > 0 && (
-          <span
-            className="flex items-center gap-1 text-micro font-black uppercase tracking-widest"
-            style={{ color: "#22c55e" }}
-          >
-            <CheckCircle2 size={11} />
-            Al día
-          </span>
-        )}
       </div>
     </motion.div>
   );
 }
 
-// ── FlashCard con SRS ─────────────────────────────────────────────────────────
+// ── FlashCard ─────────────────────────────────────────────────────────────────
 
 function FlashCard({
   carta,
@@ -300,82 +370,76 @@ function FlashCard({
     setTimeout(() => onCalificar(calidad), 280);
   };
 
-  // Vista previa de intervalos al hacer hover en los botones
-  const previewIntervalo = (calidad: CalidadRespuesta): string => {
-    const r = calcularSRS(carta, calidad);
-    if (r.srs_intervalo === 1) return "mañana";
-    return `${r.srs_intervalo} días`;
-  };
+  const progreso = (estudiadas / total) * 100;
 
   return (
     <motion.div
       key={carta.id}
-      initial={{ opacity: 0, x: 40 }}
+      initial={{ opacity: 0, x: 30 }}
       animate={{
         opacity: saliendo !== null ? 0 : 1,
         x: saliendo !== null ? -40 : 0,
-        scale: saliendo !== null ? 0.96 : 1,
+        scale: saliendo !== null ? 0.97 : 1,
       }}
-      transition={{ duration: 0.24 }}
-      className="flex flex-col items-center gap-5 w-full max-w-lg mx-auto"
+      transition={{ duration: 0.22 }}
+      className="flex flex-col gap-6 w-full"
     >
       {/* Progreso */}
-      <div className="flex items-center gap-3 w-full">
-        <span className="text-micro font-black uppercase tracking-widest text-primary/40">
+      <div className="flex items-center gap-3">
+        <span className="text-[10px] font-black uppercase tracking-widest text-primary/30 tabular-nums w-12">
           {estudiadas}/{total}
         </span>
         <div
-          className="flex-1 h-1 rounded-full"
-          style={{
-            background:
-              "color-mix(in srgb, var(--primary) 10%, transparent)",
-          }}
+          className="flex-1 h-0.5 rounded-full overflow-hidden"
+          style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
         >
           <motion.div
             className="h-full rounded-full"
             style={{ background: "var(--primary)" }}
-            animate={{ width: `${(estudiadas / total) * 100}%` }}
-            transition={{ duration: 0.4 }}
+            animate={{ width: `${progreso}%` }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
           />
         </div>
         <button
-          className="text-primary/30 hover:text-primary transition-colors"
+          className="text-primary/25 hover:text-primary/60 transition-colors"
           onClick={onSaltar}
-          title="Saltar"
+          title="Saltar carta"
         >
-          <ChevronRight size={14} />
+          <ChevronRight size={15} />
         </button>
       </div>
 
-      {/* Badge estado */}
-      <div className="flex items-center gap-2">
+      {/* Chips de estado */}
+      <div className="flex items-center gap-2 flex-wrap">
         {carta.srs_proxima_vez === null ? (
           <span
-            className="text-micro font-black uppercase tracking-widest px-2 py-0.5 rounded-full"
-            style={{ background: "rgba(59,158,255,0.1)", color: "#3b9eff" }}
+            className="text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full"
+            style={{
+              background: "oklch(62% 0.18 240 / 0.1)",
+              color: "oklch(62% 0.18 240)",
+            }}
           >
             Nueva
           </span>
         ) : (
           <span
-            className="flex items-center gap-1 text-micro font-black uppercase tracking-widest px-2 py-0.5 rounded-full"
+            className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full"
             style={{
-              background: "rgba(245,158,11,0.1)",
-              color: "#f59e0b",
+              background: "oklch(72% 0.19 80 / 0.1)",
+              color: "oklch(72% 0.19 80)",
             }}
           >
-            <RotateCcw size={10} />
-            Repaso · {carta.srs_repeticiones} repeticion
-            {carta.srs_repeticiones !== 1 ? "es" : ""}
+            <RotateCcw size={9} />
+            Repaso {carta.srs_repeticiones}×
           </span>
         )}
         {carta.etiquetas?.map((e) => (
           <span
             key={e}
-            className="text-micro font-black uppercase tracking-widest px-2 py-0.5 rounded-full"
+            className="text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full"
             style={{
-              background: "color-mix(in srgb, var(--primary) 8%, transparent)",
-              color: "color-mix(in srgb, var(--primary) 60%, transparent)",
+              background: "color-mix(in srgb, var(--primary) 7%, transparent)",
+              color: "color-mix(in srgb, var(--primary) 50%, transparent)",
             }}
           >
             {e}
@@ -383,51 +447,41 @@ function FlashCard({
         ))}
       </div>
 
-      {/* Carta flip */}
+      {/* Carta flip — más grande */}
       <div
         className="w-full cursor-pointer select-none"
-        style={{ perspective: "1000px" }}
+        style={{ perspective: "1200px" }}
         onClick={() => setFlipped((f) => !f)}
       >
         <motion.div
           animate={{ rotateY: flipped ? 180 : 0 }}
-          transition={{
-            duration: 0.42,
-            type: "spring",
-            stiffness: 280,
-            damping: 28,
-          }}
-          style={{
-            transformStyle: "preserve-3d",
-            position: "relative",
-            minHeight: 210,
-          }}
+          transition={{ duration: 0.44, type: "spring", stiffness: 260, damping: 26 }}
+          style={{ transformStyle: "preserve-3d", position: "relative", minHeight: 240 }}
         >
           {/* Frente */}
           <div
-            className="absolute inset-0 flex flex-col items-center justify-center p-8 rounded-[var(--radius-card)] border"
+            className="absolute inset-0 flex flex-col items-center justify-center p-10 rounded-[var(--radius-card)] border"
             style={{
               backfaceVisibility: "hidden",
               WebkitBackfaceVisibility: "hidden",
               background: "var(--white-custom)",
-              borderColor:
-                "color-mix(in srgb, var(--primary) 12%, transparent)",
-              boxShadow: "var(--shadow-card)",
+              borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
+              boxShadow: "0 4px 32px color-mix(in srgb, var(--primary) 8%, transparent)",
             }}
           >
-            <p className="text-micro font-black uppercase tracking-widest text-primary/30 mb-4">
+            <p className="text-[10px] font-black uppercase tracking-[0.14em] text-primary/25 mb-5">
               Palabra
             </p>
-            <p className="text-2xl font-black text-primary text-center leading-tight">
+            <p className="text-3xl font-black text-primary text-center leading-tight">
               {carta.frente}
             </p>
             {carta.contexto && (
-              <p className="text-micro text-primary/40 mt-3 text-center italic">
+              <p className="text-xs text-primary/35 mt-4 text-center italic font-medium">
                 — {carta.contexto}
               </p>
             )}
             {!flipped && (
-              <p className="text-micro text-primary/20 mt-6 uppercase tracking-widest">
+              <p className="text-[10px] text-primary/20 mt-8 uppercase tracking-widest font-bold">
                 Toca para ver la definición
               </p>
             )}
@@ -435,67 +489,65 @@ function FlashCard({
 
           {/* Reverso */}
           <div
-            className="absolute inset-0 flex flex-col items-center justify-center p-8 rounded-[var(--radius-card)] border"
+            className="absolute inset-0 flex flex-col items-center justify-center p-10 rounded-[var(--radius-card)] border"
             style={{
               backfaceVisibility: "hidden",
               WebkitBackfaceVisibility: "hidden",
               transform: "rotateY(180deg)",
-              background:
-                "color-mix(in srgb, var(--primary) 5%, var(--white-custom))",
-              borderColor:
-                "color-mix(in srgb, var(--primary) 18%, transparent)",
-              boxShadow: "var(--shadow-card)",
+              background: "color-mix(in srgb, var(--primary) 4%, var(--white-custom))",
+              borderColor: "color-mix(in srgb, var(--primary) 16%, transparent)",
+              boxShadow: "0 4px 32px color-mix(in srgb, var(--primary) 10%, transparent)",
             }}
           >
-            <p className="text-micro font-black uppercase tracking-widest text-primary/30 mb-4">
+            <p className="text-[10px] font-black uppercase tracking-[0.14em] text-primary/25 mb-5">
               Definición
             </p>
-            <p className="text-lg font-bold text-primary text-center leading-snug">
+            <p className="text-xl font-bold text-primary text-center leading-relaxed max-w-prose">
               {carta.reverso}
             </p>
           </div>
         </motion.div>
       </div>
 
-      {/* Botones de calidad — aparecen tras dar vuelta */}
+      {/* Botones SRS — solo cuando está dado vuelta */}
       <AnimatePresence>
         {flipped && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 6 }}
-            transition={{ duration: 0.18 }}
-            className="w-full"
+            transition={{ duration: 0.16 }}
+            className="flex flex-col gap-3"
           >
-            <p className="text-micro font-black uppercase tracking-widest text-primary/30 text-center mb-3">
+            <p className="text-[10px] font-black uppercase tracking-[0.14em] text-primary/25 text-center">
               ¿Qué tan fácil fue?
             </p>
             <div className="grid grid-cols-4 gap-2">
               {CALIDADES.map((c) => (
                 <button
                   key={c.value}
-                  className="flex flex-col items-center gap-1 px-2 py-3 rounded-[var(--radius-btn)] transition-all font-black text-micro uppercase tracking-widest border"
+                  className="flex flex-col items-center gap-1.5 px-2 py-3.5 rounded-[var(--radius-btn)] border transition-all font-black uppercase tracking-widest"
                   style={{
                     background: c.bg,
-                    color: c.color,
-                    borderColor: c.color + "33",
+                    color: c.fg,
+                    borderColor: c.border,
+                    fontSize: "10px",
                   }}
-                  title={`Próxima vez: ${previewIntervalo(c.value)}`}
+                  title={`Próxima: ${previewIntervalo(carta, c.value)}`}
                   onClick={() => handleCalificar(c.value)}
                   onMouseEnter={(e) => {
-                    (e.currentTarget as HTMLElement).style.transform =
-                      "scale(1.04)";
+                    (e.currentTarget as HTMLElement).style.transform = "translateY(-2px)";
+                    (e.currentTarget as HTMLElement).style.boxShadow =
+                      `0 4px 16px ${c.bg}`;
                   }}
                   onMouseLeave={(e) => {
-                    (e.currentTarget as HTMLElement).style.transform = "scale(1)";
+                    (e.currentTarget as HTMLElement).style.transform = "translateY(0)";
+                    (e.currentTarget as HTMLElement).style.boxShadow = "none";
                   }}
                 >
                   <span>{c.label}</span>
-                  <span
-                    className="font-bold normal-case tracking-normal"
-                    style={{ fontSize: "10px", opacity: 0.7 }}
-                  >
-                    {previewIntervalo(c.value)}
+                  <span style={{ opacity: 0.65, fontSize: "9px", fontWeight: 700, letterSpacing: "0.04em" }}>
+                    {previewIntervalo(carta, c.value)}
                   </span>
                 </button>
               ))}
@@ -504,11 +556,10 @@ function FlashCard({
         )}
       </AnimatePresence>
 
-      {/* Hint antes de dar vuelta */}
+      {/* Hint pre-flip */}
       {!flipped && (
         <button
-          className="text-micro font-black uppercase tracking-widest transition-colors"
-          style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
+          className="text-[10px] font-black uppercase tracking-[0.12em] text-primary/25 hover:text-primary/50 transition-colors text-center"
           onClick={() => setFlipped(true)}
         >
           Ver definición →
@@ -518,7 +569,7 @@ function FlashCard({
   );
 }
 
-// ── Pantalla de sesión completada ─────────────────────────────────────────────
+// ── Sesión completada ─────────────────────────────────────────────────────────
 
 function SesionCompletada({
   total,
@@ -536,48 +587,56 @@ function SesionCompletada({
     n: resultados.filter((r) => r.calidad === c.value).length,
   }));
 
+  const porcentajeBien = Math.round(
+    (resultados.filter((r) => r.calidad >= 2).length / total) * 100,
+  );
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      className="flex flex-col items-center gap-6 max-w-md mx-auto py-8"
+      className="flex flex-col items-center gap-8 w-full max-w-lg mx-auto py-6"
     >
-      <div className="flex flex-col items-center gap-2">
-        <CheckCircle2
-          size={40}
-          style={{ color: "#22c55e" }}
-        />
-        <h2 className="font-black text-lg uppercase tracking-widest italic text-primary">
+      <div className="flex flex-col items-center gap-3">
+        <div
+          className="w-16 h-16 rounded-full flex items-center justify-center"
+          style={{ background: "oklch(62% 0.2 145 / 0.12)" }}
+        >
+          <CheckCircle2 size={28} style={{ color: "oklch(62% 0.2 145)" }} />
+        </div>
+        <h2 className="font-black text-xl uppercase tracking-widest italic text-primary">
           ¡Sesión completa!
         </h2>
-        <p className="text-micro text-primary/40 font-bold uppercase tracking-widest">
-          {total} carta{total !== 1 ? "s" : ""} estudiada{total !== 1 ? "s" : ""}
+        <p className="text-xs text-primary/40 font-bold uppercase tracking-widest">
+          {total} carta{total !== 1 ? "s" : ""} · {porcentajeBien}% bien
         </p>
       </div>
 
-      {/* Resumen */}
+      {/* Barra de resumen */}
       <div
-        className="w-full rounded-[var(--radius-card)] p-5 border"
+        className="w-full rounded-[var(--radius-card)] p-6 border"
         style={{
           background: "var(--white-custom)",
-          borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
+          borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
         }}
       >
-        <p className="text-micro font-black uppercase tracking-widest text-primary/40 mb-4">
-          Resultados
+        <p className="text-[10px] font-black uppercase tracking-widest text-primary/30 mb-5 text-center">
+          Distribución
         </p>
-        <div className="grid grid-cols-4 gap-3">
+        <div className="grid grid-cols-4 gap-4">
           {conteo.map((c) => (
-            <div key={c.value} className="flex flex-col items-center gap-1">
-              <span
-                className="text-2xl font-black"
-                style={{ color: c.color }}
+            <div key={c.value} className="flex flex-col items-center gap-2">
+              <div
+                className="w-full rounded-lg flex items-center justify-center py-3"
+                style={{ background: c.bg }}
               >
-                {c.n}
-              </span>
+                <span className="text-2xl font-black" style={{ color: c.fg }}>
+                  {c.n}
+                </span>
+              </div>
               <span
-                className="text-micro font-black uppercase tracking-widest text-center"
-                style={{ color: c.color, opacity: 0.7 }}
+                className="text-[10px] font-black uppercase tracking-widest text-center leading-tight"
+                style={{ color: c.fg, opacity: 0.8 }}
               >
                 {c.label}
               </span>
@@ -588,28 +647,50 @@ function SesionCompletada({
 
       <div className="flex gap-3 w-full">
         <button
-          className="flex-1 px-4 py-2.5 rounded-[var(--radius-btn)] font-black text-micro uppercase tracking-widest transition-all border"
+          className="flex-1 px-4 py-2.5 rounded-[var(--radius-btn)] font-black text-[10px] uppercase tracking-widest border transition-all"
           style={{
-            borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)",
-            color: "color-mix(in srgb, var(--primary) 60%, transparent)",
+            borderColor: "color-mix(in srgb, var(--primary) 14%, transparent)",
+            color: "color-mix(in srgb, var(--primary) 55%, transparent)",
           }}
           onClick={onVolver}
         >
-          Volver
+          Volver a mazos
         </button>
         <button
-          className="flex-1 px-4 py-2.5 rounded-[var(--radius-btn)] font-black text-micro uppercase tracking-widest transition-all"
+          className="flex-1 px-4 py-2.5 rounded-[var(--radius-btn)] font-black text-[10px] uppercase tracking-widest transition-all flex items-center justify-center gap-1.5"
           style={{
             background: "color-mix(in srgb, var(--primary) 10%, transparent)",
             color: "var(--primary)",
           }}
           onClick={onReintentar}
         >
-          <Shuffle size={12} className="inline mr-1.5" />
-          Volver a estudiar
+          <Shuffle size={11} />
+          Repetir sesión
         </button>
       </div>
     </motion.div>
+  );
+}
+
+// ── Back button ───────────────────────────────────────────────────────────────
+
+function BackBtn({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button
+      className="flex items-center gap-1.5 font-black text-[10px] uppercase tracking-widest transition-colors group"
+      style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
+      onClick={onClick}
+      onMouseEnter={(e) =>
+        ((e.currentTarget as HTMLElement).style.color = "var(--primary)")
+      }
+      onMouseLeave={(e) =>
+        ((e.currentTarget as HTMLElement).style.color =
+          "color-mix(in srgb, var(--primary) 35%, transparent)")
+      }
+    >
+      <ArrowLeft size={12} className="group-hover:-translate-x-0.5 transition-transform" />
+      {label}
+    </button>
   );
 }
 
@@ -623,23 +704,21 @@ export default function FlashCardsPage() {
   const [mazos, setMazos] = useState<Mazo[]>([]);
   const [cartas, setCartas] = useState<Record<string, Carta[]>>({});
   const [mazoActivo, setMazoActivo] = useState<Mazo | null>(null);
-  const [cola, setCola] = useState<Carta[]>([]); // cartas en orden de estudio
+  const [cola, setCola] = useState<Carta[]>([]);
   const [indice, setIndice] = useState(0);
   const [resultados, setResultados] = useState<
     { calidad: CalidadRespuesta; frente: string }[]
   >([]);
   const [vista, setVista] = useState<Vista>("mazos");
   const [loading, setLoading] = useState(true);
-  const [modoTodas, setModoTodas] = useState(false); // estudiar todas vs solo las de hoy
+  const [modoTodas, setModoTodas] = useState(false);
 
-  // Modal nuevo mazo
   const [showNuevoMazo, setShowNuevoMazo] = useState(false);
   const [nuevoNombre, setNuevoNombre] = useState("");
   const [nuevoDesc, setNuevoDesc] = useState("");
-  const [nuevoColor, setNuevoColor] = useState(COLORES[0]);
+  const [nuevoColor, setNuevoColor] = useState(COLORES_MAZO[0]);
   const [savingMazo, setSavingMazo] = useState(false);
 
-  // Modal nueva carta
   const [showNuevaCarta, setShowNuevaCarta] = useState(false);
   const [nuevaFrente, setNuevaFrente] = useState("");
   const [nuevaReverso, setNuevaReverso] = useState("");
@@ -658,28 +737,21 @@ export default function FlashCardsPage() {
     setLoading(false);
   }, []);
 
-  const cargarCartas = useCallback(
-    async (mazoId: string): Promise<Carta[]> => {
-      const { data } = await supabase
-        .from("flashcard_cartas")
-        .select("*")
-        .eq("mazo_id", mazoId)
-        .order("created_at", { ascending: true });
-      if (data) {
-        const cs = data as Carta[];
-        setCartas((prev) => ({ ...prev, [mazoId]: cs }));
-        return cs;
-      }
-      return [];
-    },
-    [],
-  );
+  const cargarCartas = useCallback(async (mazoId: string): Promise<Carta[]> => {
+    const { data } = await supabase
+      .from("flashcard_cartas")
+      .select("*")
+      .eq("mazo_id", mazoId)
+      .order("created_at", { ascending: true });
+    if (data) {
+      const cs = data as Carta[];
+      setCartas((prev) => ({ ...prev, [mazoId]: cs }));
+      return cs;
+    }
+    return [];
+  }, []);
 
-  useEffect(() => {
-    cargarMazos();
-  }, [cargarMazos]);
-
-  // ── Pendientes por mazo ───────────────────────────────────────────────────
+  useEffect(() => { cargarMazos(); }, [cargarMazos]);
 
   const pendientesPorMazo = useMemo(() => {
     const map: Record<string, number> = {};
@@ -689,7 +761,6 @@ export default function FlashCardsPage() {
     return map;
   }, [cartas]);
 
-  // Precarga los conteos al ver la lista de mazos
   useEffect(() => {
     if (vista === "mazos") {
       mazos.forEach((m) => {
@@ -698,7 +769,7 @@ export default function FlashCardsPage() {
     }
   }, [vista, mazos, cartas, cargarCartas]);
 
-  // ── Iniciar sesión de estudio ─────────────────────────────────────────────
+  // ── Estudio ───────────────────────────────────────────────────────────────
 
   const iniciarEstudio = async (mazo: Mazo, todasLasCartas = false) => {
     setMazoActivo(mazo);
@@ -711,32 +782,17 @@ export default function FlashCardsPage() {
     setVista("estudio");
   };
 
-  // ── Calificar carta ───────────────────────────────────────────────────────
-
   const calificarCarta = async (calidad: CalidadRespuesta) => {
     const carta = cola[indice];
     const upd = calcularSRS(carta, calidad);
-
-    // Guardar en Supabase
-    await supabase
-      .from("flashcard_cartas")
-      .update(upd)
-      .eq("id", carta.id);
-
-    // Actualizar local
-    const cartaActualizada = { ...carta, ...upd };
+    await supabase.from("flashcard_cartas").update(upd).eq("id", carta.id);
     setCartas((prev) => ({
       ...prev,
       [mazoActivo!.id]: (prev[mazoActivo!.id] ?? []).map((c) =>
-        c.id === carta.id ? cartaActualizada : c,
+        c.id === carta.id ? { ...c, ...upd } : c,
       ),
     }));
-
-    setResultados((prev) => [
-      ...prev,
-      { calidad, frente: carta.frente },
-    ]);
-
+    setResultados((prev) => [...prev, { calidad, frente: carta.frente }]);
     if (indice + 1 >= cola.length) {
       setVista("completada");
     } else {
@@ -744,27 +800,19 @@ export default function FlashCardsPage() {
     }
   };
 
-  // ── Crear mazo ────────────────────────────────────────────────────────────
+  // ── CRUD ──────────────────────────────────────────────────────────────────
 
   const crearMazo = async () => {
     if (!nuevoNombre.trim()) return;
     setSavingMazo(true);
     const { data } = await supabase
       .from("flashcard_mazos")
-      .insert({
-        nombre: nuevoNombre.trim(),
-        descripcion: nuevoDesc.trim() || null,
-        color: nuevoColor,
-        user_id: user?.id,
-      })
+      .insert({ nombre: nuevoNombre.trim(), descripcion: nuevoDesc.trim() || null, color: nuevoColor, user_id: user?.id })
       .select()
       .single();
     if (data) setMazos((prev) => [data as Mazo, ...prev]);
-    setNuevoNombre("");
-    setNuevoDesc("");
-    setNuevoColor(COLORES[0]);
-    setShowNuevoMazo(false);
-    setSavingMazo(false);
+    setNuevoNombre(""); setNuevoDesc(""); setNuevoColor(COLORES_MAZO[0]);
+    setShowNuevoMazo(false); setSavingMazo(false);
   };
 
   const eliminarMazo = async (id: string) => {
@@ -772,34 +820,18 @@ export default function FlashCardsPage() {
     setMazos((prev) => prev.filter((m) => m.id !== id));
   };
 
-  // ── Crear carta ───────────────────────────────────────────────────────────
-
   const crearCarta = async () => {
     if (!mazoActivo || !nuevaFrente.trim() || !nuevaReverso.trim()) return;
     setSavingCarta(true);
     const { data } = await supabase
       .from("flashcard_cartas")
-      .insert({
-        mazo_id: mazoActivo.id,
-        frente: nuevaFrente.trim(),
-        reverso: nuevaReverso.trim(),
-        contexto: nuevaContexto.trim() || null,
-        user_id: user?.id,
-      })
-      .select()
-      .single();
+      .insert({ mazo_id: mazoActivo.id, frente: nuevaFrente.trim(), reverso: nuevaReverso.trim(), contexto: nuevaContexto.trim() || null, user_id: user?.id })
+      .select().single();
     if (data) {
-      const nueva = data as Carta;
-      setCartas((prev) => ({
-        ...prev,
-        [mazoActivo.id]: [...(prev[mazoActivo.id] ?? []), nueva],
-      }));
+      setCartas((prev) => ({ ...prev, [mazoActivo.id]: [...(prev[mazoActivo.id] ?? []), data as Carta] }));
     }
-    setNuevaFrente("");
-    setNuevaReverso("");
-    setNuevaContexto("");
-    setShowNuevaCarta(false);
-    setSavingCarta(false);
+    setNuevaFrente(""); setNuevaReverso(""); setNuevaContexto("");
+    setShowNuevaCarta(false); setSavingCarta(false);
   };
 
   // ── Vista: Mazos ──────────────────────────────────────────────────────────
@@ -807,50 +839,97 @@ export default function FlashCardsPage() {
   if (vista === "mazos") {
     return (
       <div className="flex flex-col h-full overflow-y-auto custom-scrollbar">
-        <div className="flex-1 p-6 md:p-8 max-w-4xl mx-auto w-full">
+        <div className="flex-1 p-6 md:p-10 w-full max-w-6xl mx-auto">
+
           {/* Header */}
-          <div className="flex items-end justify-between mb-8">
-            <div>
-              <h1 className="font-black text-xl uppercase tracking-widest italic text-primary">
-                FlashCards
-              </h1>
-              <p className="text-micro text-primary/40 mt-1 font-bold uppercase tracking-widest">
-                Sistema de repetición espaciada
-              </p>
+          <div className="flex items-end justify-between mb-10">
+            <div className="flex items-center gap-3">
+              <div
+                className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
+              >
+                <Brain size={17} style={{ color: "var(--primary)" }} />
+              </div>
+              <div>
+                <h1 className="font-black text-base uppercase tracking-widest italic text-primary leading-none">
+                  FlashCards
+                </h1>
+                <p className="text-[10px] text-primary/35 font-bold uppercase tracking-widest mt-0.5">
+                  Repetición espaciada · SM-2
+                </p>
+              </div>
             </div>
             <button
-              className="flex items-center gap-2 px-4 py-2 rounded-[var(--radius-btn)] font-black text-micro uppercase tracking-widest transition-all"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-[var(--radius-btn)] font-black text-[10px] uppercase tracking-widest transition-all"
               style={{
-                background:
-                  "color-mix(in srgb, var(--primary) 10%, transparent)",
+                background: "color-mix(in srgb, var(--primary) 10%, transparent)",
                 color: "var(--primary)",
               }}
               onClick={() => setShowNuevoMazo(true)}
+              onMouseEnter={(e) =>
+                ((e.currentTarget as HTMLElement).style.background =
+                  "color-mix(in srgb, var(--primary) 18%, transparent)")
+              }
+              onMouseLeave={(e) =>
+                ((e.currentTarget as HTMLElement).style.background =
+                  "color-mix(in srgb, var(--primary) 10%, transparent)")
+              }
             >
-              <Plus size={13} />
+              <Plus size={12} />
               Nuevo mazo
             </button>
           </div>
 
+          {/* Estadística rápida total */}
+          {!loading && mazos.length > 0 && (() => {
+            const totalPend = Object.values(pendientesPorMazo).reduce((a, b) => a + b, 0);
+            const totalCartas = Object.values(cartas).reduce((a, b) => a + b.length, 0);
+            return totalPend > 0 ? (
+              <div
+                className="flex items-center gap-3 px-5 py-3.5 rounded-[var(--radius-btn)] mb-8 w-fit"
+                style={{
+                  background: "oklch(55% 0.22 25 / 0.08)",
+                  border: "1px solid oklch(55% 0.22 25 / 0.2)",
+                }}
+              >
+                <Flame size={14} style={{ color: "oklch(55% 0.22 25)" }} />
+                <span className="text-xs font-black uppercase tracking-widest" style={{ color: "oklch(55% 0.22 25)" }}>
+                  {totalPend} carta{totalPend !== 1 ? "s" : ""} pendiente{totalPend !== 1 ? "s" : ""} hoy
+                </span>
+                <span className="text-[10px] text-primary/25 font-bold uppercase tracking-widest">
+                  de {totalCartas}
+                </span>
+              </div>
+            ) : (
+              <div
+                className="flex items-center gap-3 px-5 py-3.5 rounded-[var(--radius-btn)] mb-8 w-fit"
+                style={{
+                  background: "oklch(62% 0.2 145 / 0.08)",
+                  border: "1px solid oklch(62% 0.2 145 / 0.2)",
+                }}
+              >
+                <Sparkles size={14} style={{ color: "oklch(62% 0.2 145)" }} />
+                <span className="text-xs font-black uppercase tracking-widest" style={{ color: "oklch(62% 0.2 145)" }}>
+                  ¡Al día con todos los mazos!
+                </span>
+              </div>
+            );
+          })()}
+
+          {/* Grid */}
           {loading ? (
-            <div className="flex items-center justify-center py-20 text-primary/20 font-black uppercase tracking-widest text-micro">
-              Cargando…
+            <div className="flex items-center justify-center py-24 text-primary/20 font-black uppercase tracking-widest text-[10px]">
+              Cargando mazos…
             </div>
           ) : mazos.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 gap-4">
-              <BookOpen
-                size={32}
-                style={{
-                  color:
-                    "color-mix(in srgb, var(--primary) 20%, transparent)",
-                }}
-              />
-              <p className="text-micro font-black uppercase tracking-widest text-primary/30">
+            <div className="flex flex-col items-center justify-center py-24 gap-4">
+              <BookOpen size={28} style={{ color: "color-mix(in srgb, var(--primary) 18%, transparent)" }} />
+              <p className="text-[10px] font-black uppercase tracking-widest text-primary/25">
                 No hay mazos. ¡Crea el primero!
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               <AnimatePresence>
                 {mazos.map((m) => (
                   <MazoCard
@@ -868,118 +947,77 @@ export default function FlashCardsPage() {
         </div>
 
         {/* Modal nuevo mazo */}
-        <AnimatePresence>
-          {showNuevoMazo && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
-              <motion.div
-                className="absolute inset-0"
-                style={{
-                  background:
-                    "color-mix(in srgb, var(--primary) 20%, transparent)",
-                  backdropFilter: "blur(6px)",
-                }}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={() => setShowNuevoMazo(false)}
+        <Modal open={showNuevoMazo} onClose={() => setShowNuevoMazo(false)}>
+          <div className="p-7">
+            <h3 className="font-black uppercase tracking-widest text-[10px] text-primary mb-6 text-center">
+              Nuevo mazo
+            </h3>
+            <div className="flex flex-col gap-3">
+              <Field
+                label="Nombre"
+                placeholder="ej. Palabras nuevas"
+                value={nuevoNombre}
+                onChange={(e: any) => setNuevoNombre(e.target.value)}
+                onKeyDown={(e: any) => e.key === "Enter" && crearMazo()}
+                autoFocus
               />
-              <motion.div
-                className="relative z-10 w-full max-w-sm rounded-[var(--radius-card)] p-7 border"
-                style={{
-                  background: "var(--white-custom)",
-                  borderColor:
-                    "color-mix(in srgb, var(--primary) 12%, transparent)",
-                  boxShadow: "var(--shadow-card)",
-                }}
-                initial={{ scale: 0.93, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.93, opacity: 0 }}
-                transition={{ type: "spring", stiffness: 380, damping: 30 }}
-              >
-                <h3 className="font-black uppercase tracking-widest text-micro text-primary mb-5 text-center">
-                  Nuevo mazo
-                </h3>
-                <div className="flex flex-col gap-3">
-                  <input
-                    className="w-full px-3 py-2 rounded-[var(--radius-btn)] border font-bold text-sm bg-transparent text-primary placeholder-primary/30 outline-none transition-colors"
-                    style={{
-                      borderColor:
-                        "color-mix(in srgb, var(--primary) 15%, transparent)",
-                    }}
-                    placeholder="Nombre del mazo"
-                    value={nuevoNombre}
-                    onChange={(e) => setNuevoNombre(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && crearMazo()}
-                    autoFocus
-                  />
-                  <textarea
-                    className="w-full px-3 py-2 rounded-[var(--radius-btn)] border font-bold text-sm bg-transparent text-primary placeholder-primary/30 outline-none transition-colors resize-none"
-                    style={{
-                      borderColor:
-                        "color-mix(in srgb, var(--primary) 15%, transparent)",
-                    }}
-                    placeholder="Descripción (opcional)"
-                    rows={2}
-                    value={nuevoDesc}
-                    onChange={(e) => setNuevoDesc(e.target.value)}
-                  />
-                  <div>
-                    <p className="text-micro font-black uppercase tracking-widest text-primary/40 mb-2">
-                      Color
-                    </p>
-                    <div className="flex gap-2 flex-wrap">
-                      {COLORES.map((c) => (
-                        <button
-                          key={c}
-                          className="w-7 h-7 rounded-full transition-all border-2"
-                          style={{
-                            background: c,
-                            borderColor:
-                              nuevoColor === c
-                                ? "var(--primary)"
-                                : "transparent",
-                            transform:
-                              nuevoColor === c ? "scale(1.15)" : "scale(1)",
-                          }}
-                          onClick={() => setNuevoColor(c)}
-                        />
-                      ))}
-                    </div>
-                  </div>
+              <Field
+                as="textarea"
+                label="Descripción (opcional)"
+                placeholder="ej. Vocabulario del libro X"
+                rows={2}
+                value={nuevoDesc}
+                onChange={(e: any) => setNuevoDesc(e.target.value)}
+              />
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.12em] text-primary/40 mb-2.5 pl-0.5">
+                  Color
+                </p>
+                <div className="flex gap-2 flex-wrap">
+                  {COLORES_MAZO.map((c) => (
+                    <button
+                      key={c}
+                      className="w-7 h-7 rounded-full transition-all border-2"
+                      style={{
+                        background: c,
+                        borderColor: nuevoColor === c ? "var(--primary)" : "transparent",
+                        transform: nuevoColor === c ? "scale(1.18)" : "scale(1)",
+                      }}
+                      onClick={() => setNuevoColor(c)}
+                    />
+                  ))}
                 </div>
-                <div className="flex gap-2 mt-6">
-                  <button
-                    className="flex-1 px-4 py-2 rounded-[var(--radius-btn)] font-black text-micro uppercase tracking-widest border"
-                    style={{
-                      borderColor:
-                        "color-mix(in srgb, var(--primary) 15%, transparent)",
-                      color:
-                        "color-mix(in srgb, var(--primary) 50%, transparent)",
-                    }}
-                    onClick={() => setShowNuevoMazo(false)}
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    className="flex-1 px-4 py-2 rounded-[var(--radius-btn)] font-black text-micro uppercase tracking-widest transition-all"
-                    style={{
-                      background: nuevoNombre.trim()
-                        ? "var(--primary)"
-                        : "color-mix(in srgb, var(--primary) 20%, transparent)",
-                      color: nuevoNombre.trim()
-                        ? "var(--btn-text)"
-                        : "color-mix(in srgb, var(--primary) 40%, transparent)",
-                    }}
-                    disabled={!nuevoNombre.trim() || savingMazo}
-                    onClick={crearMazo}
-                  >
-                    {savingMazo ? "Guardando…" : "Crear"}
-                  </button>
-                </div>
-              </motion.div>
+              </div>
             </div>
-          )}
-        </AnimatePresence>
+            <div className="flex gap-2 mt-6">
+              <button
+                className="flex-1 px-4 py-2.5 rounded-[var(--radius-btn)] font-black text-[10px] uppercase tracking-widest border transition-all"
+                style={{
+                  borderColor: "color-mix(in srgb, var(--primary) 13%, transparent)",
+                  color: "color-mix(in srgb, var(--primary) 45%, transparent)",
+                }}
+                onClick={() => setShowNuevoMazo(false)}
+              >
+                Cancelar
+              </button>
+              <button
+                className="flex-1 px-4 py-2.5 rounded-[var(--radius-btn)] font-black text-[10px] uppercase tracking-widest transition-all"
+                style={{
+                  background: nuevoNombre.trim()
+                    ? "var(--primary)"
+                    : "color-mix(in srgb, var(--primary) 14%, transparent)",
+                  color: nuevoNombre.trim()
+                    ? "var(--btn-text)"
+                    : "color-mix(in srgb, var(--primary) 35%, transparent)",
+                }}
+                disabled={!nuevoNombre.trim() || savingMazo}
+                onClick={crearMazo}
+              >
+                {savingMazo ? "Guardando…" : "Crear mazo"}
+              </button>
+            </div>
+          </div>
+        </Modal>
       </div>
     );
   }
@@ -989,23 +1027,16 @@ export default function FlashCardsPage() {
   if (vista === "completada") {
     return (
       <div className="flex flex-col h-full overflow-y-auto custom-scrollbar">
-        <div className="flex-1 p-6 md:p-8 max-w-2xl mx-auto w-full">
-          {/* Back */}
-          <button
-            className="flex items-center gap-2 font-black text-micro uppercase tracking-widest italic transition-colors group mb-8"
-            style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
-            onClick={() => setVista("mazos")}
-          >
-            <span className="group-hover:-translate-x-1 transition-transform">←</span>
-            Mazos
-          </button>
-
-          <SesionCompletada
-            total={resultados.length}
-            resultados={resultados}
-            onVolver={() => setVista("mazos")}
-            onReintentar={() => mazoActivo && iniciarEstudio(mazoActivo, modoTodas)}
-          />
+        <div className="flex-1 p-6 md:p-10 max-w-2xl mx-auto w-full">
+          <BackBtn label="Mazos" onClick={() => setVista("mazos")} />
+          <div className="mt-8">
+            <SesionCompletada
+              total={resultados.length}
+              resultados={resultados}
+              onVolver={() => setVista("mazos")}
+              onReintentar={() => mazoActivo && iniciarEstudio(mazoActivo, modoTodas)}
+            />
+          </div>
         </div>
       </div>
     );
@@ -1015,37 +1046,31 @@ export default function FlashCardsPage() {
 
   const cartaActual = cola[indice];
   const totalEnCola = cola.length;
-  const todasDone = cartasDueHoy(cartas[mazoActivo?.id ?? ""] ?? []).length;
+  const pendientesHoy = cartasDueHoy(cartas[mazoActivo?.id ?? ""] ?? []).length;
 
   return (
     <div className="flex flex-col h-full overflow-y-auto custom-scrollbar">
-      <div className="flex-1 p-6 md:p-8 max-w-2xl mx-auto w-full flex flex-col gap-6">
+      <div className="flex-1 p-6 md:p-10 max-w-3xl mx-auto w-full flex flex-col gap-8">
+
         {/* Header */}
         <div className="flex items-center justify-between">
-          <button
-            className="flex items-center gap-2 font-black text-micro uppercase tracking-widest italic transition-colors group"
-            style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
-            onClick={() => setVista("mazos")}
-          >
-            <span className="group-hover:-translate-x-1 transition-transform">←</span>
-            Mazos
-          </button>
+          <BackBtn label="Mazos" onClick={() => setVista("mazos")} />
 
-          <div className="text-center">
-            <p className="font-black text-sm uppercase tracking-widest text-primary">
+          <div className="flex flex-col items-center gap-0.5">
+            <p className="font-black text-xs uppercase tracking-widest text-primary">
               {mazoActivo?.nombre}
             </p>
-            <p className="text-micro text-primary/40">
+            <p className="text-[10px] text-primary/30 font-bold uppercase tracking-widest">
               {modoTodas ? "Todas las cartas" : "Repaso de hoy"}
             </p>
           </div>
 
           <div className="flex items-center gap-2">
-            {!modoTodas && todasDone === 0 && (
+            {!modoTodas && pendientesHoy === 0 && totalEnCola > 0 && (
               <button
-                className="text-micro font-black uppercase tracking-widest px-3 py-1.5 rounded-[var(--radius-btn)] transition-all"
+                className="text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-[var(--radius-btn)] transition-all"
                 style={{
-                  background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+                  background: "color-mix(in srgb, var(--primary) 7%, transparent)",
                   color: "color-mix(in srgb, var(--primary) 50%, transparent)",
                 }}
                 onClick={() => mazoActivo && iniciarEstudio(mazoActivo, true)}
@@ -1054,14 +1079,14 @@ export default function FlashCardsPage() {
               </button>
             )}
             <button
-              className="flex items-center gap-2 px-3 py-1.5 rounded-[var(--radius-btn)] font-black text-micro uppercase tracking-widest transition-all"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-btn)] font-black text-[10px] uppercase tracking-widest transition-all"
               style={{
                 background: "color-mix(in srgb, var(--primary) 8%, transparent)",
                 color: "var(--primary)",
               }}
               onClick={() => setShowNuevaCarta(true)}
             >
-              <Plus size={12} />
+              <Plus size={11} />
               Carta
             </button>
           </div>
@@ -1072,27 +1097,31 @@ export default function FlashCardsPage() {
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex flex-col items-center justify-center flex-1 gap-4 py-20"
+            className="flex flex-col items-center justify-center flex-1 gap-5 py-20"
           >
-            <CheckCircle2
-              size={36}
-              style={{ color: "#22c55e" }}
-            />
-            <p className="font-black text-sm uppercase tracking-widest text-primary">
-              ¡Al día!
-            </p>
-            <p className="text-micro text-primary/40 font-bold uppercase tracking-widest text-center">
-              No tienes cartas pendientes para hoy.
-            </p>
+            <div
+              className="w-16 h-16 rounded-full flex items-center justify-center"
+              style={{ background: "oklch(62% 0.2 145 / 0.1)" }}
+            >
+              <CheckCircle2 size={26} style={{ color: "oklch(62% 0.2 145)" }} />
+            </div>
+            <div className="flex flex-col items-center gap-1">
+              <p className="font-black text-sm uppercase tracking-widest text-primary">
+                ¡Al día!
+              </p>
+              <p className="text-[10px] text-primary/35 font-bold uppercase tracking-widest">
+                No hay cartas pendientes para hoy.
+              </p>
+            </div>
             <button
-              className="flex items-center gap-2 px-4 py-2 rounded-[var(--radius-btn)] font-black text-micro uppercase tracking-widest transition-all"
+              className="flex items-center gap-1.5 px-4 py-2.5 rounded-[var(--radius-btn)] font-black text-[10px] uppercase tracking-widest transition-all"
               style={{
-                background: "color-mix(in srgb, var(--primary) 10%, transparent)",
+                background: "color-mix(in srgb, var(--primary) 9%, transparent)",
                 color: "var(--primary)",
               }}
               onClick={() => mazoActivo && iniciarEstudio(mazoActivo, true)}
             >
-              <Shuffle size={12} />
+              <Shuffle size={11} />
               Estudiar todas de todas formas
             </button>
           </motion.div>
@@ -1114,108 +1143,65 @@ export default function FlashCardsPage() {
       </div>
 
       {/* Modal nueva carta */}
-      <AnimatePresence>
-        {showNuevaCarta && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
-            <motion.div
-              className="absolute inset-0"
+      <Modal open={showNuevaCarta} onClose={() => setShowNuevaCarta(false)}>
+        <div className="p-7">
+          <h3 className="font-black uppercase tracking-widest text-[10px] text-primary mb-6 text-center">
+            Nueva carta
+          </h3>
+          <div className="flex flex-col gap-3">
+            <Field
+              label="Palabra (frente)"
+              placeholder="ej. Parsimonia"
+              value={nuevaFrente}
+              onChange={(e: any) => setNuevaFrente(e.target.value)}
+              autoFocus
+            />
+            <Field
+              as="textarea"
+              label="Definición (reverso)"
+              placeholder="ej. Moderación y economía en los gastos o en el uso de algo."
+              rows={3}
+              value={nuevaReverso}
+              onChange={(e: any) => setNuevaReverso(e.target.value)}
+            />
+            <Field
+              label="Libro o fuente (opcional)"
+              placeholder="ej. En Agosto Nos Vemos"
+              value={nuevaContexto}
+              onChange={(e: any) => setNuevaContexto(e.target.value)}
+            />
+          </div>
+          <div className="flex gap-2 mt-6">
+            <button
+              className="flex-1 px-4 py-2.5 rounded-[var(--radius-btn)] font-black text-[10px] uppercase tracking-widest border transition-all"
+              style={{
+                borderColor: "color-mix(in srgb, var(--primary) 13%, transparent)",
+                color: "color-mix(in srgb, var(--primary) 45%, transparent)",
+              }}
+              onClick={() => setShowNuevaCarta(false)}
+            >
+              Cancelar
+            </button>
+            <button
+              className="flex-1 px-4 py-2.5 rounded-[var(--radius-btn)] font-black text-[10px] uppercase tracking-widest transition-all"
               style={{
                 background:
-                  "color-mix(in srgb, var(--primary) 20%, transparent)",
-                backdropFilter: "blur(6px)",
+                  nuevaFrente.trim() && nuevaReverso.trim()
+                    ? "var(--primary)"
+                    : "color-mix(in srgb, var(--primary) 14%, transparent)",
+                color:
+                  nuevaFrente.trim() && nuevaReverso.trim()
+                    ? "var(--btn-text)"
+                    : "color-mix(in srgb, var(--primary) 35%, transparent)",
               }}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowNuevaCarta(false)}
-            />
-            <motion.div
-              className="relative z-10 w-full max-w-sm rounded-[var(--radius-card)] p-7 border"
-              style={{
-                background: "var(--white-custom)",
-                borderColor:
-                  "color-mix(in srgb, var(--primary) 12%, transparent)",
-                boxShadow: "var(--shadow-card)",
-              }}
-              initial={{ scale: 0.93, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.93, opacity: 0 }}
-              transition={{ type: "spring", stiffness: 380, damping: 30 }}
+              disabled={!nuevaFrente.trim() || !nuevaReverso.trim() || savingCarta}
+              onClick={crearCarta}
             >
-              <h3 className="font-black uppercase tracking-widest text-micro text-primary mb-5 text-center">
-                Nueva carta
-              </h3>
-              <div className="flex flex-col gap-3">
-                <input
-                  className="w-full px-3 py-2 rounded-[var(--radius-btn)] border font-bold text-sm bg-transparent text-primary placeholder-primary/30 outline-none transition-colors"
-                  style={{
-                    borderColor:
-                      "color-mix(in srgb, var(--primary) 15%, transparent)",
-                  }}
-                  placeholder="Frente (palabra)"
-                  value={nuevaFrente}
-                  onChange={(e) => setNuevaFrente(e.target.value)}
-                  autoFocus
-                />
-                <textarea
-                  className="w-full px-3 py-2 rounded-[var(--radius-btn)] border font-bold text-sm bg-transparent text-primary placeholder-primary/30 outline-none transition-colors resize-none"
-                  style={{
-                    borderColor:
-                      "color-mix(in srgb, var(--primary) 15%, transparent)",
-                  }}
-                  placeholder="Reverso (definición)"
-                  rows={3}
-                  value={nuevaReverso}
-                  onChange={(e) => setNuevaReverso(e.target.value)}
-                />
-                <input
-                  className="w-full px-3 py-2 rounded-[var(--radius-btn)] border font-bold text-sm bg-transparent text-primary placeholder-primary/30 outline-none transition-colors"
-                  style={{
-                    borderColor:
-                      "color-mix(in srgb, var(--primary) 15%, transparent)",
-                  }}
-                  placeholder="Libro / fuente (opcional)"
-                  value={nuevaContexto}
-                  onChange={(e) => setNuevaContexto(e.target.value)}
-                />
-              </div>
-              <div className="flex gap-2 mt-6">
-                <button
-                  className="flex-1 px-4 py-2 rounded-[var(--radius-btn)] font-black text-micro uppercase tracking-widest border"
-                  style={{
-                    borderColor:
-                      "color-mix(in srgb, var(--primary) 15%, transparent)",
-                    color:
-                      "color-mix(in srgb, var(--primary) 50%, transparent)",
-                  }}
-                  onClick={() => setShowNuevaCarta(false)}
-                >
-                  Cancelar
-                </button>
-                <button
-                  className="flex-1 px-4 py-2 rounded-[var(--radius-btn)] font-black text-micro uppercase tracking-widest transition-all"
-                  style={{
-                    background:
-                      nuevaFrente.trim() && nuevaReverso.trim()
-                        ? "var(--primary)"
-                        : "color-mix(in srgb, var(--primary) 20%, transparent)",
-                    color:
-                      nuevaFrente.trim() && nuevaReverso.trim()
-                        ? "var(--btn-text)"
-                        : "color-mix(in srgb, var(--primary) 40%, transparent)",
-                  }}
-                  disabled={
-                    !nuevaFrente.trim() || !nuevaReverso.trim() || savingCarta
-                  }
-                  onClick={crearCarta}
-                >
-                  {savingCarta ? "Guardando…" : "Crear"}
-                </button>
-              </div>
-            </motion.div>
+              {savingCarta ? "Guardando…" : "Crear carta"}
+            </button>
           </div>
-        )}
-      </AnimatePresence>
+        </div>
+      </Modal>
     </div>
   );
 }
