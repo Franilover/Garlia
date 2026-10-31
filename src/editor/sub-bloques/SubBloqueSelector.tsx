@@ -27,6 +27,26 @@ interface SubBloqueSelectorProps {
   onDelete: (id: string) => void;
 }
 
+function usePanelPosition(
+  btnRef: React.RefObject<HTMLElement | null>,
+  open: boolean,
+): React.CSSProperties {
+  const [pos, setPos] = React.useState<React.CSSProperties>({});
+  React.useEffect(() => {
+    if (!open || !btnRef.current) return;
+    const rect = btnRef.current.getBoundingClientRect();
+    const panelWidth = 320;
+    const top = rect.bottom + 4;
+    const fitsRight = rect.left + panelWidth < window.innerWidth - 8;
+    if (fitsRight) {
+      setPos({ position: "fixed", top, left: rect.left, zIndex: 200 });
+    } else {
+      setPos({ position: "fixed", top, right: window.innerWidth - rect.right, zIndex: 200 });
+    }
+  }, [open, btnRef]);
+  return pos;
+}
+
 export function SubBloqueSelector({
   bloques,
   activeId,
@@ -40,6 +60,8 @@ export function SubBloqueSelector({
   const [editValue, setEditValue] = useState("");
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const panelPos = usePanelPosition(btnRef, open);
   const editInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -108,6 +130,7 @@ export function SubBloqueSelector({
           cursor: "pointer",
           maxWidth: 220,
         }}
+        ref={btnRef}
         title="Elegir bloque de contenido"
         type="button"
         onClick={() => setOpen((o) => !o)}
@@ -130,10 +153,6 @@ export function SubBloqueSelector({
       {open && (
         <div
           style={{
-            position: "absolute",
-            top: "calc(100% + 4px)",
-            left: 0,
-            zIndex: 60,
             minWidth: 240,
             maxWidth: 320,
             maxHeight: 340,
@@ -144,6 +163,7 @@ export function SubBloqueSelector({
             borderRadius: 8,
             boxShadow:
               "0 8px 28px color-mix(in srgb, var(--bg-main) 55%, transparent)",
+            ...panelPos,
           }}
         >
           {/* Documento principal */}

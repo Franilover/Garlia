@@ -46,6 +46,32 @@ function useCloseOnOutsideClick(
   return ref;
 }
 
+/**
+ * Calcula la posición fixed del panel a partir del botón trigger.
+ * Coloca el panel debajo del botón (top = bottom + 4px).
+ * Si se sale de la pantalla por la derecha, lo ancla a la derecha.
+ */
+function usePanelPosition(
+  btnRef: React.RefObject<HTMLElement | null>,
+  open: boolean,
+): React.CSSProperties {
+  const [pos, setPos] = useState<React.CSSProperties>({});
+  useEffect(() => {
+    if (!open || !btnRef.current) return;
+    const rect = btnRef.current.getBoundingClientRect();
+    const panelWidth = 300; // maxWidth aproximado
+    const top = rect.bottom + 4;
+    // Si el panel se va por la derecha, anclarlo al borde derecho del botón
+    const fitsRight = rect.left + panelWidth < window.innerWidth - 8;
+    if (fitsRight) {
+      setPos({ position: "fixed", top, left: rect.left, zIndex: 200 });
+    } else {
+      setPos({ position: "fixed", top, right: window.innerWidth - rect.right, zIndex: 200 });
+    }
+  }, [open, btnRef]);
+  return pos;
+}
+
 function DropdownTrigger({
   icon: Icon,
   label,
@@ -53,6 +79,7 @@ function DropdownTrigger({
   active,
   onClick,
   extraLeft,
+  btnRef,
 }: {
   icon: React.ElementType;
   label: string;
@@ -61,9 +88,11 @@ function DropdownTrigger({
   onClick: () => void;
   /** Botón extra a la izquierda del ícono principal (lápiz, para tags) */
   extraLeft?: React.ReactNode;
+  btnRef?: React.Ref<HTMLButtonElement>;
 }) {
   return (
     <button
+      ref={btnRef}
       style={{
         display: "flex",
         alignItems: "center",
@@ -105,10 +134,6 @@ function DropdownTrigger({
 }
 
 const panelStyle: React.CSSProperties = {
-  position: "absolute",
-  top: "calc(100% + 4px)",
-  left: 0,
-  zIndex: 60,
   minWidth: 240,
   maxWidth: 320,
   maxHeight: 340,
@@ -140,6 +165,8 @@ export function TagsDropdown({
   const [editing, setEditing] = useState(false);
   const [search, setSearch] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const panelPos = usePanelPosition(btnRef, open);
   const containerRef = useCloseOnOutsideClick(open, () => {
     setOpen(false);
     setEditing(false);
@@ -197,6 +224,7 @@ export function TagsDropdown({
     <div ref={containerRef} style={{ position: "relative" }}>
       <DropdownTrigger
         active={tagsVisibles.length > 0}
+        btnRef={btnRef}
         count={tagsVisibles.length}
         extraLeft={
           <span
@@ -225,7 +253,7 @@ export function TagsDropdown({
       />
 
       {open && (
-        <div style={panelStyle}>
+        <div style={{ ...panelStyle, ...panelPos }}>
           {editing && (
             <div
               style={{
@@ -434,6 +462,8 @@ export function MencionesDropdown({
   onNavigateToPage,
 }: MencionesDropdownProps) {
   const [open, setOpen] = useState(false);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const panelPos = usePanelPosition(btnRef, open);
   const containerRef = useCloseOnOutsideClick(open, () => setOpen(false));
 
   const backlinks = useMemo(() => {
@@ -453,6 +483,7 @@ export function MencionesDropdown({
     <div ref={containerRef} style={{ position: "relative" }}>
       <DropdownTrigger
         active={backlinks.length > 0}
+        btnRef={btnRef}
         count={backlinks.length}
         icon={AtSign}
         label="menciones"
@@ -460,7 +491,7 @@ export function MencionesDropdown({
       />
 
       {open && (
-        <div style={panelStyle}>
+        <div style={{ ...panelStyle, ...panelPos }}>
           {backlinks.length === 0 ? (
             <div
               style={{
