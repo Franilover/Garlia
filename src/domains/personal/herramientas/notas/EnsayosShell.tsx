@@ -1,6 +1,6 @@
 "use client";
 import { AnimatePresence, motion } from "framer-motion";
-import { Loader2, PenTool, Search, X, Plus, FileText, Trash2, List, BookOpen, Hash } from "lucide-react";
+import { Loader2, PenTool, Search, X, Plus, FileText, Trash2, BookOpen, Hash } from "lucide-react";
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 
 import { AdminOnly } from "@/ui/AdminOnly";
@@ -873,43 +873,7 @@ function EnsayosInner() {
             />
           )}
 
-          {/* Indicador de guardado — siempre a la izquierda del botón de índice */}
-          {ensayoActivo && <SaveDot status={saveStatus} />}
-
-          {/* TOC (solo cuando hay nota activa con headings) */}
-          {ensayoActivo && tocEntries.length > 0 && (
-            <button
-              style={{
-                background: tocOpen ? "color-mix(in srgb, var(--color-primary,#7c6af7) 12%, transparent)" : "none",
-                border: "1px solid",
-                borderColor: tocOpen
-                  ? "color-mix(in srgb, var(--color-primary,#7c6af7) 30%, transparent)"
-                  : "color-mix(in srgb, var(--foreground) 8%, transparent)",
-                borderRadius: 5,
-                cursor: "pointer",
-                padding: "3px 6px",
-                display: "flex",
-                alignItems: "center",
-                transition: "all 0.12s",
-              }}
-              title="Tabla de contenidos"
-              onClick={() => setTocOpen(p => !p)}
-              onMouseEnter={e => {
-                if (!tocOpen) {
-                  (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--foreground) 25%, transparent)";
-                  (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--foreground) 6%, transparent)";
-                }
-              }}
-              onMouseLeave={e => {
-                if (!tocOpen) {
-                  (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--foreground) 8%, transparent)";
-                  (e.currentTarget as HTMLElement).style.background = "none";
-                }
-              }}
-            >
-              <List size={9} style={{ color: tocOpen ? "var(--color-primary,#7c6af7)" : "color-mix(in srgb, var(--foreground) 35%, transparent)" }} />
-            </button>
-          )}
+          {/* Tabla de contenidos y SaveDot movidos a la barra interna del editor (EditorEnsayo toolbar) */}
         </div>
 
           {/* Buscador + panel — centro */}

@@ -1,6 +1,6 @@
 "use client";
 import { AnimatePresence, motion } from "framer-motion";
-import { Save, BookOpen, X, PanelRight, Globe, Lock } from "lucide-react";
+import { Save, BookOpen, X, PanelRight, Globe, Lock, List } from "lucide-react";
 import React, {
   useRef,
   useState,
@@ -490,7 +490,7 @@ export function Editor({
         className="flex items-center gap-2 pt-2 pb-1"
         style={{ overflowX: "auto", scrollbarWidth: "none", flexShrink: 0 }}
       >
-        {/* Botón ficha — solo en libro + mobile, reemplaza su posición anterior en la mini meta bar */}
+        {/* Botón ficha — solo en libro + mobile */}
         {isLibro && isMobile && (
           <button
             style={{
@@ -514,6 +514,52 @@ export function Editor({
             ficha
           </button>
         )}
+
+        {/* Botón tabla de contenidos — visible cuando hay encabezados */}
+        {tocEntries.length > 0 && (
+          <button
+            style={{
+              background: tocOpen
+                ? "color-mix(in srgb, var(--color-primary,#7c6af7) 12%, transparent)"
+                : "transparent",
+              border: "1px solid",
+              borderColor: tocOpen
+                ? "color-mix(in srgb, var(--color-primary,#7c6af7) 30%, transparent)"
+                : "color-mix(in srgb, var(--foreground) 8%, transparent)",
+              borderRadius: 5,
+              cursor: "pointer",
+              padding: "3px 6px",
+              display: "flex",
+              alignItems: "center",
+              gap: 5,
+              flexShrink: 0,
+              transition: "all 0.12s",
+              ...monoStyle,
+              fontSize: 9,
+              color: tocOpen
+                ? "var(--color-primary,#7c6af7)"
+                : "color-mix(in srgb, var(--foreground) 35%, transparent)",
+            }}
+            title="Tabla de contenidos"
+            onClick={() => setTocOpen(p => !p)}
+            onMouseEnter={e => {
+              if (!tocOpen) {
+                (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--foreground) 25%, transparent)";
+                (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--foreground) 6%, transparent)";
+              }
+            }}
+            onMouseLeave={e => {
+              if (!tocOpen) {
+                (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--foreground) 8%, transparent)";
+                (e.currentTarget as HTMLElement).style.background = "transparent";
+              }
+            }}
+          >
+            <List size={9} />
+            índice
+          </button>
+        )}
+
         <SubBloqueSelector
           activeId={activeBloqueId}
           bloques={subBloques}
