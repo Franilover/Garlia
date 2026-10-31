@@ -515,8 +515,8 @@ export function Editor({
           </button>
         )}
 
-        {/* Botón tabla de contenidos — visible cuando hay encabezados */}
-        {tocEntries.length > 0 && (
+        {/* Botón tabla de contenidos — solo en móvil (en desktop el panel lateral ya es visible) */}
+        {isMobile && tocEntries.length > 0 && (
           <button
             style={{
               background: tocOpen
@@ -533,6 +533,7 @@ export function Editor({
               alignItems: "center",
               gap: 5,
               flexShrink: 0,
+              marginLeft: "auto",
               transition: "all 0.12s",
               ...monoStyle,
               fontSize: 9,
