@@ -486,7 +486,34 @@ export function Editor({
         paddingRight: isLibro ? 20 : 32,
       }}
     >
-      <div className="flex items-center gap-2 pt-2 pb-1">
+      <div
+        className="flex items-center gap-2 pt-2 pb-1"
+        style={{ overflowX: "auto", scrollbarWidth: "none", flexShrink: 0 }}
+      >
+        {/* Botón ficha — solo en libro + mobile, reemplaza su posición anterior en la mini meta bar */}
+        {isLibro && isMobile && (
+          <button
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 5,
+              padding: "3px 8px",
+              borderRadius: 5,
+              border: "1px solid color-mix(in srgb, var(--foreground) 10%, transparent)",
+              background: "color-mix(in srgb, var(--foreground) 4%, transparent)",
+              color: "color-mix(in srgb, var(--foreground) 45%, transparent)",
+              cursor: "pointer",
+              flexShrink: 0,
+              ...monoStyle,
+              fontSize: 9,
+            }}
+            title="Ver ficha del libro"
+            onClick={() => setLibroPanelOpen(true)}
+          >
+            <BookOpen size={9} />
+            ficha
+          </button>
+        )}
         <SubBloqueSelector
           activeId={activeBloqueId}
           bloques={subBloques}
@@ -704,68 +731,34 @@ export function Editor({
                   height: 36,
                   borderBottom:
                     "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)",
+                  overflowX: "auto",
+                  scrollbarWidth: "none",
                 }}
               >
-                {/* Botón ficha — solo en mobile */}
-                {isMobile && (
-                  <button
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 5,
-                      padding: "3px 8px",
-                      borderRadius: 5,
-                      border:
-                        "1px solid color-mix(in srgb, var(--foreground) 10%, transparent)",
-                      background:
-                        "color-mix(in srgb, var(--foreground) 4%, transparent)",
-                      color:
-                        "color-mix(in srgb, var(--foreground) 45%, transparent)",
-                      cursor: "pointer",
-                      flexShrink: 0,
-                      ...monoStyle,
-                      fontSize: 9,
-                    }}
-                    title="Ver ficha del libro"
-                    onClick={() => setLibroPanelOpen(true)}
-                  >
-                    <BookOpen size={9} />
-                    ficha
-                  </button>
-                )}
+                <SaveDot status={saveStatus} />
                 <span
                   style={{
                     fontSize: 9,
                     color:
                       "color-mix(in srgb, var(--foreground) 18%, transparent)",
                     ...monoStyle,
+                    flexShrink: 0,
                   }}
                 >
                   {wordCount} palabras · ~{readTime}min
                 </span>
                 {sources.length > 0 && (
-                  <>
-                    <span
-                      style={{
-                        fontSize: 9,
-                        color:
-                          "color-mix(in srgb, var(--foreground) 10%, transparent)",
-                        ...monoStyle,
-                      }}
-                    >
-                      ·
-                    </span>
-                    <span
-                      style={{
-                        fontSize: 9,
-                        color:
-                          "color-mix(in srgb, var(--accent) 55%, transparent)",
-                        ...monoStyle,
-                      }}
-                    >
-                      @ {sources.length} fuentes
-                    </span>
-                  </>
+                  <span
+                    style={{
+                      fontSize: 9,
+                      color:
+                        "color-mix(in srgb, var(--accent) 55%, transparent)",
+                      ...monoStyle,
+                      flexShrink: 0,
+                    }}
+                  >
+                    · @ {sources.length} fuentes
+                  </span>
                 )}
               </div>
               {markdownBlock}
@@ -923,131 +916,87 @@ export function Editor({
                 {tituloInput}
                 {/* ── Meta row ── */}
                 <div
-                  className="flex items-center mt-1.5"
+                  className="flex items-center mt-1.5 gap-3"
                   style={{
                     borderBottom:
                       "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)",
                     paddingBottom: 8,
+                    flexWrap: "wrap",
                   }}
                 >
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <span
+                    style={{
+                      fontSize: 9,
+                      color:
+                        "color-mix(in srgb, var(--foreground) 20%, transparent)",
+                      ...monoStyle,
+                      flexShrink: 0,
+                    }}
+                  >
+                    {wordCount} palabras · ~{readTime}min
+                  </span>
+                  {sources.length > 0 && (
                     <span
                       style={{
                         fontSize: 9,
                         color:
-                          "color-mix(in srgb, var(--foreground) 20%, transparent)",
+                          "color-mix(in srgb, var(--accent) 60%, transparent)",
                         ...monoStyle,
+                        flexShrink: 0,
                       }}
+                      title="Escribe @ para citar · [[ para enlazar"
                     >
-                      {wordCount} palabras · ~{readTime}min
+                      · @ {sources.length} fuentes
                     </span>
-                  </div>
-                  <div className="flex items-center gap-4 shrink-0">
+                  )}
+                  <div className="flex items-center gap-1.5 ml-auto">
+                    <SaveDot status={saveStatus} />
+                    <Save
+                      size={9}
+                      style={{
+                        color:
+                          "color-mix(in srgb, var(--foreground) 15%, transparent)",
+                      }}
+                    />
                     <span
                       style={{
                         fontSize: 9,
                         color:
-                          "color-mix(in srgb, var(--foreground) 20%, transparent)",
+                          "color-mix(in srgb, var(--foreground) 15%, transparent)",
                         ...monoStyle,
                       }}
                     >
-                      {wordCount} palabras
+                      {new Date(ensayo.updated_at).toLocaleTimeString(
+                        "es-ES",
+                        { hour: "2-digit", minute: "2-digit" },
+                      )}
                     </span>
-                    <span
-                      style={{
-                        fontSize: 9,
-                        color:
-                          "color-mix(in srgb, var(--foreground) 10%, transparent)",
-                        ...monoStyle,
-                      }}
-                    >
-                      ·
-                    </span>
-                    <span
-                      style={{
-                        fontSize: 9,
-                        color:
-                          "color-mix(in srgb, var(--foreground) 20%, transparent)",
-                        ...monoStyle,
-                      }}
-                    >
-                      ~{readTime}min lectura
-                    </span>
-                    {sources.length > 0 && (
-                      <>
-                        <span
-                          style={{
-                            fontSize: 9,
-                            color:
-                              "color-mix(in srgb, var(--foreground) 10%, transparent)",
-                            ...monoStyle,
-                          }}
-                        >
-                          ·
-                        </span>
-                        <span
-                          style={{
-                            fontSize: 9,
-                            color:
-                              "color-mix(in srgb, var(--accent) 60%, transparent)",
-                            ...monoStyle,
-                          }}
-                          title="Escribe @ para citar · [[ para enlazar"
-                        >
-                          @ {sources.length} fuentes
-                        </span>
-                      </>
-                    )}
-                    <div className="flex items-center gap-1.5">
-                      <Save
-                        size={9}
-                        style={{
-                          color:
-                            "color-mix(in srgb, var(--foreground) 15%, transparent)",
-                        }}
-                      />
-                      <span
-                        style={{
-                          fontSize: 9,
-                          color:
-                            "color-mix(in srgb, var(--foreground) 15%, transparent)",
-                          ...monoStyle,
-                        }}
-                      >
-                        {new Date(ensayo.updated_at).toLocaleTimeString(
-                          "es-ES",
-                          { hour: "2-digit", minute: "2-digit" },
-                        )}
-                      </span>
-                    </div>
                     {/* Botón panel lateral — solo en mobile */}
                     {isMobile && (
-                      <>
-                        <SaveDot status={saveStatus} />
-                        <button
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 4,
-                            padding: "3px 8px",
-                            borderRadius: 5,
-                            border:
-                              "1px solid color-mix(in srgb, var(--foreground) 10%, transparent)",
-                            background:
-                              "color-mix(in srgb, var(--foreground) 4%, transparent)",
-                            color:
-                              "color-mix(in srgb, var(--foreground) 45%, transparent)",
-                            cursor: "pointer",
-                            ...monoStyle,
-                            fontSize: 9,
-                          }}
-                          title="Índice, tags y menciones"
-                          onClick={() => setNotaPanelOpen(true)}
-                        >
-                          <PanelRight size={9} />
-                          panel
-                        </button>
-                      </>
+                      <button
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 4,
+                          padding: "3px 8px",
+                          borderRadius: 5,
+                          border:
+                            "1px solid color-mix(in srgb, var(--foreground) 10%, transparent)",
+                          background:
+                            "color-mix(in srgb, var(--foreground) 4%, transparent)",
+                          color:
+                            "color-mix(in srgb, var(--foreground) 45%, transparent)",
+                          cursor: "pointer",
+                          ...monoStyle,
+                          fontSize: 9,
+                          marginLeft: 4,
+                        }}
+                        title="Índice, tags y menciones"
+                        onClick={() => setNotaPanelOpen(true)}
+                      >
+                        <PanelRight size={9} />
+                        panel
+                      </button>
                     )}
                   </div>
                 </div>

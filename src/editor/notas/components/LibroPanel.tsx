@@ -53,7 +53,7 @@ function EstadoSelector({
   mono: React.CSSProperties;
 }) {
   return (
-    <div style={{ display: "flex", gap: 3 }}>
+    <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
       {ESTADO_TAGS.map(e => {
         const cfg = ESTADO_CONFIG[e];
         const Icon = cfg.icon;
@@ -1078,6 +1078,7 @@ function PalabrasNuevas({
       {/* Input nueva palabra */}
       <div style={{
         display: "flex", gap: 5, padding: "5px 8px", borderRadius: 5,
+        flexWrap: "wrap",
         border: `1px dashed ${focused
           ? "color-mix(in srgb, var(--foreground) 16%, transparent)"
           : "color-mix(in srgb, var(--foreground) 9%, transparent)"}`,
@@ -1259,6 +1260,9 @@ export function LibroPanel({ ensayo, ensayos, onUpdateField, onOpenLibrosDashboa
       display: "flex",
       flexDirection: "column",
       gap: 16,
+      width: "100%",
+      boxSizing: "border-box",
+      overflowX: "hidden",
     }}>
       {/* ── Header fila ── */}
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -1339,7 +1343,7 @@ export function LibroPanel({ ensayo, ensayos, onUpdateField, onOpenLibrosDashboa
         </div>
 
         {/* Autor */}
-        <div style={{ flex: 1, minWidth: 180 }}>
+        <div style={{ flex: 1, minWidth: 140 }}>
           <InlineTextInput
             icon={<User size={9} />}
             label="autor"
