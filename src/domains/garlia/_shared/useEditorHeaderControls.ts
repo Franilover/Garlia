@@ -85,10 +85,16 @@ export function usePublishHeaderControls(
   }, [
     onHeaderControlsChange,
     controls.imagenUrl,
+    controls.IconoFallback,
     controls.prefix,
     controls.nombre,
+    controls.placeholderNombre,
     controls.subtitulo,
     controls.status,
     controls.extra,
+    controls.onChangeNombre,
+    controls.onBlurNombre,
+    controls.onGuardar,
+    controls.onEliminar,
   ]);
 }

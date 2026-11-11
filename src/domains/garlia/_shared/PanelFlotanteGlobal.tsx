@@ -333,7 +333,14 @@ export function PanelFlotanteGlobal() {
               )}
             </>
           ) : (
-            <p className="flex-1 min-w-0 text-xs font-bold text-primary truncate">{nombre}</p>
+            // Fallback mientras el editor publica sus controles (1 frame).
+            // Usamos un input deshabilitado visualmente idéntico al editable
+            // para que no haya salto visual ni flash de <p> no-clickeable.
+            <input
+              className="flex-1 min-w-0 bg-transparent text-sm font-black text-primary outline-none placeholder:text-primary/25 cursor-wait"
+              readOnly
+              value={nombre}
+            />
           )}
 
           {/* Panel lateral de secciones del editor activo (si expone uno vía
