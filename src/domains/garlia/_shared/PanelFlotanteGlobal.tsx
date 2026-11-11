@@ -229,7 +229,7 @@ export function PanelFlotanteGlobal() {
         }}
       >
         <div
-          className="shrink-0 flex items-center gap-3 px-4 py-3 border-b"
+          className="shrink-0 flex items-center gap-3 px-4 py-3 border-b relative z-[10000]"
           style={{
             borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
             background: "color-mix(in srgb, var(--primary) 3%, transparent)",
