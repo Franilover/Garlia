@@ -88,7 +88,7 @@ type EntryRef =
   | { type: "tema"; index: number }
   | null;
 
-type PanelTab = "contenido" | "simulador";
+type PanelTab = "contenido" | "simulador" | "grafo";
 
 // ── Shared primitives ─────────────────────────────────────────────────────────
 
@@ -1210,6 +1210,7 @@ export function DialogosSection() {
   const PANEL_TABS: Array<{ id: PanelTab; label: string }> = [
     { id: "contenido",  label: "Contenido" },
     { id: "simulador",  label: "Simulador" },
+    { id: "grafo",      label: "Grafo" },
   ];
 
   // ── Render ────────────────────────────────────────────────────────────────────
@@ -1667,7 +1668,14 @@ export function DialogosSection() {
           </div>
 
           {/* Panel body */}
-          <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-4">
+          <div
+            className="flex-1 flex flex-col"
+            style={{
+              overflow: panelTab === "grafo" ? "hidden" : "auto",
+              padding: panelTab === "grafo" ? 0 : "20px",
+              gap: panelTab === "grafo" ? 0 : "16px",
+            }}
+          >
 
             {/* ── PESTAÑA: CONTENIDO ── */}
             {panelTab === "contenido" && selEntry.type === "variante" && (
@@ -1701,9 +1709,510 @@ export function DialogosSection() {
                 temas={temas}
               />
             )}
+
+            {/* ── PESTAÑA: GRAFO ── */}
+            {panelTab === "grafo" && (
+              <GrafoDialogos
+                variantes={variantes}
+                temas={temas}
+                selEntry={selEntry}
+                onSelectVariante={pickVariante}
+                onSelectTema={pickTema}
+              />
+            )}
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ── GrafoDialogos ─────────────────────────────────────────────────────────────
+
+interface GrafoNode {
+  id: string;
+  kind: "variante" | "tema";
+  label: string;
+  sub: string;
+  index: number;
+  x: number;
+  y: number;
+  color: string;
+}
+
+interface GrafoEdge {
+  from: string;
+  to: string;
+  label: string;
+  color: string;
+}
+
+const NODE_W = 140;
+const NODE_H = 52;
+const COL_GAP = 200;
+const ROW_GAP = 76;
+
+function buildGrafo(variantes: Variante[], temas: TemaConversacion[]): {
+  nodes: GrafoNode[];
+  edges: GrafoEdge[];
+} {
+  const nodes: GrafoNode[] = [];
+  const edges: GrafoEdge[] = [];
+
+  // ── Variantes: columna izquierda, ordenadas por prioridad ──
+  const sortedV = [...variantes]
+    .map((v, i) => ({ v, i }))
+    .sort((a, b) => b.v.prioridad - a.v.prioridad);
+
+  sortedV.forEach(({ v, i }, row) => {
+    const kind = (() => {
+      const hasSocial = v.requisito_social && Object.keys(v.requisito_social).length > 0;
+      const condTypes = new Set((v._condiciones ?? []).map(c => c.tipo));
+      if (condTypes.has("estacion") && (hasSocial || condTypes.has("social"))) return "mixed";
+      if (condTypes.has("estacion")) return "season";
+      if (hasSocial || condTypes.has("social")) return "social";
+      return "none";
+    })();
+    const color = DOT_COLOR[kind];
+    nodes.push({
+      id: `v:${v.clave}`,
+      kind: "variante",
+      label: v.clave,
+      sub: `P${v.prioridad} · ${v.lineas?.length ?? 0} línea${v.lineas?.length === 1 ? "" : "s"}`,
+      index: i,
+      x: 20,
+      y: 20 + row * ROW_GAP,
+      color,
+    });
+  });
+
+  // ── Temas: árbol de dependencias, columna(s) derecha ──
+  const temaMap = new Map(temas.map((t, i) => [t.clave, { t, i }]));
+  const temaClaves = new Set(temas.map(t => t.clave));
+
+  // Asignar columna y fila mediante BFS desde raíces
+  const colOf: Record<string, number> = {};
+  const rowOf: Record<string, number> = {};
+  const rowCountPerCol: Record<number, number> = {};
+
+  const roots = temas.filter(t => !t.requiere_tema || !temaClaves.has(t.requiere_tema));
+  const queue: Array<{ clave: string; col: number }> = roots.map(t => ({ clave: t.clave, col: 1 }));
+  const visited = new Set<string>();
+
+  while (queue.length > 0) {
+    const { clave, col } = queue.shift()!;
+    if (visited.has(clave)) continue;
+    visited.add(clave);
+    colOf[clave] = col;
+    rowOf[clave] = rowCountPerCol[col] ?? 0;
+    rowCountPerCol[col] = (rowCountPerCol[col] ?? 0) + 1;
+    // Hijos
+    temas
+      .filter(t => t.requiere_tema === clave)
+      .forEach(t => queue.push({ clave: t.clave, col: col + 1 }));
+  }
+
+  // Nodos de temas
+  temas.forEach((t, i) => {
+    const clave = t.clave;
+    const col = colOf[clave] ?? 1;
+    const row = rowOf[clave] ?? i;
+    const hasConds = (t._condiciones ?? []).length > 0 || (t.requisito_social && Object.keys(t.requisito_social).length > 0);
+    const color = hasConds ? DOT_COLOR.social : DOT_COLOR.none;
+
+    nodes.push({
+      id: `t:${clave}`,
+      kind: "tema",
+      label: clave,
+      sub: t.texto ? (t.texto.length > 22 ? t.texto.slice(0, 20) + "…" : t.texto) : "tema",
+      index: i,
+      x: 20 + col * COL_GAP,
+      y: 20 + row * ROW_GAP,
+      color,
+    });
+
+    // Edge: requiere_tema
+    if (t.requiere_tema && temaClaves.has(t.requiere_tema)) {
+      edges.push({
+        from: `t:${t.requiere_tema}`,
+        to: `t:${clave}`,
+        label: "requiere",
+        color: "#f97316",
+      });
+    }
+  });
+
+  // Edges: condiciones de línea que referencian temas conversados
+  variantes.forEach(v => {
+    (v.lineas ?? []).forEach(l => {
+      (l._condiciones ?? []).forEach(c => {
+        if (c.tipo === "tema_conversado" && temaClaves.has(c.campo)) {
+          edges.push({
+            from: `t:${c.campo}`,
+            to: `v:${v.clave}`,
+            label: "desbloquea línea",
+            color: "#a855f7",
+          });
+        }
+      });
+    });
+    // Edges: condiciones de variante que referencian temas
+    (v._condiciones ?? []).forEach(c => {
+      if (c.tipo === "tema_conversado" && temaClaves.has(c.campo)) {
+        edges.push({
+          from: `t:${c.campo}`,
+          to: `v:${v.clave}`,
+          label: "desbloquea",
+          color: "#3b82f6",
+        });
+      }
+    });
+  });
+
+  return { nodes, edges };
+}
+
+function GrafoDialogos({
+  variantes,
+  temas,
+  selEntry,
+  onSelectVariante,
+  onSelectTema,
+}: {
+  variantes: Variante[];
+  temas: TemaConversacion[];
+  selEntry: EntryRef;
+  onSelectVariante: (v: Variante, i: number) => void;
+  onSelectTema: (t: TemaConversacion, i: number) => void;
+}) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [canvasSize, setCanvasSize] = useState({ w: 0, h: 0 });
+
+  const { nodes: initNodes, edges } = buildGrafo(variantes, temas);
+  const [nodes, setNodes] = useState<GrafoNode[]>(initNodes);
+
+  // Track container size for canvas redraws
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const obs = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        setCanvasSize({ w: entry.contentRect.width, h: entry.contentRect.height });
+      }
+    });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
+  // Recalc layout when data changes
+  useEffect(() => {
+    const { nodes: n } = buildGrafo(variantes, temas);
+    setNodes(n);
+  }, [variantes, temas]);
+
+  // Drag state
+  const drag = useRef<{ id: string; ox: number; oy: number } | null>(null);
+  // Pan state
+  const pan = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const panDrag = useRef<{ startX: number; startY: number; panX: number; panY: number } | null>(null);
+  const [panState, setPanState] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+
+  const selectedId = selEntry
+    ? selEntry.type === "variante"
+      ? `v:${variantes[selEntry.index]?.clave}`
+      : `t:${temas[selEntry.index]?.clave}`
+    : null;
+
+  // ── Draw ──
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const container = containerRef.current;
+    if (!canvas || !container) return;
+
+    const dpr = window.devicePixelRatio || 1;
+    const W = container.clientWidth;
+    const H = container.clientHeight;
+    canvas.width = W * dpr;
+    canvas.height = H * dpr;
+    canvas.style.width = W + "px";
+    canvas.style.height = H + "px";
+
+    const ctx = canvas.getContext("2d")!;
+    // Polyfill roundRect for environments that lack it
+    if (!ctx.roundRect) {
+      (ctx as any).roundRect = function(
+        x: number, y: number, w: number, h: number, radii: number | number[]
+      ) {
+        const r = typeof radii === "number" ? radii : (radii[0] ?? 0);
+        this.moveTo(x + r, y);
+        this.arcTo(x + w, y, x + w, y + h, r);
+        this.arcTo(x + w, y + h, x, y + h, r);
+        this.arcTo(x, y + h, x, y, r);
+        this.arcTo(x, y, x + w, y, r);
+        this.closePath();
+      };
+    }
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, W, H);
+
+    const tx = panState.x;
+    const ty = panState.y;
+    ctx.save();
+    ctx.translate(tx, ty);
+    ctx.scale(zoom, zoom);
+
+    // ── Draw edges ──
+    const nodeMap = new Map(nodes.map(n => [n.id, n]));
+
+    edges.forEach(edge => {
+      const src = nodeMap.get(edge.from);
+      const dst = nodeMap.get(edge.to);
+      if (!src || !dst) return;
+
+      const x1 = src.x + NODE_W;
+      const y1 = src.y + NODE_H / 2;
+      const x2 = dst.x;
+      const y2 = dst.y + NODE_H / 2;
+      const cp1x = x1 + (x2 - x1) * 0.5;
+      const cp2x = x1 + (x2 - x1) * 0.5;
+
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.bezierCurveTo(cp1x, y1, cp2x, y2, x2, y2);
+      ctx.strokeStyle = edge.color + "88";
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      // Arrowhead
+      const angle = Math.atan2(y2 - y1, x2 - x1);
+      const aLen = 7;
+      ctx.beginPath();
+      ctx.moveTo(x2, y2);
+      ctx.lineTo(x2 - aLen * Math.cos(angle - 0.4), y2 - aLen * Math.sin(angle - 0.4));
+      ctx.lineTo(x2 - aLen * Math.cos(angle + 0.4), y2 - aLen * Math.sin(angle + 0.4));
+      ctx.closePath();
+      ctx.fillStyle = edge.color + "cc";
+      ctx.fill();
+
+      // Edge label (midpoint)
+      const mx = (x1 + x2) / 2;
+      const my = (y1 + y2) / 2 - 7;
+      ctx.font = "9px ui-sans-serif, system-ui, sans-serif";
+      ctx.fillStyle = edge.color + "cc";
+      ctx.textAlign = "center";
+      ctx.fillText(edge.label, mx, my);
+    });
+
+    // ── Draw nodes ──
+    nodes.forEach(node => {
+      const { x, y, color, label, sub, id, kind } = node;
+      const isSelected = id === selectedId;
+      const r = 8;
+
+      // Shadow for selected
+      if (isSelected) {
+        ctx.shadowColor = color + "55";
+        ctx.shadowBlur = 12;
+      }
+
+      // Card background
+      ctx.beginPath();
+      ctx.roundRect(x, y, NODE_W, NODE_H, r);
+      ctx.fillStyle = isSelected ? color + "28" : "rgba(255,255,255,0.06)";
+      ctx.fill();
+
+      // Border
+      ctx.beginPath();
+      ctx.roundRect(x, y, NODE_W, NODE_H, r);
+      ctx.strokeStyle = isSelected ? color : color + "55";
+      ctx.lineWidth = isSelected ? 2 : 1;
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      // Color strip (left side)
+      ctx.beginPath();
+      ctx.roundRect(x, y, 4, NODE_H, [r, 0, 0, r]);
+      ctx.fillStyle = color;
+      ctx.fill();
+
+      // Kind badge
+      const badgeX = x + NODE_W - 6;
+      const badgeY = y + 7;
+      ctx.font = "bold 8px ui-sans-serif, system-ui, sans-serif";
+      ctx.textAlign = "right";
+      ctx.fillStyle = color + "99";
+      ctx.fillText(kind === "variante" ? "V" : "T", badgeX, badgeY + 7);
+
+      // Label
+      ctx.font = "bold 11px ui-sans-serif, system-ui, sans-serif";
+      ctx.textAlign = "left";
+      ctx.fillStyle = isSelected ? color : "rgba(255,255,255,0.85)";
+      const maxLabelW = NODE_W - 20;
+      let labelText = label;
+      if (ctx.measureText(labelText).width > maxLabelW) {
+        while (ctx.measureText(labelText + "…").width > maxLabelW && labelText.length > 0) {
+          labelText = labelText.slice(0, -1);
+        }
+        labelText += "…";
+      }
+      ctx.fillText(labelText, x + 12, y + 20);
+
+      // Sublabel
+      ctx.font = "9px ui-sans-serif, system-ui, sans-serif";
+      ctx.fillStyle = "rgba(255,255,255,0.4)";
+      let subText = sub;
+      if (ctx.measureText(subText).width > maxLabelW) {
+        while (ctx.measureText(subText + "…").width > maxLabelW && subText.length > 0) {
+          subText = subText.slice(0, -1);
+        }
+        subText += "…";
+      }
+      ctx.fillText(subText, x + 12, y + 35);
+    });
+
+    ctx.restore();
+  }, [nodes, edges, selectedId, panState, zoom, canvasSize]);
+
+  // ── Hit test ──
+  const hitNode = (ex: number, ey: number): GrafoNode | null => {
+    const lx = (ex - panState.x) / zoom;
+    const ly = (ey - panState.y) / zoom;
+    return nodes.find(n => lx >= n.x && lx <= n.x + NODE_W && ly >= n.y && ly <= n.y + NODE_H) ?? null;
+  };
+
+  const onMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const rect = canvasRef.current!.getBoundingClientRect();
+    const ex = e.clientX - rect.left;
+    const ey = e.clientY - rect.top;
+    const hit = hitNode(ex, ey);
+    if (hit) {
+      drag.current = { id: hit.id, ox: ex - (hit.x * zoom + panState.x), oy: ey - (hit.y * zoom + panState.y) };
+    } else {
+      panDrag.current = { startX: e.clientX, startY: e.clientY, panX: panState.x, panY: panState.y };
+    }
+  };
+
+  const onMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const rect = canvasRef.current!.getBoundingClientRect();
+    const ex = e.clientX - rect.left;
+    const ey = e.clientY - rect.top;
+
+    if (drag.current) {
+      const { id, ox, oy } = drag.current;
+      const nx = (ex - ox - panState.x) / zoom;
+      const ny = (ey - oy - panState.y) / zoom;
+      setNodes(prev => prev.map(n => n.id === id ? { ...n, x: nx, y: ny } : n));
+    } else if (panDrag.current) {
+      const dx = e.clientX - panDrag.current.startX;
+      const dy = e.clientY - panDrag.current.startY;
+      const np = { x: panDrag.current.panX + dx, y: panDrag.current.panY + dy };
+      pan.current = np;
+      setPanState(np);
+    }
+  };
+
+  const onMouseUp = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const wasDragging = drag.current;
+    const rect = canvasRef.current!.getBoundingClientRect();
+    const ex = e.clientX - rect.left;
+    const ey = e.clientY - rect.top;
+
+    if (wasDragging) {
+      // If barely moved, treat as click
+      const hit = hitNode(ex, ey);
+      if (hit) {
+        const movedFar = Math.abs(ex - (wasDragging.ox + (hit.x * zoom + panState.x))) > 4
+          || Math.abs(ey - (wasDragging.oy + (hit.y * zoom + panState.y))) > 4;
+        if (!movedFar) {
+          if (hit.kind === "variante") onSelectVariante(variantes[hit.index], hit.index);
+          else onSelectTema(temas[hit.index], hit.index);
+        }
+      }
+    }
+    drag.current = null;
+    panDrag.current = null;
+  };
+
+  const onWheel = (e: React.WheelEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    setZoom(z => Math.min(2, Math.max(0.3, z - e.deltaY * 0.001)));
+  };
+
+  const resetView = () => { setPanState({ x: 0, y: 0 }); pan.current = { x: 0, y: 0 }; setZoom(1); };
+
+  // Legend items
+  const legendItems = [
+    { color: DOT_COLOR.none,   label: "variante libre" },
+    { color: DOT_COLOR.social, label: "con condición" },
+    { color: "#f97316",        label: "requiere tema" },
+    { color: "#3b82f6",        label: "desbloquea variante" },
+    { color: "#a855f7",        label: "desbloquea línea" },
+  ];
+
+  return (
+    <div ref={containerRef} className="flex-1 flex flex-col" style={{ position: "relative", overflow: "hidden", background: "color-mix(in srgb, var(--primary) 2%, var(--bg-main))" }}>
+      {/* Controls */}
+      <div
+        className="absolute flex items-center gap-2 z-10"
+        style={{ top: 10, right: 10 }}
+      >
+        <button
+          type="button"
+          onClick={() => setZoom(z => Math.min(2, z + 0.15))}
+          className="text-xs px-2 py-1 rounded-lg"
+          style={{ background: "color-mix(in srgb, var(--primary) 8%, var(--bg-main))", border: BORDER, color: MUTED }}
+        >+</button>
+        <button
+          type="button"
+          onClick={() => setZoom(z => Math.max(0.3, z - 0.15))}
+          className="text-xs px-2 py-1 rounded-lg"
+          style={{ background: "color-mix(in srgb, var(--primary) 8%, var(--bg-main))", border: BORDER, color: MUTED }}
+        >−</button>
+        <button
+          type="button"
+          onClick={resetView}
+          className="text-xs px-2 py-1 rounded-lg"
+          style={{ background: "color-mix(in srgb, var(--primary) 8%, var(--bg-main))", border: BORDER, color: MUTED }}
+        >↺</button>
+      </div>
+
+      {/* Legend */}
+      <div
+        className="absolute flex flex-wrap gap-x-3 gap-y-1 z-10"
+        style={{ bottom: 10, left: 10 }}
+      >
+        {legendItems.map(item => (
+          <div key={item.label} className="flex items-center gap-1">
+            <div style={{ width: 7, height: 7, borderRadius: "50%", background: item.color }} />
+            <span style={{ fontSize: 9, color: MUTED }}>{item.label}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Hint */}
+      <div className="absolute z-10" style={{ top: 10, left: 10 }}>
+        <span style={{ fontSize: 9, color: MUTED }}>Arrastra nodos · scroll para zoom · click para seleccionar</span>
+      </div>
+
+      {/* Empty state */}
+      {nodes.length === 0 && (
+        <div className="flex-1 flex flex-col items-center justify-center gap-2" style={{ color: MUTED }}>
+          <MessageCircle size={24} style={{ opacity: 0.3 }} />
+          <p className="text-xs">Sin entradas para mostrar</p>
+        </div>
+      )}
+
+      <canvas
+        ref={canvasRef}
+        style={{ flex: 1, cursor: drag.current ? "grabbing" : "grab", display: "block" }}
+        onMouseDown={onMouseDown}
+        onMouseMove={onMouseMove}
+        onMouseUp={onMouseUp}
+        onMouseLeave={onMouseUp}
+        onWheel={onWheel}
+      />
     </div>
   );
 }
