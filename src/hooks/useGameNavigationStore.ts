@@ -13,6 +13,7 @@ import { persist } from "zustand/middleware";
 
 export type GameSectionKey =
   | "personajes"
+  | "dialogos"
   | "biomas"
   | "items"
   | "ecologia"

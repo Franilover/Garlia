@@ -1111,6 +1111,13 @@ const Navbar = () => {
       onSelect: () => selectGameSection("personajes"),
     },
     {
+      key: "dialogos",
+      label: "Diálogos",
+      icon: MessageCircle,
+      active: isGame && gameSection === "dialogos",
+      onSelect: () => selectGameSection("dialogos"),
+    },
+    {
       key: "biomas",
       label: "Biomas",
       icon: Mountain,

@@ -20,6 +20,7 @@ import {
 import { supabase } from "@/infra/supabase/supabase";
 import { useGameNavigation } from "@/hooks/useGameNavigationStore";
 import { GarumiGameSection } from "@/domains/garlia/game/GarumiGameSection";
+import { DialogosSection } from "@/domains/garlia/game/DialogosSection";
 import { PopoverFlotante } from "@/domains/garlia/_shared/PopoverFlotante";
 import { usePanelFlotante } from "@/domains/garlia/_shared/usePanelFlotanteStore";
 import { PanelFlotanteGlobal } from "@/domains/garlia/_shared/PanelFlotanteGlobal";
@@ -3106,6 +3107,7 @@ export default function GamePage() {
       {/* Sin barra de tabs — la navegación vive en el navbar lateral/inferior */}
       <div className="flex-1 min-h-0 flex flex-col">
         {active === "personajes"    && <PersonajesSection />}
+        {active === "dialogos"      && <DialogosSection />}
         {active === "biomas"        && <BiomasSection />}
         {active === "items"         && <ItemsSection />}
         {active === "ecologia"      && <EcologiaSection />}
