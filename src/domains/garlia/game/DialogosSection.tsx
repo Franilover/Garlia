@@ -29,6 +29,9 @@ interface DialogoLinea {
   hablante: string;
   /** Fragmentos de texto: strings literales o referencias { tipo, id, nombre } */
   _refs?: Array<string | { tipo: "personaje" | "lugar" | "mision"; id: string; nombre: string }>;
+  /** Condiciones opcionales: si están presentes, esta línea solo se muestra si se cumplen */
+  _condiciones?: Condicion[];
+  _operador_logico?: "AND" | "OR";
 }
 
 interface RequisitoSocial {
@@ -85,7 +88,7 @@ type EntryRef =
   | { type: "tema"; index: number }
   | null;
 
-type PanelTab = "contenido" | "condiciones" | "simulador";
+type PanelTab = "contenido" | "simulador";
 
 // ── Shared primitives ─────────────────────────────────────────────────────────
 
@@ -627,8 +630,8 @@ function Simulador({ variantes, temas }: { variantes: Variante[]; temas: TemaCon
   );
 }
 
-// ── ReferenciasEditor ─────────────────────────────────────────────────────────
-// Editor de texto de una línea con soporte para insertar referencias como píldoras
+// ── LineaEditor ───────────────────────────────────────────────────────────────
+// Editor de una línea de diálogo: texto, hablante, refs y condiciones opcionales
 
 function LineaEditor({
   linea,
@@ -641,11 +644,17 @@ function LineaEditor({
   onDelete: () => void;
   personajes: Array<{ id: string; nombre: string }>;
 }) {
-  const [showRefMenu, setShowRefMenu] = useState(false);
+  const [showRefMenu,  setShowRefMenu]  = useState(false);
+  const [showCondMenu, setShowCondMenu] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Si hay _refs las usamos; si no, reconstruimos a partir de texto plano
   const refs: DialogoLinea["_refs"] = linea._refs ?? [linea.texto];
+  const hasCustomRefs = linea._refs && linea._refs.some(r => typeof r !== "string");
+
+  const lineConds: Condicion[] = linea._condiciones ?? [];
+  const lineOp:   "AND" | "OR" = linea._operador_logico ?? "AND";
+  const hasConds = lineConds.length > 0;
 
   const renderRefs = () =>
     refs.map((r, i) =>
@@ -674,9 +683,6 @@ function LineaEditor({
       )
     );
 
-  // Modo simple: si no tiene _refs especiales, editar como textarea
-  const hasCustomRefs = linea._refs && linea._refs.some(r => typeof r !== "string");
-
   const insertRef = (tipo: "personaje" | "lugar" | "mision", item: { id: string; nombre: string }) => {
     const newRefs: DialogoLinea["_refs"] = [...refs, { tipo, id: item.id, nombre: item.nombre }];
     onChange({
@@ -688,6 +694,12 @@ function LineaEditor({
   };
 
   const linBg = "color-mix(in srgb, var(--primary) 4%, var(--bg-main))";
+  const condBg = hasConds
+    ? "color-mix(in srgb, #f97316 8%, transparent)"
+    : "transparent";
+  const condBorder = hasConds
+    ? "1px solid color-mix(in srgb, #f97316 25%, transparent)"
+    : BORDER;
 
   return (
     <div
@@ -704,10 +716,7 @@ function LineaEditor({
           <button
             type="button"
             style={{ fontSize: 10, color: MUTED, marginLeft: 4 }}
-            onClick={() => {
-              // Limpiar refs y volver a texto plano
-              onChange({ ...linea, _refs: undefined });
-            }}
+            onClick={() => onChange({ ...linea, _refs: undefined })}
             title="Editar como texto plano"
           >
             [editar]
@@ -734,7 +743,7 @@ function LineaEditor({
         </div>
       )}
 
-      {/* Fila inferior: hablante + botón de referencia */}
+      {/* Fila: hablante + botones */}
       <div className="flex items-center gap-2 flex-wrap">
         <span className="text-[10px] shrink-0" style={{ color: MUTED }}>Hablante</span>
         {personajes.length > 0 ? (
@@ -761,7 +770,7 @@ function LineaEditor({
         <div style={{ position: "relative" }}>
           <button
             type="button"
-            onClick={() => setShowRefMenu(v => !v)}
+            onClick={() => { setShowRefMenu(v => !v); setShowCondMenu(false); }}
             className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-lg"
             style={{ color: MUTED, border: BORDER, background: "transparent" }}
             title="Insertar referencia dinámica"
@@ -819,6 +828,22 @@ function LineaEditor({
           )}
         </div>
 
+        {/* Botón condición de línea */}
+        <button
+          type="button"
+          onClick={() => { setShowCondMenu(v => !v); setShowRefMenu(false); }}
+          className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-lg"
+          style={{
+            color: hasConds ? "#f97316" : MUTED,
+            border: condBorder,
+            background: condBg,
+          }}
+          title="Condición de esta línea"
+        >
+          <Lock size={9} />
+          {hasConds ? `${lineConds.length} cond.` : "Cond."}
+        </button>
+
         {hasCustomRefs && (
           <button
             type="button"
@@ -829,6 +854,44 @@ function LineaEditor({
           </button>
         )}
       </div>
+
+      {/* Panel de condiciones de la línea — inline, expandible */}
+      {showCondMenu && (
+        <div
+          className="flex flex-col gap-2 p-2 rounded-xl"
+          style={{
+            background: "color-mix(in srgb, #f97316 5%, var(--bg-main))",
+            border: "1px solid color-mix(in srgb, #f97316 20%, transparent)",
+          }}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[9px] font-semibold uppercase tracking-wide" style={{ color: "#f97316" }}>
+              Esta línea solo se muestra si…
+            </span>
+            {hasConds && (
+              <button
+                type="button"
+                onClick={() => onChange({ ...linea, _condiciones: [], _operador_logico: undefined })}
+                className="text-[9px]"
+                style={{ color: MUTED }}
+              >
+                limpiar
+              </button>
+            )}
+          </div>
+          <CondicionBuilder
+            condiciones={lineConds}
+            operador={lineOp}
+            onChange={c => onChange({ ...linea, _condiciones: c })}
+            onOpChange={op => onChange({ ...linea, _operador_logico: op })}
+          />
+          {!hasConds && (
+            <p className="text-[9px]" style={{ color: MUTED }}>
+              Sin condiciones — esta línea siempre se muestra dentro de la variante.
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -1145,9 +1208,8 @@ export function DialogosSection() {
   // ── Panel tabs para Variante ──────────────────────────────────────────────────
 
   const PANEL_TABS: Array<{ id: PanelTab; label: string }> = [
-    { id: "contenido",   label: "Contenido" },
-    { id: "condiciones", label: "Condiciones" },
-    { id: "simulador",   label: "Simulador" },
+    { id: "contenido",  label: "Contenido" },
+    { id: "simulador",  label: "Simulador" },
   ];
 
   // ── Render ────────────────────────────────────────────────────────────────────
@@ -1584,7 +1646,7 @@ export function DialogosSection() {
             </div>
           )}
 
-          {/* Pestañas — Mejora 1 */}
+          {/* Pestañas */}
           <div className="flex" style={{ borderBottom: BORDER }}>
             {PANEL_TABS.map(tab => (
               <button
@@ -1600,14 +1662,6 @@ export function DialogosSection() {
                 }}
               >
                 {tab.label}
-                {tab.id === "condiciones" && (selEntry.type === "variante" ? vCondiciones : tCondiciones).length > 0 && (
-                  <span
-                    className="ml-1.5 text-[9px] px-1.5 py-0.5 rounded-full"
-                    style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)", color: MUTED }}
-                  >
-                    {(selEntry.type === "variante" ? vCondiciones : tCondiciones).length}
-                  </span>
-                )}
               </button>
             ))}
           </div>
@@ -1618,9 +1672,11 @@ export function DialogosSection() {
             {/* ── PESTAÑA: CONTENIDO ── */}
             {panelTab === "contenido" && selEntry.type === "variante" && (
               <VarianteContenido
-                clave={vClave}       onClave={v => { setVClave(v);      markDirty(); }}
-                prioridad={vPrio}    onPrioridad={v => { setVPrio(v);   markDirty(); }}
-                lineas={vLineas}     onLineas={v => { setVLineas(v);    markDirty(); }}
+                clave={vClave}           onClave={v => { setVClave(v);         markDirty(); }}
+                prioridad={vPrio}        onPrioridad={v => { setVPrio(v);      markDirty(); }}
+                condiciones={vCondiciones} onCondiciones={c => { setVCondiciones(c); markDirty(); }}
+                opLogico={vOpLogico}     onOpLogico={op => { setVOpLogico(op); markDirty(); }}
+                lineas={vLineas}         onLineas={v => { setVLineas(v);       markDirty(); }}
                 personajes={personajes}
               />
             )}
@@ -1638,26 +1694,7 @@ export function DialogosSection() {
               />
             )}
 
-            {/* ── PESTAÑA: CONDICIONES — Mejora 2 ── */}
-            {panelTab === "condiciones" && selEntry.type === "variante" && (
-              <CondicionBuilder
-                condiciones={vCondiciones}
-                operador={vOpLogico}
-                onChange={c => { setVCondiciones(c); markDirty(); }}
-                onOpChange={op => { setVOpLogico(op); markDirty(); }}
-              />
-            )}
-
-            {panelTab === "condiciones" && selEntry.type === "tema" && (
-              <CondicionBuilder
-                condiciones={tCondiciones}
-                operador={tOpLogico}
-                onChange={c => { setTCondiciones(c); markDirty(); }}
-                onOpChange={op => { setTOpLogico(op); markDirty(); }}
-              />
-            )}
-
-            {/* ── PESTAÑA: SIMULADOR — Mejora 3 ── */}
+            {/* ── PESTAÑA: SIMULADOR ── */}
             {panelTab === "simulador" && (
               <Simulador
                 variantes={variantes}
@@ -1674,10 +1711,14 @@ export function DialogosSection() {
 // ── VarianteContenido ─────────────────────────────────────────────────────────
 
 function VarianteContenido({
-  clave, onClave, prioridad, onPrioridad, lineas, onLineas, personajes,
+  clave, onClave, prioridad, onPrioridad,
+  condiciones, onCondiciones, opLogico, onOpLogico,
+  lineas, onLineas, personajes,
 }: {
-  clave: string;      onClave: (v: string) => void;
-  prioridad: number;  onPrioridad: (v: number) => void;
+  clave: string;           onClave: (v: string) => void;
+  prioridad: number;       onPrioridad: (v: number) => void;
+  condiciones: Condicion[]; onCondiciones: (c: Condicion[]) => void;
+  opLogico: "AND" | "OR";  onOpLogico: (op: "AND" | "OR") => void;
   lineas: DialogoLinea[];  onLineas: (v: DialogoLinea[]) => void;
   personajes: any[];
 }) {
@@ -1690,6 +1731,7 @@ function VarianteContenido({
 
   return (
     <>
+      {/* Clave + Prioridad */}
       <div className="flex gap-3">
         <label className="flex flex-col gap-1 flex-1">
           <FL label="Clave" />
@@ -1701,8 +1743,32 @@ function VarianteContenido({
         </label>
       </div>
 
-      <div className="flex flex-col gap-2">
-        <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: MUTED, borderTop: BORDER, paddingTop: 6 }}>
+      {/* Condiciones de la variante — inline */}
+      <div className="flex flex-col gap-2" style={{ borderTop: BORDER, paddingTop: 8 }}>
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: MUTED }}>
+            Condiciones de la variante
+            {condiciones.length > 0 && (
+              <span
+                className="ml-1.5 text-[9px] px-1.5 py-0.5 rounded-full"
+                style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)", color: MUTED }}
+              >
+                {condiciones.length}
+              </span>
+            )}
+          </span>
+        </div>
+        <CondicionBuilder
+          condiciones={condiciones}
+          operador={opLogico}
+          onChange={onCondiciones}
+          onOpChange={onOpLogico}
+        />
+      </div>
+
+      {/* Líneas */}
+      <div className="flex flex-col gap-2" style={{ borderTop: BORDER, paddingTop: 8 }}>
+        <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: MUTED }}>
           Líneas
         </span>
         {lineas.map((l, i) => (
