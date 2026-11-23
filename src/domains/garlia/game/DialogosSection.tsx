@@ -1540,12 +1540,12 @@ export function DialogosSection() {
                               className="text-[8px] uppercase tracking-wide px-1.5 py-0.5 rounded shrink-0"
                               style={{
                                 color: tipoTema(t) === "hablar" ? "#16a34a" : "#3b82f6",
-                                background: (t.tipo ?? "pregunta") === "hablar"
+                                background: tipoTema(t) === "hablar"
                                   ? "color-mix(in srgb, #16a34a 12%, transparent)"
                                   : "color-mix(in srgb, #3b82f6 12%, transparent)",
                               }}
                             >
-                              {(t.tipo ?? "pregunta") === "hablar" ? "Hablar" : "Pregunta"}
+                              {tipoTema(t) === "hablar" ? "Hablar" : "Pregunta"}
                             </span>
                             {t.texto && !active && (
                               <p className="text-[10px] truncate" style={{ color: MUTED }}>{t.texto}</p>
