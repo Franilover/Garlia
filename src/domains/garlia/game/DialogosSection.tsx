@@ -182,6 +182,12 @@ const BORDER = "1px solid color-mix(in srgb, var(--primary) 10%, transparent)";
 /** Genera un id corto y único para condiciones */
 const uid = () => Math.random().toString(36).slice(2, 8);
 
+/** Clasificación de respaldo para registros antiguos sin el campo tipo. */
+function tipoTema(t: TemaConversacion): "pregunta" | "hablar" {
+  if (t.tipo === "pregunta" || t.tipo === "hablar") return t.tipo;
+  return /^(hablar|conversar)\\b/i.test((t.texto ?? "").trim()) ? "hablar" : "pregunta";
+}
+
 // ── CondicionBuilder ──────────────────────────────────────────────────────────
 
 const COND_TIPO_LABELS: Record<Condicion["tipo"], string> = {
@@ -1047,7 +1053,7 @@ export function DialogosSection() {
   const pickTema = (t: TemaConversacion, idx: number) => {
     setSelEntry({ type: "tema", index: idx });
     setPanelTab("contenido");
-    setTTipo(t.tipo === "hablar" ? "hablar" : "pregunta");
+    setTTipo(tipoTema(t));
     setTClave(t.clave);
     setTTexto(t.texto);
     setTEvento(t.evento);
@@ -1208,7 +1214,7 @@ export function DialogosSection() {
   const filteredT = temas
     .map((t, i) => ({ t, i }))
     .filter(({ t }) =>
-      (filtroTipo === "todos" || (t.tipo ?? "pregunta") === filtroTipo) &&
+      (filtroTipo === "todos" || tipoTema(t) === filtroTipo) &&
       (!q || t.clave.includes(q) || t.texto?.includes(q))
     );
 
@@ -1533,7 +1539,7 @@ export function DialogosSection() {
                             <span
                               className="text-[8px] uppercase tracking-wide px-1.5 py-0.5 rounded shrink-0"
                               style={{
-                                color: (t.tipo ?? "pregunta") === "hablar" ? "#16a34a" : "#3b82f6",
+                                color: tipoTema(t) === "hablar" ? "#16a34a" : "#3b82f6",
                                 background: (t.tipo ?? "pregunta") === "hablar"
                                   ? "color-mix(in srgb, #16a34a 12%, transparent)"
                                   : "color-mix(in srgb, #3b82f6 12%, transparent)",
