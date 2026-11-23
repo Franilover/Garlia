@@ -18,7 +18,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   MessageCircle, Search, Plus, X,
   Loader2, Check, Save, Trash2, Play,
-  Link2, ChevronDown, AlertTriangle,
+  Link2, ChevronDown, AlertTriangle, Lock, ChevronRight,
 } from "lucide-react";
 import { supabase } from "@/infra/supabase/supabase";
 
@@ -852,6 +852,18 @@ export function DialogosSection() {
   const [panelTab,   setPanelTab]   = useState<PanelTab>("contenido");
   const [isDirty,    setIsDirty]    = useState(false);
 
+  // Sidebar tree state (Diseño B)
+  const [collapsedBranches, setCollapsedBranches] = useState<Set<string>>(new Set());
+  const [variantesOpen, setVariantesOpen] = useState(true);
+  const [temasOpen,     setTemasOpen]     = useState(true);
+
+  const toggleTemaBranch = (clave: string) =>
+    setCollapsedBranches(prev => {
+      const next = new Set(prev);
+      next.has(clave) ? next.delete(clave) : next.add(clave);
+      return next;
+    });
+
   // Variante form
   const [vClave,       setVClave]       = useState("");
   const [vPrio,        setVPrio]        = useState(0);
@@ -1205,7 +1217,7 @@ export function DialogosSection() {
           </div>
         </div>
 
-        {/* Entry list */}
+        {/* Entry list — Diseño B: Árbol de dependencias */}
         <div className="flex-1 overflow-y-auto py-1">
           {loading ? (
             <div className="flex justify-center py-8">
@@ -1237,17 +1249,34 @@ export function DialogosSection() {
 
           ) : (
             <>
-              {/* Variantes */}
-              <div className="flex items-center justify-between px-3 py-1.5">
-                <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: MUTED }}>
+              {/* ── VARIANTES (lista plana colapsable) ── */}
+              <button
+                type="button"
+                className="w-full flex items-center justify-between px-3 py-1.5"
+                onClick={() => setVariantesOpen(v => !v)}
+              >
+                <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest" style={{ color: MUTED }}>
+                  <ChevronRight
+                    size={10}
+                    style={{
+                      color: MUTED,
+                      transition: "transform .15s",
+                      transform: variantesOpen ? "rotate(90deg)" : "rotate(0deg)",
+                    }}
+                  />
                   Variantes ({filteredV.length})
                 </span>
-                <button type="button" onClick={addVariante} style={{ color: MUTED }} title="Nueva variante">
+                <button
+                  type="button"
+                  onClick={e => { e.stopPropagation(); addVariante(); }}
+                  style={{ color: MUTED }}
+                  title="Nueva variante"
+                >
                   <Plus size={11} />
                 </button>
-              </div>
+              </button>
 
-              {filteredV.map(({ v, i }) => {
+              {variantesOpen && filteredV.map(({ v, i }) => {
                 const kind   = reqKind(v);
                 const active = isActive("variante", i);
                 return (
@@ -1286,47 +1315,162 @@ export function DialogosSection() {
                 );
               })}
 
-              {/* Temas */}
-              <div className="flex items-center justify-between px-3 py-1.5 mt-2" style={{ borderTop: BORDER }}>
-                <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: MUTED }}>
+              {/* ── TEMAS (árbol de dependencias) ── */}
+              <button
+                type="button"
+                className="w-full flex items-center justify-between px-3 py-1.5 mt-2"
+                style={{ borderTop: BORDER }}
+                onClick={() => setTemasOpen(v => !v)}
+              >
+                <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest" style={{ color: MUTED }}>
+                  <ChevronRight
+                    size={10}
+                    style={{
+                      color: MUTED,
+                      transition: "transform .15s",
+                      transform: temasOpen ? "rotate(90deg)" : "rotate(0deg)",
+                    }}
+                  />
                   Temas ({filteredT.length})
                 </span>
-                <button type="button" onClick={addTema} style={{ color: MUTED }} title="Nuevo tema">
+                <button
+                  type="button"
+                  onClick={e => { e.stopPropagation(); addTema(); }}
+                  style={{ color: MUTED }}
+                  title="Nuevo tema"
+                >
                   <Plus size={11} />
                 </button>
-              </div>
+              </button>
 
-              {filteredT.map(({ t, i }) => {
-                const kind   = reqKind(t);
-                const active = isActive("tema", i);
-                return (
-                  <button
-                    key={t.clave + i}
-                    type="button"
-                    onClick={() => pickTema(t, i)}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 text-left transition-colors"
-                    style={{
-                      background: active ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "transparent",
-                      borderLeft: active ? "2px solid var(--primary)" : "2px solid transparent",
-                    }}
-                  >
-                    <div style={{ width: 7, height: 7, borderRadius: "50%", background: DOT_COLOR[kind], flexShrink: 0 }} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium truncate" style={{ color: "var(--primary)" }}>
-                        {t.clave}
-                        {active && isDirty && (
-                          <span style={{ marginLeft: 5, display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: "#f59e0b", verticalAlign: "middle" }} />
+              {temasOpen && (() => {
+                // Construir árbol: raíces → hijos directos
+                const allTemas = temas;
+                const allClaves = new Set(allTemas.map(t => t.clave));
+
+                // Hijos de cada tema (indexados por requiere_tema)
+                const childrenOf: Record<string, number[]> = {};
+                const roots: number[] = [];
+
+                allTemas.forEach((t, i) => {
+                  const req = t.requiere_tema;
+                  if (req && allClaves.has(req)) {
+                    if (!childrenOf[req]) childrenOf[req] = [];
+                    childrenOf[req].push(i);
+                  } else {
+                    roots.push(i);
+                  }
+                });
+
+                // Filtrado: si hay búsqueda, mostramos sólo los que coinciden
+                const matchesFilter = (idx: number) => {
+                  const t = allTemas[idx];
+                  return !q || t.clave.includes(q) || t.texto?.includes(q);
+                };
+
+                // Nodo recursivo
+                const renderTemaNode = (idx: number, depth: number): React.ReactNode => {
+                  const t      = allTemas[idx];
+                  const kind   = reqKind(t);
+                  const active = isActive("tema", idx);
+                  const children = childrenOf[t.clave] ?? [];
+                  const hasChildren = children.length > 0;
+                  const isCollapsed = collapsedBranches.has(t.clave);
+
+                  // Cuando hay filtro, omitir nodos que no coincidan y cuyo
+                  // subárbol tampoco tenga coincidencias
+                  const subtreeMatches = (i: number): boolean => {
+                    if (matchesFilter(i)) return true;
+                    return (childrenOf[allTemas[i].clave] ?? []).some(c => subtreeMatches(c));
+                  };
+                  if (q && !subtreeMatches(idx)) return null;
+
+                  const paddingLeft = 12 + depth * 16;
+
+                  return (
+                    <React.Fragment key={t.clave + idx}>
+                      <div
+                        className="w-full flex items-center gap-2 py-1.5 text-left transition-colors"
+                        style={{
+                          paddingLeft,
+                          paddingRight: 10,
+                          background: active ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "transparent",
+                          borderLeft: active ? "2px solid var(--primary)" : "2px solid transparent",
+                          cursor: "pointer",
+                        }}
+                      >
+                        {/* Caret de colapso */}
+                        {hasChildren ? (
+                          <button
+                            type="button"
+                            onClick={() => toggleTemaBranch(t.clave)}
+                            style={{ color: MUTED, flexShrink: 0, lineHeight: 1, padding: 0 }}
+                            title={isCollapsed ? "Expandir" : "Colapsar"}
+                          >
+                            <ChevronRight
+                              size={10}
+                              style={{
+                                transition: "transform .15s",
+                                transform: isCollapsed ? "rotate(0deg)" : "rotate(90deg)",
+                              }}
+                            />
+                          </button>
+                        ) : (
+                          <span style={{ width: 10, flexShrink: 0 }} />
                         )}
-                      </p>
-                      {t.texto && (
-                        <p className="text-[10px] truncate" style={{ color: MUTED }}>{t.texto}</p>
-                      )}
-                    </div>
-                  </button>
-                );
-              })}
 
-              {!loading && dialogo && filteredV.length === 0 && filteredT.length === 0 && (
+                        {/* Punto de color */}
+                        <div
+                          style={{ width: 7, height: 7, borderRadius: "50%", background: DOT_COLOR[kind], flexShrink: 0 }}
+                          onClick={() => pickTema(t, idx)}
+                        />
+
+                        {/* Nombre */}
+                        <div className="flex-1 min-w-0" onClick={() => pickTema(t, idx)}>
+                          <p className="text-xs font-medium truncate" style={{ color: "var(--primary)" }}>
+                            {t.clave}
+                            {active && isDirty && (
+                              <span style={{ marginLeft: 5, display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: "#f59e0b", verticalAlign: "middle" }} />
+                            )}
+                          </p>
+                          {t.texto && !active && (
+                            <p className="text-[10px] truncate" style={{ color: MUTED }}>{t.texto}</p>
+                          )}
+                        </div>
+
+                        {/* Ícono de candado si tiene prerequisito */}
+                        {t.requiere_tema && (
+                          <Lock
+                            size={9}
+                            style={{ color: MUTED, flexShrink: 0 }}
+                            title={`Requiere: ${t.requiere_tema}`}
+                          />
+                        )}
+                      </div>
+
+                      {/* Hijos (con línea vertical de árbol) */}
+                      {hasChildren && !isCollapsed && (
+                        <div style={{ borderLeft: `1.5px solid color-mix(in srgb, var(--primary) 10%, transparent)`, marginLeft: paddingLeft + 7 }}>
+                          {children.map(ci => renderTemaNode(ci, depth + 1))}
+                        </div>
+                      )}
+                    </React.Fragment>
+                  );
+                };
+
+                return (
+                  <>
+                    {roots.map(i => renderTemaNode(i, 0))}
+                    {!loading && dialogo && roots.length === 0 && filteredT.length === 0 && (
+                      <p className="text-xs text-center py-4" style={{ color: MUTED }}>
+                        Sin temas{q ? " que coincidan" : ""}
+                      </p>
+                    )}
+                  </>
+                );
+              })()}
+
+              {!loading && dialogo && filteredV.length === 0 && filteredT.length === 0 && !variantesOpen && !temasOpen && (
                 <p className="text-xs text-center py-6" style={{ color: MUTED }}>
                   Sin entradas{q ? " que coincidan" : ""}
                 </p>
@@ -1335,7 +1479,7 @@ export function DialogosSection() {
           )}
         </div>
 
-        {/* Leyenda */}
+        {/* Leyenda — Diseño B */}
         <div className="p-3 flex gap-3 flex-wrap" style={{ borderTop: BORDER }}>
           {(["none", "social", "season", "mixed"] as const).map(k => (
             <div key={k} className="flex items-center gap-1">
@@ -1345,6 +1489,10 @@ export function DialogosSection() {
               </span>
             </div>
           ))}
+          <div className="flex items-center gap-1">
+            <Lock size={8} style={{ color: MUTED }} />
+            <span className="text-[9px]" style={{ color: MUTED }}>requiere</span>
+          </div>
         </div>
       </div>
 
