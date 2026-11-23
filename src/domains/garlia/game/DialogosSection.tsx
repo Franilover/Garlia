@@ -65,6 +65,8 @@ interface Variante {
 }
 
 interface TemaConversacion {
+  /** Clasificación del tema para organizar el menú/editor */
+  tipo?: "pregunta" | "hablar";
   clave: string;
   texto: string;
   evento: string;
@@ -910,6 +912,7 @@ export function DialogosSection() {
   const [loading,    setLoading]    = useState(false);
   const [creating,   setCreating]   = useState(false);   // Mejora 6
   const [q,          setQ]          = useState("");
+  const [filtroTipo, setFiltroTipo] = useState<"todos" | "pregunta" | "hablar">("todos");
 
   const [selEntry,   setSelEntry]   = useState<EntryRef>(null);
   const [panelTab,   setPanelTab]   = useState<PanelTab>("contenido");
@@ -935,6 +938,7 @@ export function DialogosSection() {
   const [vOpLogico,    setVOpLogico]    = useState<"AND" | "OR">("AND");
 
   // Tema form
+  const [tTipo,         setTTipo]         = useState<"pregunta" | "hablar">("pregunta");
   const [tClave,        setTClave]        = useState("");
   const [tTexto,        setTTexto]        = useState("");
   const [tEvento,       setTEvento]       = useState("");
@@ -1043,6 +1047,7 @@ export function DialogosSection() {
   const pickTema = (t: TemaConversacion, idx: number) => {
     setSelEntry({ type: "tema", index: idx });
     setPanelTab("contenido");
+    setTTipo(t.tipo === "hablar" ? "hablar" : "pregunta");
     setTClave(t.clave);
     setTTexto(t.texto);
     setTEvento(t.evento);
@@ -1073,6 +1078,7 @@ export function DialogosSection() {
     if (!dialogo) return;
     const idx = dialogo.temas_conversacion.length;
     const t: TemaConversacion = {
+      tipo: "pregunta",
       clave: `tema_${Date.now()}`, texto: "", evento: "", jugador: "", respuesta: "",
     };
     setDialogo({ ...dialogo, temas_conversacion: [...dialogo.temas_conversacion, t] });
@@ -1123,6 +1129,7 @@ export function DialogosSection() {
 
       updated.temas_conversacion[selEntry.index] = {
         ...original,
+        tipo:      tTipo,
         clave:     tClave,
         texto:     tTexto,
         evento:    tEvento,
@@ -1200,7 +1207,10 @@ export function DialogosSection() {
     .filter(({ v }) => !q || v.clave.includes(q));
   const filteredT = temas
     .map((t, i) => ({ t, i }))
-    .filter(({ t }) => !q || t.clave.includes(q) || t.texto?.includes(q));
+    .filter(({ t }) =>
+      (filtroTipo === "todos" || (t.tipo ?? "pregunta") === filtroTipo) &&
+      (!q || t.clave.includes(q) || t.texto?.includes(q))
+    );
 
   const isActive = (type: "variante" | "tema", idx: number) =>
     selEntry?.type === type && selEntry.index === idx;
@@ -1277,6 +1287,29 @@ export function DialogosSection() {
               value={q}
               onChange={e => setQ(e.target.value)}
             />
+          </div>
+          <div className="flex gap-1">
+            {([
+              ["todos", "Todos"],
+              ["pregunta", "Pregunta"],
+              ["hablar", "Hablar"],
+            ] as const).map(([tipo, label]) => (
+              <button
+                key={tipo}
+                type="button"
+                onClick={() => setFiltroTipo(tipo)}
+                className="flex-1 rounded-lg py-1 text-[10px] font-medium"
+                style={{
+                  color: filtroTipo === tipo ? "var(--primary)" : MUTED,
+                  background: filtroTipo === tipo
+                    ? "color-mix(in srgb, var(--primary) 12%, transparent)"
+                    : "transparent",
+                  border: filtroTipo === tipo ? BORDER : "1px solid transparent",
+                }}
+              >
+                {label}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -1496,9 +1529,22 @@ export function DialogosSection() {
                               <span style={{ marginLeft: 5, display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: "#f59e0b", verticalAlign: "middle" }} />
                             )}
                           </p>
-                          {t.texto && !active && (
-                            <p className="text-[10px] truncate" style={{ color: MUTED }}>{t.texto}</p>
-                          )}
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span
+                              className="text-[8px] uppercase tracking-wide px-1.5 py-0.5 rounded shrink-0"
+                              style={{
+                                color: (t.tipo ?? "pregunta") === "hablar" ? "#16a34a" : "#3b82f6",
+                                background: (t.tipo ?? "pregunta") === "hablar"
+                                  ? "color-mix(in srgb, #16a34a 12%, transparent)"
+                                  : "color-mix(in srgb, #3b82f6 12%, transparent)",
+                              }}
+                            >
+                              {(t.tipo ?? "pregunta") === "hablar" ? "Hablar" : "Pregunta"}
+                            </span>
+                            {t.texto && !active && (
+                              <p className="text-[10px] truncate" style={{ color: MUTED }}>{t.texto}</p>
+                            )}
+                          </div>
                         </div>
 
                         {/* Ícono de candado si tiene prerequisito */}
@@ -1691,6 +1737,7 @@ export function DialogosSection() {
 
             {panelTab === "contenido" && selEntry.type === "tema" && (
               <TemaContenido
+                tipo={tTipo}              onTipo={v => { setTTipo(v);               markDirty(); }}
                 clave={tClave}            onClave={v => { setTClave(v);            markDirty(); }}
                 texto={tTexto}            onTexto={v => { setTTexto(v);            markDirty(); }}
                 evento={tEvento}          onEvento={v => { setTEvento(v);          markDirty(); }}
@@ -2305,10 +2352,11 @@ function VarianteContenido({
 // ── TemaContenido ─────────────────────────────────────────────────────────────
 
 function TemaContenido({
-  clave, onClave, texto, onTexto, evento, onEvento,
+  tipo, onTipo, clave, onClave, texto, onTexto, evento, onEvento,
   jugador, onJugador, respuesta, onRespuesta,
   respRep, onRespRep, requiereTema, onRequiereTema, temasDisponibles,
 }: {
+  tipo: "pregunta" | "hablar"; onTipo: (v: "pregunta" | "hablar") => void;
   clave: string;        onClave: (v: string) => void;
   texto: string;        onTexto: (v: string) => void;
   evento: string;       onEvento: (v: string) => void;
@@ -2320,6 +2368,18 @@ function TemaContenido({
 }) {
   return (
     <>
+      <label className="flex flex-col gap-1">
+        <FL label="Tipo de interacción" />
+        <select
+          value={tipo}
+          onChange={e => onTipo(e.target.value as "pregunta" | "hablar")}
+          style={{ ...inputStyle, padding: "6px 8px" }}
+        >
+          <option value="pregunta">Pregunta — el jugador consulta algo concreto</option>
+          <option value="hablar">Hablar — conversación general sobre un tema</option>
+        </select>
+      </label>
+
       <div className="flex gap-3">
         <label className="flex flex-col gap-1 flex-1">
           <FL label="Clave" />
