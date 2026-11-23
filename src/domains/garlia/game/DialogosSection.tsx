@@ -185,7 +185,7 @@ const uid = () => Math.random().toString(36).slice(2, 8);
 /** Clasificación de respaldo para registros antiguos sin el campo tipo. */
 function tipoTema(t: TemaConversacion): "pregunta" | "hablar" {
   if (t.tipo === "pregunta" || t.tipo === "hablar") return t.tipo;
-  return /^(hablar|conversar)\\b/i.test((t.texto ?? "").trim()) ? "hablar" : "pregunta";
+  return /^(hablar|conversar)\b/i.test((t.texto ?? "").trim()) ? "hablar" : "pregunta";
 }
 
 // ── CondicionBuilder ──────────────────────────────────────────────────────────
