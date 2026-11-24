@@ -778,7 +778,7 @@ function LineaEditor({
     setShowRefMenu(false);
   };
 
-  const linBg = "color-mix(in srgb, var(--primary) 4%, var(--bg-main))`;
+  const linBg = `color-mix(in srgb, var(--primary) 4%, var(--bg-main))`;
   const condBg = hasConds
     ? `color-mix(in srgb, ${C_SEASON} 8%, transparent)`
     : `transparent`;
@@ -788,7 +788,7 @@ function LineaEditor({
 
   return (
     <div
-      className=`flex flex-col gap-2 p-3 rounded-xl"
+      className="flex flex-col gap-2 p-3 rounded-xl"
       style={{ background: linBg, border: BORDER }}
     >
       {/* Texto / preview con píldoras */}
@@ -943,13 +943,13 @@ function LineaEditor({
       {/* Panel de condiciones de la línea — inline, expandible */}
       {showCondMenu && (
         <div
-          className="flex flex-col gap-2 p-2 rounded-xl`
+          className="flex flex-col gap-2 p-2 rounded-xl"
           style={{
             background: `color-mix(in srgb, ${C_SEASON} 5%, var(--bg-main))`,
             border: `1px solid color-mix(in srgb, ${C_SEASON} 20%, transparent)`,
           }}
         >
-          <div className=`flex items-center justify-between">
+          <div className="flex items-center justify-between">
             <span className="text-[9px] font-semibold uppercase tracking-wide" style={{ color: C_SEASON }}>
               Esta línea solo se muestra si…
             </span>
