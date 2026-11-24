@@ -1000,26 +1000,12 @@ export function DialogosSection() {
   const [panelTab,   setPanelTab]   = useState<PanelTab>("contenido");
   const [isDirty,    setIsDirty]    = useState(false);
 
-  // Sidebar tree state (Diseño B)
-  const [collapsedBranches, setCollapsedBranches] = useState<Set<string>>(new Set());
-  const [variantesOpen,       setVariantesOpen]       = useState(true);
-  const [temasOpen,           setTemasOpen]           = useState(true);
-  const [respuestaRutinaOpen, setRespuestaRutinaOpen] = useState(true);
-  const [saludosOpen,         setSaludosOpen]         = useState(true);
-  const [rutinaCtxOpen,       setRutinaCtxOpen]       = useState(true);
+  // Sidebar — sin estados de colapso por grupo, ahora son dos tabs planas
 
-  /** null = mostrar todo; "variantes" / "temas" = mostrar solo esa sección */
-  const [sidebarFilter, setSidebarFilter] = useState<"variantes" | "temas" | null>(null);
+  /** "dialogos" = variantes; "temas" = temas_conversacion */
+  const [sidebarFilter, setSidebarFilter] = useState<"dialogos" | "temas" | null>(null);
 
-  const toggleSidebarFilter = (f: "variantes" | "temas") =>
-    setSidebarFilter(prev => prev === f ? null : f);
 
-  const toggleTemaBranch = (clave: string) =>
-    setCollapsedBranches(prev => {
-      const next = new Set(prev);
-      next.has(clave) ? next.delete(clave) : next.add(clave);
-      return next;
-    });
 
   // Variante form
   const [vClave,       setVClave]       = useState("");
@@ -1452,12 +1438,7 @@ export function DialogosSection() {
     .filter(({ v }) => !q || v.clave.includes(q));
   const filteredT  = temas.map((t, i) => ({ t, i }))
     .filter(({ t }) => !q || t.clave.includes(q) || t.texto?.includes(q));
-  const filteredRR = respuestasRutina.map((rr, i) => ({ rr, i }))
-    .filter(({ rr }) => !q || rr.clave.includes(q));
-  const filteredSC = saludosCtx.map((sc, i) => ({ sc, i }))
-    .filter(({ sc }) => !q || sc.clave.includes(q) || sc.texto?.includes(q));
-  const filteredRC = rutinaCtx.map((rc, i) => ({ rc, i }))
-    .filter(({ rc }) => !q || rc.clave.includes(q) || rc.texto?.includes(q));
+
 
   const isActive = (type: "variante" | "tema", idx: number) =>
     selEntry?.type === type && selEntry.index === idx;
@@ -1537,39 +1518,40 @@ export function DialogosSection() {
             />
           </div>
 
-          {/* Filtro de sección */}
+          {/* Selector de grupo: Diálogos / Temas */}
           <div className="flex gap-1.5">
-            {(["variantes", "temas"] as const).map(f => {
-              const active = sidebarFilter === f;
+            {(["dialogos", "temas"] as const).map(g => {
+              const active = sidebarFilter === g || (sidebarFilter === null && g === "dialogos");
               return (
                 <button
-                  key={f}
+                  key={g}
                   type="button"
-                  onClick={() => toggleSidebarFilter(f)}
-                  className="flex-1 text-[11px] font-medium py-1 rounded-lg transition-colors capitalize"
+                  onClick={() => setSidebarFilter(g)}
+                  className="flex-1 text-[11px] font-semibold py-1.5 rounded-lg transition-colors"
                   style={{
                     background: active
                       ? "color-mix(in srgb, var(--primary) 14%, transparent)"
                       : "color-mix(in srgb, var(--primary) 4%, transparent)",
                     color: active ? "var(--primary)" : MUTED,
-                    border: active ? "1px solid color-mix(in srgb, var(--primary) 25%, transparent)" : BORDER,
+                    border: active
+                      ? "1px solid color-mix(in srgb, var(--primary) 25%, transparent)"
+                      : BORDER,
                   }}
                 >
-                  {f === "variantes" ? "Variantes" : "Temas"}
+                  {g === "dialogos" ? "Diálogos" : "Temas"}
                 </button>
               );
             })}
           </div>
         </div>
 
-        {/* Entry list — Diseño B: Árbol de dependencias */}
-        <div className="flex-1 overflow-y-auto py-1">
+        {/* ── Lista de entradas ── */}
+        <div className="flex-1 overflow-y-auto">
           {loading ? (
             <div className="flex justify-center py-8">
               <Loader2 size={16} className="animate-spin" style={{ color: MUTED }} />
             </div>
 
-          /* ── Mejora 6: Personaje sin diálogos ── */
           ) : sinDialogos ? (
             <div className="flex flex-col items-center justify-center gap-3 px-4 py-10">
               <MessageCircle size={28} style={{ color: MUTED, opacity: 0.4 }} />
@@ -1580,7 +1562,7 @@ export function DialogosSection() {
                 type="button"
                 onClick={crearDialogos}
                 disabled={creating}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold"
                 style={{
                   background: "var(--primary)",
                   color: "var(--btn-text, #fff)",
@@ -1592,396 +1574,175 @@ export function DialogosSection() {
               </button>
             </div>
 
-          ) : (
-            <>
-              {/* ── VARIANTES (lista plana colapsable) ── */}
-              {(sidebarFilter === null || sidebarFilter === "variantes") && <button
-                type="button"
-                className="w-full flex items-center justify-between px-3 py-1.5"
-                onClick={() => setVariantesOpen(v => !v)}
-              >
-                <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest" style={{ color: MUTED }}>
-                  <ChevronRight
-                    size={10}
-                    style={{
-                      color: MUTED,
-                      transition: "transform .15s",
-                      transform: variantesOpen ? "rotate(90deg)" : "rotate(0deg)",
-                    }}
-                  />
-                  Variantes ({filteredV.length})
-                </span>
-                <button
-                  type="button"
-                  onClick={e => { e.stopPropagation(); addVariante(); }}
-                  style={{ color: MUTED }}
-                  title="Nueva variante"
-                >
-                  <Plus size={11} />
-                </button>
-              </button>}
+          ) : (() => {
+            // ── Grupo activo ──────────────────────────────────────────────────
+            const grupoActivo: "dialogos" | "temas" =
+              sidebarFilter === "temas" ? "temas" : "dialogos";
 
-              {(sidebarFilter === null || sidebarFilter === "variantes") && variantesOpen && filteredV.map(({ v, i }) => {
-                const kind   = reqKind(v);
-                const active = isActive("variante", i);
-                return (
-                  <button
-                    key={v.clave + i}
-                    type="button"
-                    onClick={() => pickVariante(v, i)}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 text-left transition-colors"
-                    style={{
-                      background:  active ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "transparent",
-                      borderLeft:  active ? "2px solid var(--primary)" : "2px solid transparent",
-                    }}
-                  >
-                    <div style={{ width: 7, height: 7, borderRadius: "50%", background: DOT_COLOR[kind], flexShrink: 0 }} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium truncate" style={{ color: "var(--primary)" }}>
-                        {v.clave}
-                        {active && isDirty && (
-                          <span style={{ marginLeft: 5, display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: C_WARN, verticalAlign: "middle" }} />
-                        )}
-                      </p>
-                      <p className="text-[10px] truncate" style={{ color: MUTED }}>
-                        {v.lineas?.length ?? 0} {v.lineas?.length === 1 ? "línea" : "líneas"}
-                        {kind === "season" && " · estacional"}
-                        {kind === "social" && " · social"}
-                        {kind === "mixed"  && " · social + estacional"}
-                      </p>
-                    </div>
-                    <span
-                      className="text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0"
-                      style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)", color: MUTED }}
-                    >
-                      P{v.prioridad}
-                    </span>
-                  </button>
-                );
-              })}
+            // Diálogos = variantes; Temas = temas_conversacion
+            // Ambos se filtran por búsqueda y se muestran tal como vienen de Supabase.
+            // Sin hardcodear claves: si mañana hay más entradas, aparecen solas.
 
-              {/* ── TEMAS (árbol de dependencias) ── */}
-              {(sidebarFilter === null || sidebarFilter === "temas") && <button
-                type="button"
-                className="w-full flex items-center justify-between px-3 py-1.5 mt-2"
-                style={{ borderTop: BORDER }}
-                onClick={() => setTemasOpen(v => !v)}
-              >
-                <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest" style={{ color: MUTED }}>
-                  <ChevronRight
-                    size={10}
-                    style={{
-                      color: MUTED,
-                      transition: "transform .15s",
-                      transform: temasOpen ? "rotate(90deg)" : "rotate(0deg)",
-                    }}
-                  />
-                  Temas ({filteredT.length})
-                </span>
-                <button
-                  type="button"
-                  onClick={e => { e.stopPropagation(); addTema(); }}
-                  style={{ color: MUTED }}
-                  title="Nuevo tema"
-                >
-                  <Plus size={11} />
-                </button>
-              </button>}
-
-              {(sidebarFilter === null || sidebarFilter === "temas") && temasOpen && (() => {
-                // Construir árbol: raíces → hijos directos
-                const allTemas = temas;
-                const allClaves = new Set(allTemas.map(t => t.clave));
-
-                // Hijos de cada tema (indexados por requiere_tema)
-                const childrenOf: Record<string, number[]> = {};
-                const roots: number[] = [];
-
-                allTemas.forEach((t, i) => {
-                  const req = t.requiere_tema;
-                  if (req && allClaves.has(req)) {
-                    if (!childrenOf[req]) childrenOf[req] = [];
-                    childrenOf[req].push(i);
-                  } else {
-                    roots.push(i);
-                  }
-                });
-
-                // Filtrado: si hay búsqueda, mostramos sólo los que coinciden
-                const matchesFilter = (idx: number) => {
-                  const t = allTemas[idx];
-                  return !q || t.clave.includes(q) || t.texto?.includes(q);
-                };
-
-                // Nodo recursivo
-                const renderTemaNode = (idx: number, depth: number): React.ReactNode => {
-                  const t      = allTemas[idx];
-                  const kind   = reqKind(t);
-                  const active = isActive("tema", idx);
-                  const children = childrenOf[t.clave] ?? [];
-                  const hasChildren = children.length > 0;
-                  const isCollapsed = collapsedBranches.has(t.clave);
-
-                  // Cuando hay filtro, omitir nodos que no coincidan y cuyo
-                  // subárbol tampoco tenga coincidencias
-                  const subtreeMatches = (i: number): boolean => {
-                    if (matchesFilter(i)) return true;
-                    return (childrenOf[allTemas[i].clave] ?? []).some(c => subtreeMatches(c));
-                  };
-                  if (q && !subtreeMatches(idx)) return null;
-
-                  const paddingLeft = 12 + depth * 16;
-
-                  return (
-                    <React.Fragment key={t.clave + idx}>
-                      <div
-                        className="w-full flex items-center gap-2 py-1.5 text-left transition-colors"
+            if (grupoActivo === "dialogos") {
+              const items = variantes.filter(
+                v => !q || v.clave.toLowerCase().includes(q.toLowerCase())
+              );
+              return (
+                <div className="py-1">
+                  {items.length === 0 && (
+                    <p className="text-xs text-center py-8" style={{ color: MUTED }}>
+                      {q ? "Sin coincidencias" : "Sin diálogos"}
+                    </p>
+                  )}
+                  {variantes.map((v, i) => {
+                    if (q && !v.clave.toLowerCase().includes(q.toLowerCase())) return null;
+                    const kind   = reqKind(v);
+                    const active = isActive("variante", i);
+                    return (
+                      <button
+                        key={v.clave + i}
+                        type="button"
+                        onClick={() => pickVariante(v, i)}
+                        className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left transition-colors"
                         style={{
-                          paddingLeft,
-                          paddingRight: 10,
-                          background: active ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "transparent",
-                          borderLeft: active ? "2px solid var(--primary)" : "2px solid transparent",
-                          cursor: "pointer",
+                          background: active
+                            ? "color-mix(in srgb, var(--primary) 8%, transparent)"
+                            : "transparent",
+                          borderLeft: active
+                            ? "2px solid var(--primary)"
+                            : "2px solid transparent",
                         }}
                       >
-                        {/* Caret de colapso */}
-                        {hasChildren ? (
-                          <button
-                            type="button"
-                            onClick={() => toggleTemaBranch(t.clave)}
-                            style={{ color: MUTED, flexShrink: 0, lineHeight: 1, padding: 0 }}
-                            title={isCollapsed ? "Expandir" : "Colapsar"}
-                          >
-                            <ChevronRight
-                              size={10}
-                              style={{
-                                transition: "transform .15s",
-                                transform: isCollapsed ? "rotate(0deg)" : "rotate(90deg)",
-                              }}
-                            />
-                          </button>
-                        ) : (
-                          <span style={{ width: 10, flexShrink: 0 }} />
-                        )}
+                        <div style={{
+                          width: 7, height: 7, borderRadius: "50%",
+                          background: DOT_COLOR[kind], flexShrink: 0,
+                        }} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium truncate" style={{ color: "var(--primary)" }}>
+                            {v.clave}
+                            {active && isDirty && (
+                              <span style={{
+                                marginLeft: 5, display: "inline-block",
+                                width: 6, height: 6, borderRadius: "50%",
+                                background: C_WARN, verticalAlign: "middle",
+                              }} />
+                            )}
+                          </p>
+                          <p className="text-[10px] truncate" style={{ color: MUTED }}>
+                            {v.lineas?.length ?? 0} {v.lineas?.length === 1 ? "línea" : "líneas"}
+                            {kind !== "none" && ` · ${kind === "mixed" ? "social + estacional" : kind === "social" ? "social" : "estacional"}`}
+                          </p>
+                        </div>
+                        <span
+                          className="text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0"
+                          style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)", color: MUTED }}
+                        >
+                          P{v.prioridad}
+                        </span>
+                      </button>
+                    );
+                  })}
+                  {/* Añadir nuevo diálogo */}
+                  <button
+                    type="button"
+                    onClick={addVariante}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-left"
+                    style={{ color: MUTED, borderTop: BORDER, marginTop: 4 }}
+                  >
+                    <Plus size={11} />
+                    <span className="text-[11px]">Nuevo diálogo</span>
+                  </button>
+                </div>
+              );
+            }
 
-                        {/* Punto de color */}
-                        <div
-                          style={{ width: 7, height: 7, borderRadius: "50%", background: DOT_COLOR[kind], flexShrink: 0 }}
-                          onClick={() => pickTema(t, idx)}
-                        />
-
-                        {/* Nombre */}
-                        <div className="flex-1 min-w-0" onClick={() => pickTema(t, idx)}>
-                          <div className="flex items-center gap-1.5 min-w-0">
-                            <p className="text-xs font-medium truncate" style={{ color: "var(--primary)" }}>
-                              {t.clave}
-                              {active && isDirty && (
-                                <span style={{ marginLeft: 5, display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: C_WARN, verticalAlign: "middle" }} />
-                              )}
-                            </p>
+            // ── TEMAS ─────────────────────────────────────────────────────────
+            return (
+              <div className="py-1">
+                {temas.length === 0 && !q && (
+                  <p className="text-xs text-center py-8" style={{ color: MUTED }}>
+                    Sin temas
+                  </p>
+                )}
+                {temas.map((t, i) => {
+                  if (q && !t.clave.toLowerCase().includes(q.toLowerCase()) && !t.texto?.toLowerCase().includes(q.toLowerCase())) return null;
+                  const kind   = reqKind(t);
+                  const active = isActive("tema", i);
+                  return (
+                    <button
+                      key={t.clave + i}
+                      type="button"
+                      onClick={() => pickTema(t, i)}
+                      className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left transition-colors"
+                      style={{
+                        background: active
+                          ? "color-mix(in srgb, var(--primary) 8%, transparent)"
+                          : "transparent",
+                        borderLeft: active
+                          ? "2px solid var(--primary)"
+                          : "2px solid transparent",
+                      }}
+                    >
+                      <div style={{
+                        width: 7, height: 7, borderRadius: "50%",
+                        background: DOT_COLOR[kind], flexShrink: 0,
+                      }} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <p className="text-xs font-medium truncate" style={{ color: "var(--primary)" }}>
+                            {t.clave}
+                            {active && isDirty && (
+                              <span style={{
+                                marginLeft: 5, display: "inline-block",
+                                width: 6, height: 6, borderRadius: "50%",
+                                background: C_WARN, verticalAlign: "middle",
+                              }} />
+                            )}
+                          </p>
+                          {(t as any).tipo && (
                             <span
                               className="shrink-0 text-[8px] font-bold px-1 py-px rounded"
-                              style={{
-                                background: "color-mix(in srgb, var(--primary) 8%, transparent)",
-                                color: MUTED,
-                                letterSpacing: "0.02em",
-                              }}
-                              title={(t as any).tipo === "hablar" ? "Hablar" : "Pregunta"}
+                              style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)", color: MUTED }}
                             >
-                              {(t as any).tipo === "hablar" ? "💬" : "❓"}
+                              {(t as any).tipo}
                             </span>
-                          </div>
-                          {t.texto && !active && (
-                            <p className="text-[10px] truncate" style={{ color: MUTED }}>{t.texto}</p>
                           )}
                         </div>
-
-                        {/* Ícono de candado si tiene prerequisito */}
-                        {t.requiere_tema && (
-                          <span title={`Requiere: ${t.requiere_tema}`} style={{ flexShrink: 0, lineHeight: 0 }}>
-                            <Lock size={9} style={{ color: MUTED }} />
-                          </span>
+                        {t.texto && (
+                          <p className="text-[10px] truncate" style={{ color: MUTED }}>{t.texto}</p>
                         )}
                       </div>
-
-                      {/* Hijos (con línea vertical de árbol) */}
-                      {hasChildren && !isCollapsed && (
-                        <div style={{ borderLeft: `1.5px solid color-mix(in srgb, var(--primary) 10%, transparent)`, marginLeft: paddingLeft + 7 }}>
-                          {children.map(ci => renderTemaNode(ci, depth + 1))}
-                        </div>
+                      {t.requiere_tema && (
+                        <Lock size={9} style={{ color: MUTED, flexShrink: 0 }} title={`Requiere: ${t.requiere_tema}`} />
                       )}
-                    </React.Fragment>
+                    </button>
                   );
-                };
-
-                return (
-                  <>
-                    {roots.map(i => renderTemaNode(i, 0))}
-                    {!loading && dialogo && roots.length === 0 && filteredT.length === 0 && (
-                      <p className="text-xs text-center py-4" style={{ color: MUTED }}>
-                        Sin temas{q ? " que coincidan" : ""}
-                      </p>
-                    )}
-                  </>
-                );
-              })()}
-
-              {/* ── RESPUESTAS_RUTINA ── */}
-              {sidebarFilter === null && <button
-                type="button"
-                className="w-full flex items-center justify-between px-3 py-1.5 mt-2"
-                style={{ borderTop: BORDER }}
-                onClick={() => setRespuestaRutinaOpen(v => !v)}
-              >
-                <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest" style={{ color: MUTED }}>
-                  <ChevronRight size={10} style={{ color: MUTED, transition: "transform .15s", transform: respuestaRutinaOpen ? "rotate(90deg)" : "rotate(0deg)" }} />
-                  Resp. Rutina ({filteredRR.length})
-                </span>
-                <button type="button" onClick={e => { e.stopPropagation(); addRespuestaRutina(); }} style={{ color: MUTED }} title="Nueva respuesta de rutina">
+                })}
+                {/* Añadir nuevo tema */}
+                <button
+                  type="button"
+                  onClick={addTema}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-left"
+                  style={{ color: MUTED, borderTop: BORDER, marginTop: 4 }}
+                >
                   <Plus size={11} />
+                  <span className="text-[11px]">Nuevo tema</span>
                 </button>
-              </button>}
-
-              {sidebarFilter === null && respuestaRutinaOpen && filteredRR.map(({ rr, i }) => {
-                const active = selEntry?.type === "respuesta_rutina" && selEntry.index === i;
-                return (
-                  <button
-                    key={rr.clave + i}
-                    type="button"
-                    onClick={() => pickRespuestaRutina(rr, i)}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 text-left transition-colors"
-                    style={{
-                      background:  active ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "transparent",
-                      borderLeft:  active ? "2px solid var(--primary)" : "2px solid transparent",
-                    }}
-                  >
-                    <div style={{ width: 7, height: 7, borderRadius: "50%", background: C_SUCCESS, flexShrink: 0 }} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium truncate" style={{ color: "var(--primary)" }}>
-                        {rr.clave}
-                        {active && isDirty && <span style={{ marginLeft: 5, display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: C_WARN, verticalAlign: "middle" }} />}
-                      </p>
-                      <p className="text-[10px] truncate" style={{ color: MUTED }}>
-                        {rr.textos?.length ?? 0} texto{(rr.textos?.length ?? 0) !== 1 ? "s" : ""}
-                      </p>
-                    </div>
-                  </button>
-                );
-              })}
-
-              {/* ── SALUDOS_CONTEXTUALES ── */}
-              {sidebarFilter === null && <button
-                type="button"
-                className="w-full flex items-center justify-between px-3 py-1.5 mt-2"
-                style={{ borderTop: BORDER }}
-                onClick={() => setSaludosOpen(v => !v)}
-              >
-                <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest" style={{ color: MUTED }}>
-                  <ChevronRight size={10} style={{ color: MUTED, transition: "transform .15s", transform: saludosOpen ? "rotate(90deg)" : "rotate(0deg)" }} />
-                  Saludos ({filteredSC.length})
-                </span>
-                <button type="button" onClick={e => { e.stopPropagation(); addSaludoContextual(); }} style={{ color: MUTED }} title="Nuevo saludo contextual">
-                  <Plus size={11} />
-                </button>
-              </button>}
-
-              {sidebarFilter === null && saludosOpen && filteredSC.map(({ sc, i }) => {
-                const active = selEntry?.type === "saludo_contextual" && selEntry.index === i;
-                return (
-                  <button
-                    key={sc.clave + i}
-                    type="button"
-                    onClick={() => pickSaludoContextual(sc, i)}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 text-left transition-colors"
-                    style={{
-                      background:  active ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "transparent",
-                      borderLeft:  active ? "2px solid var(--primary)" : "2px solid transparent",
-                    }}
-                  >
-                    <div style={{ width: 7, height: 7, borderRadius: "50%", background: C_SEASON, flexShrink: 0 }} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium truncate" style={{ color: "var(--primary)" }}>
-                        {sc.clave}
-                        {active && isDirty && <span style={{ marginLeft: 5, display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: C_WARN, verticalAlign: "middle" }} />}
-                      </p>
-                      <p className="text-[10px] truncate" style={{ color: MUTED }}>
-                        {[sc.hora, sc.estacion].filter(Boolean).join(" · ") || "sin contexto"}
-                      </p>
-                    </div>
-                  </button>
-                );
-              })}
-
-              {/* ── RUTINA_CONTEXTUAL ── */}
-              {sidebarFilter === null && <button
-                type="button"
-                className="w-full flex items-center justify-between px-3 py-1.5 mt-2"
-                style={{ borderTop: BORDER }}
-                onClick={() => setRutinaCtxOpen(v => !v)}
-              >
-                <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest" style={{ color: MUTED }}>
-                  <ChevronRight size={10} style={{ color: MUTED, transition: "transform .15s", transform: rutinaCtxOpen ? "rotate(90deg)" : "rotate(0deg)" }} />
-                  Rutina Ctx. ({filteredRC.length})
-                </span>
-                <button type="button" onClick={e => { e.stopPropagation(); addRutinaContextual(); }} style={{ color: MUTED }} title="Nueva rutina contextual">
-                  <Plus size={11} />
-                </button>
-              </button>}
-
-              {sidebarFilter === null && rutinaCtxOpen && filteredRC.map(({ rc, i }) => {
-                const active = selEntry?.type === "rutina_contextual" && selEntry.index === i;
-                return (
-                  <button
-                    key={rc.clave + i}
-                    type="button"
-                    onClick={() => pickRutinaContextual(rc, i)}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 text-left transition-colors"
-                    style={{
-                      background:  active ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "transparent",
-                      borderLeft:  active ? "2px solid var(--primary)" : "2px solid transparent",
-                    }}
-                  >
-                    <div style={{ width: 7, height: 7, borderRadius: "50%", background: C_MIXED, flexShrink: 0 }} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium truncate" style={{ color: "var(--primary)" }}>
-                        {rc.clave}
-                        {active && isDirty && <span style={{ marginLeft: 5, display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: C_WARN, verticalAlign: "middle" }} />}
-                      </p>
-                      {rc.texto && (
-                        <p className="text-[10px] truncate" style={{ color: MUTED }}>
-                          {rc.texto.length > 32 ? rc.texto.slice(0, 30) + "…" : rc.texto}
-                        </p>
-                      )}
-                    </div>
-                  </button>
-                );
-              })}
-
-              {!loading && dialogo && filteredV.length === 0 && filteredT.length === 0 &&
-               filteredRR.length === 0 && filteredSC.length === 0 && filteredRC.length === 0 &&
-               !variantesOpen && !temasOpen && !respuestaRutinaOpen && !saludosOpen && !rutinaCtxOpen && (
-                <p className="text-xs text-center py-6" style={{ color: MUTED }}>
-                  Sin entradas{q ? " que coincidan" : ""}
-                </p>
-              )}
-            </>
-          )}
+              </div>
+            );
+          })()}
         </div>
 
-        {/* Leyenda — Diseño B */}
+        {/* Leyenda condiciones */}
         <div className="p-3 flex gap-3 flex-wrap" style={{ borderTop: BORDER }}>
           {(["none", "social", "season", "mixed"] as const).map(k => (
             <div key={k} className="flex items-center gap-1">
               <div style={{ width: 6, height: 6, borderRadius: "50%", background: DOT_COLOR[k] }} />
               <span className="text-[9px]" style={{ color: MUTED }}>
-                {k === "none" ? "sin cond." : k === "social" ? "social" : k === "season" ? "estacional" : "mixto"}
+                {k === "none" ? "libre" : k === "social" ? "social" : k === "season" ? "estacional" : "mixto"}
               </span>
             </div>
           ))}
-          <div className="flex items-center gap-1">
-            <Lock size={8} style={{ color: MUTED }} />
-            <span className="text-[9px]" style={{ color: MUTED }}>requiere</span>
-          </div>
         </div>
       </div>
 
