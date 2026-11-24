@@ -122,12 +122,62 @@ interface DialogoDoc {
   rutina_contextual?: RutinaContextual[];
 }
 
+// ── Tipos v2 (contenido_narrativo) ───────────────────────────────────────────
+
+/** Una entrada en cualquier grupo de diálogos v2: equivale a Variante */
+interface DialogoV2 {
+  clave: string;
+  lineas: DialogoLinea[];
+  prioridad: number;
+  _condiciones?: Condicion[];
+  _operador_logico?: "AND" | "OR";
+  requisito_social?: RequisitoSocial;
+  requisito_contextual?: RequisitoContextual;
+  [key: string]: unknown;
+}
+
+/** Una entrada en temas v2: equivale a TemaConversacion */
+interface TemaV2 {
+  clave: string;
+  texto: string;
+  evento: string;
+  jugador: string;
+  respuesta: string;
+  respuesta_repetida?: string;
+  requiere_tema?: string;
+  requisito_social?: RequisitoSocial;
+  _condiciones?: Condicion[];
+  _operador_logico?: "AND" | "OR";
+  [key: string]: unknown;
+}
+
+/**
+ * Estructura v2 guardada en dialogo.contenido_narrativo
+ * dialogos: diccionario de grupos, e.g. { saludo: [], cambio_estacion: [] }
+ * temas:    diccionario de subgrupos, e.g. { preguntas: [], hablar: [] }
+ */
+interface ContenidoNarrativoV2 {
+  version: 2;
+  dialogos: Record<string, DialogoV2[]>;
+  temas:    Record<string, TemaV2[]>;
+}
+
+/**
+ * Vista plana interna — lo que el editor maneja en memoria.
+ * Cada entrada lleva el grupo al que pertenece para poder guardar de vuelta.
+ */
+interface EntradaDialogo extends DialogoV2 { _grupo: string }
+interface EntradaTema    extends TemaV2    { _grupo: string }
+
 type EntryRef =
   | { type: "variante";          index: number }
   | { type: "tema";              index: number }
   | { type: "respuesta_rutina";  index: number }
   | { type: "saludo_contextual"; index: number }
   | { type: "rutina_contextual"; index: number }
+  // v2
+  | { type: "dialogo_v2"; index: number }
+  | { type: "tema_v2";    index: number }
   | null;
 
 type PanelTab = "contenido" | "simulador" | "grafo";
@@ -1002,8 +1052,15 @@ export function DialogosSection() {
 
   // Sidebar — sin estados de colapso por grupo, ahora son dos tabs planas
 
-  /** "dialogos" = variantes; "temas" = temas_conversacion */
+  /** "dialogos" = variantes/dialogos_v2; "temas" = temas_conversacion/temas_v2 */
   const [sidebarFilter, setSidebarFilter] = useState<"dialogos" | "temas" | null>(null);
+
+  // v2 — datos planos derivados de contenido_narrativo
+  const [isV2,          setIsV2]          = useState(false);
+  const [dialogosV2,    setDialogosV2]    = useState<EntradaDialogo[]>([]);
+  const [temasV2,       setTemasV2]       = useState<EntradaTema[]>([]);
+  /** Referencia cruda al contenido_narrativo v2 para guardar de vuelta */
+  const cnV2Ref = useRef<ContenidoNarrativoV2 | null>(null);
 
 
 
@@ -1105,13 +1162,42 @@ export function DialogosSection() {
     const raw = row.dialogo;
     // row.dialogo puede ser: array wrapper [ {...} ], objeto directo {...}, o null
     const doc: any = Array.isArray(raw) ? (raw[0] ?? {}) : (raw ?? {});
-    setDialogo({
-      variantes:            toArray<Variante>(doc.variantes),
-      temas_conversacion:   toArray<TemaConversacion>(doc.temas_conversacion),
-      respuestas_rutina:    toArray<RespuestaRutina>(doc.respuestas_rutina),
-      saludos_contextuales: toArray<SaludoContextual>(doc.saludos_contextuales),
-      rutina_contextual:    toArray<RutinaContextual>(doc.rutina_contextual),
-    });
+
+    // ── Detectar v2 ──────────────────────────────────────────────────────────
+    const cn = doc.contenido_narrativo as ContenidoNarrativoV2 | undefined;
+    if (cn && cn.version === 2) {
+      setIsV2(true);
+      cnV2Ref.current = cn;
+      // Aplanar dialogos: cada entrada lleva _grupo para saber dónde guardar
+      const dv2: EntradaDialogo[] = [];
+      for (const [grupo, entries] of Object.entries(cn.dialogos ?? {})) {
+        for (const e of toArray<DialogoV2>(entries)) {
+          dv2.push({ ...e, _grupo: grupo });
+        }
+      }
+      const tv2: EntradaTema[] = [];
+      for (const [grupo, entries] of Object.entries(cn.temas ?? {})) {
+        for (const e of toArray<TemaV2>(entries)) {
+          tv2.push({ ...e, _grupo: grupo });
+        }
+      }
+      setDialogosV2(dv2);
+      setTemasV2(tv2);
+      setDialogo(null);
+    } else {
+      // ── v1 (retrocompatibilidad) ─────────────────────────────────────────
+      setIsV2(false);
+      cnV2Ref.current = null;
+      setDialogosV2([]);
+      setTemasV2([]);
+      setDialogo({
+        variantes:            toArray<Variante>(doc.variantes),
+        temas_conversacion:   toArray<TemaConversacion>(doc.temas_conversacion),
+        respuestas_rutina:    toArray<RespuestaRutina>(doc.respuestas_rutina),
+        saludos_contextuales: toArray<SaludoContextual>(doc.saludos_contextuales),
+        rutina_contextual:    toArray<RutinaContextual>(doc.rutina_contextual),
+      });
+    }
     setSinDialogos(false);
   };
 
@@ -1120,16 +1206,28 @@ export function DialogosSection() {
   const crearDialogos = async () => {
     if (!selPjId) return;
     setCreating(true);
-    const docVacio: DialogoDoc = {
-      variantes:            [{ clave: "principal", lineas: [{ texto: "", hablante: "" }], prioridad: 0 }],
-      temas_conversacion:   [],
-      respuestas_rutina:    [],
-      saludos_contextuales: [],
-      rutina_contextual:    [],
+    // Crear con estructura v2
+    const docVacio = {
+      contenido_narrativo: {
+        version: 2,
+        dialogos: {
+          principal:        [{ clave: "principal",  lineas: [{ texto: "", hablante: "" }], prioridad: 0 }],
+          amistad:          [],
+          saludo:           [],
+          despedida:        [],
+          viajando:         [],
+          invitaciones:     [],
+          cambio_estacion:  [],
+        },
+        temas: {
+          preguntas: [],
+          hablar:    [],
+        },
+      } as ContenidoNarrativoV2,
     };
     const { data, error: err } = await supabase
       .from("dialogos_game")
-      .insert({ personaje_id: selPjId, clave: "principal", dialogo: [docVacio], activo: true })
+      .insert({ personaje_id: selPjId, clave: "principal", dialogo: docVacio, activo: true })
       .select()
       .single();
     setCreating(false);
@@ -1193,6 +1291,57 @@ export function DialogosSection() {
     };
     setDialogo({ ...dialogo, temas_conversacion: [...dialogo.temas_conversacion, t] });
     pickTema(t, idx);
+  };
+
+  // ── v2 pick/add ───────────────────────────────────────────────────────────────
+
+  const pickDialogoV2 = (d: EntradaDialogo, idx: number) => {
+    setSelEntry({ type: "dialogo_v2", index: idx });
+    setPanelTab("contenido");
+    setVClave(d.clave);
+    setVPrio(d.prioridad ?? 0);
+    setVLineas(JSON.parse(JSON.stringify(d.lineas ?? [])));
+    setVCondiciones(JSON.parse(JSON.stringify(d._condiciones ?? [])));
+    setVOpLogico(d._operador_logico ?? "AND");
+    setIsDirty(false);
+  };
+
+  const pickTemaV2 = (t: EntradaTema, idx: number) => {
+    setSelEntry({ type: "tema_v2", index: idx });
+    setPanelTab("contenido");
+    setTClave(t.clave);
+    setTTexto(t.texto ?? "");
+    setTEvento(t.evento ?? "");
+    setTJugador(t.jugador ?? "");
+    setTRespuesta(t.respuesta ?? "");
+    setTRespRep(t.respuesta_repetida ?? "");
+    setTRequiereTema(t.requiere_tema ?? "");
+    setTCondiciones(JSON.parse(JSON.stringify(t._condiciones ?? [])));
+    setTOpLogico(t._operador_logico ?? "AND");
+    setIsDirty(false);
+  };
+
+  const addDialogoV2 = () => {
+    const idx = dialogosV2.length;
+    const d: EntradaDialogo = {
+      _grupo: "principal",
+      clave: `dialogo_${Date.now()}`,
+      lineas: [{ texto: "", hablante: "" }],
+      prioridad: 0,
+    };
+    setDialogosV2(prev => [...prev, d]);
+    pickDialogoV2(d, idx);
+  };
+
+  const addTemaV2 = () => {
+    const idx = temasV2.length;
+    const t: EntradaTema = {
+      _grupo: "preguntas",
+      clave: `tema_${Date.now()}`,
+      texto: "", evento: "", jugador: "", respuesta: "",
+    };
+    setTemasV2(prev => [...prev, t]);
+    pickTemaV2(t, idx);
   };
 
   // ── RespuestaRutina pick/add ──────────────────────────────────────────────────
@@ -1261,7 +1410,93 @@ export function DialogosSection() {
   // ── Save ──────────────────────────────────────────────────────────────────────
 
   const save = () => run(async () => {
-    if (!dialogo || !selEntry || !selPjId) return;
+    if (!selEntry || !selPjId) return;
+
+    // ── Guardar v2 ──────────────────────────────────────────────────────────
+    if (selEntry.type === "dialogo_v2" || selEntry.type === "tema_v2") {
+      if (!cnV2Ref.current) return;
+      const cn: ContenidoNarrativoV2 = JSON.parse(JSON.stringify(cnV2Ref.current));
+
+      if (selEntry.type === "dialogo_v2") {
+        const original = dialogosV2[selEntry.index];
+        const socialConds = vCondiciones.filter(c => c.tipo === "social");
+        const reqSocial: RequisitoSocial = {};
+        for (const c of socialConds) {
+          if (c.campo === "amistad")   reqSocial.amistad_min   = Number(c.valor);
+          if (c.campo === "confianza") reqSocial.confianza_min = Number(c.valor);
+          if (c.campo === "respeto")   reqSocial.respeto_min   = Number(c.valor);
+          if (c.campo === "afecto")    reqSocial.afecto_min    = Number(c.valor);
+        }
+        const estConds = vCondiciones.filter(c => c.tipo === "estacion").map(c => c.campo);
+        const updated: EntradaDialogo = {
+          ...original,
+          clave:    vClave,
+          lineas:   vLineas,
+          prioridad: vPrio,
+          _condiciones:    vCondiciones,
+          _operador_logico: vOpLogico,
+          ...(Object.keys(reqSocial).length ? { requisito_social: reqSocial } : { requisito_social: undefined }),
+          ...(estConds.length ? { requisito_contextual: { estaciones: estConds } } : { requisito_contextual: undefined }),
+        };
+        // Actualizar lista plana
+        const newList = [...dialogosV2];
+        newList[selEntry.index] = updated;
+        setDialogosV2(newList);
+        // Reconstruir cn.dialogos
+        const grupos: Record<string, DialogoV2[]> = {};
+        for (const e of newList) {
+          const { _grupo, ...rest } = e;
+          grupos[_grupo] = [...(grupos[_grupo] ?? []), rest as DialogoV2];
+        }
+        cn.dialogos = grupos;
+      }
+
+      if (selEntry.type === "tema_v2") {
+        const original = temasV2[selEntry.index];
+        const socialConds = tCondiciones.filter(c => c.tipo === "social");
+        const reqSocial: RequisitoSocial = {};
+        for (const c of socialConds) {
+          if (c.campo === "amistad")   reqSocial.amistad_min   = Number(c.valor);
+          if (c.campo === "confianza") reqSocial.confianza_min = Number(c.valor);
+          if (c.campo === "respeto")   reqSocial.respeto_min   = Number(c.valor);
+          if (c.campo === "afecto")    reqSocial.afecto_min    = Number(c.valor);
+        }
+        const updated: EntradaTema = {
+          ...original,
+          clave:    tClave,
+          texto:    tTexto,
+          evento:   tEvento,
+          jugador:  tJugador,
+          respuesta: tRespuesta,
+          _condiciones:    tCondiciones,
+          _operador_logico: tOpLogico,
+          ...(tRespRep      ? { respuesta_repetida: tRespRep }  : { respuesta_repetida: undefined }),
+          ...(tRequiereTema ? { requiere_tema: tRequiereTema }   : { requiere_tema: undefined }),
+          ...(Object.keys(reqSocial).length ? { requisito_social: reqSocial } : { requisito_social: undefined }),
+        };
+        const newList = [...temasV2];
+        newList[selEntry.index] = updated;
+        setTemasV2(newList);
+        const grupos: Record<string, TemaV2[]> = {};
+        for (const e of newList) {
+          const { _grupo, ...rest } = e;
+          grupos[_grupo] = [...(grupos[_grupo] ?? []), rest as TemaV2];
+        }
+        cn.temas = grupos;
+      }
+
+      cnV2Ref.current = cn;
+      const payload = { contenido_narrativo: cn };
+      const { error: err } = await supabase
+        .from("dialogos_game")
+        .update({ dialogo: payload })
+        .eq("id", selRowId!);
+      if (err) throw new Error(err.message);
+      setIsDirty(false);
+      return;
+    }
+
+    if (!dialogo) return;
 
     // Preservamos todos los campos desconocidos del objeto original
     const updated: DialogoDoc = JSON.parse(JSON.stringify(dialogo));
@@ -1384,7 +1619,16 @@ export function DialogosSection() {
   // ── Descartar cambios ─────────────────────────────────────────────────────────
 
   const descartar = () => {
-    if (!selEntry || !dialogo) return;
+    if (!selEntry) return;
+    if (selEntry.type === "dialogo_v2") {
+      pickDialogoV2(dialogosV2[selEntry.index], selEntry.index);
+      return;
+    }
+    if (selEntry.type === "tema_v2") {
+      pickTemaV2(temasV2[selEntry.index], selEntry.index);
+      return;
+    }
+    if (!dialogo) return;
     if (selEntry.type === "variante") {
       pickVariante(dialogo.variantes[selEntry.index], selEntry.index);
     } else if (selEntry.type === "tema") {
@@ -1402,8 +1646,47 @@ export function DialogosSection() {
   // ── Delete entry ──────────────────────────────────────────────────────────────
 
   const deleteEntry = async () => {
-    if (!dialogo || !selEntry || !selRowId) return;
+    if (!selEntry || !selRowId) return;
     if (!confirm("¿Eliminar esta entrada?")) return;
+
+    // ── v2 delete ────────────────────────────────────────────────────────────
+    if (selEntry.type === "dialogo_v2") {
+      const newList = dialogosV2.filter((_, i) => i !== selEntry.index);
+      setDialogosV2(newList);
+      setSelEntry(null);
+      if (cnV2Ref.current) {
+        const cn: ContenidoNarrativoV2 = JSON.parse(JSON.stringify(cnV2Ref.current));
+        const grupos: Record<string, DialogoV2[]> = {};
+        for (const e of newList) {
+          const { _grupo, ...rest } = e;
+          grupos[_grupo] = [...(grupos[_grupo] ?? []), rest as DialogoV2];
+        }
+        cn.dialogos = grupos;
+        cnV2Ref.current = cn;
+        await supabase.from("dialogos_game").update({ dialogo: { contenido_narrativo: cn } }).eq("id", selRowId);
+      }
+      return;
+    }
+    if (selEntry.type === "tema_v2") {
+      const newList = temasV2.filter((_, i) => i !== selEntry.index);
+      setTemasV2(newList);
+      setSelEntry(null);
+      if (cnV2Ref.current) {
+        const cn: ContenidoNarrativoV2 = JSON.parse(JSON.stringify(cnV2Ref.current));
+        const grupos: Record<string, TemaV2[]> = {};
+        for (const e of newList) {
+          const { _grupo, ...rest } = e;
+          grupos[_grupo] = [...(grupos[_grupo] ?? []), rest as TemaV2];
+        }
+        cn.temas = grupos;
+        cnV2Ref.current = cn;
+        await supabase.from("dialogos_game").update({ dialogo: { contenido_narrativo: cn } }).eq("id", selRowId);
+      }
+      return;
+    }
+
+    // ── v1 delete ────────────────────────────────────────────────────────────
+    if (!dialogo) return;
     const updated: DialogoDoc = JSON.parse(JSON.stringify(dialogo));
     if (selEntry.type === "variante") {
       updated.variantes.splice(selEntry.index, 1);
@@ -1439,8 +1722,7 @@ export function DialogosSection() {
   const filteredT  = temas.map((t, i) => ({ t, i }))
     .filter(({ t }) => !q || t.clave.includes(q) || t.texto?.includes(q));
 
-
-  const isActive = (type: "variante" | "tema", idx: number) =>
+  const isActive = (type: EntryRef extends null ? never : EntryRef["type"], idx: number) =>
     selEntry?.type === type && selEntry.index === idx;
 
   // ── Panel tabs para Variante ──────────────────────────────────────────────────
@@ -1579,10 +1861,116 @@ export function DialogosSection() {
             const grupoActivo: "dialogos" | "temas" =
               sidebarFilter === "temas" ? "temas" : "dialogos";
 
-            // Diálogos = variantes; Temas = temas_conversacion
-            // Ambos se filtran por búsqueda y se muestran tal como vienen de Supabase.
-            // Sin hardcodear claves: si mañana hay más entradas, aparecen solas.
+            // ── v2: Diálogos ─────────────────────────────────────────────────
+            if (isV2 && grupoActivo === "dialogos") {
+              const grupos: Record<string, { d: EntradaDialogo; i: number }[]> = {};
+              dialogosV2.forEach((d, i) => {
+                if (q && !d.clave.toLowerCase().includes(q.toLowerCase())) return;
+                grupos[d._grupo] = [...(grupos[d._grupo] ?? []), { d, i }];
+              });
+              const grupoKeys = Object.keys(grupos);
+              return (
+                <div className="py-1">
+                  {dialogosV2.length === 0 && (
+                    <p className="text-xs text-center py-8" style={{ color: MUTED }}>
+                      {q ? "Sin coincidencias" : "Sin diálogos"}
+                    </p>
+                  )}
+                  {grupoKeys.map(gk => (
+                    <div key={gk}>
+                      {grupoKeys.length > 1 && (
+                        <div className="px-3 pt-3 pb-1 text-[9px] font-bold uppercase tracking-widest" style={{ color: MUTED }}>
+                          {gk.replace(/_/g, " ")}
+                        </div>
+                      )}
+                      {grupos[gk].map(({ d, i }) => {
+                        const kind   = reqKind(d as unknown as Variante);
+                        const active = isActive("dialogo_v2", i);
+                        return (
+                          <button key={d.clave + i} type="button" onClick={() => pickDialogoV2(d, i)}
+                            className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left transition-colors"
+                            style={{ background: active ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "transparent", borderLeft: active ? "2px solid var(--primary)" : "2px solid transparent" }}>
+                            <div style={{ width: 7, height: 7, borderRadius: "50%", background: DOT_COLOR[kind], flexShrink: 0 }} />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-medium truncate" style={{ color: "var(--primary)" }}>
+                                {d.clave}
+                                {active && isDirty && <span style={{ marginLeft: 5, display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: C_WARN, verticalAlign: "middle" }} />}
+                              </p>
+                              <p className="text-[10px] truncate" style={{ color: MUTED }}>
+                                {d.lineas?.length ?? 0} {d.lineas?.length === 1 ? "línea" : "líneas"}
+                              </p>
+                            </div>
+                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0"
+                              style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)", color: MUTED }}>
+                              P{d.prioridad}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ))}
+                  <button type="button" onClick={addDialogoV2}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-left"
+                    style={{ color: MUTED, borderTop: BORDER, marginTop: 4 }}>
+                    <Plus size={11} /><span className="text-[11px]">Nuevo diálogo</span>
+                  </button>
+                </div>
+              );
+            }
 
+            // ── v2: Temas ────────────────────────────────────────────────────
+            if (isV2 && grupoActivo === "temas") {
+              const grupos: Record<string, { t: EntradaTema; i: number }[]> = {};
+              temasV2.forEach((t, i) => {
+                if (q && !t.clave.toLowerCase().includes(q.toLowerCase()) && !t.texto?.toLowerCase().includes(q.toLowerCase())) return;
+                grupos[t._grupo] = [...(grupos[t._grupo] ?? []), { t, i }];
+              });
+              const grupoKeys = Object.keys(grupos);
+              return (
+                <div className="py-1">
+                  {temasV2.length === 0 && <p className="text-xs text-center py-8" style={{ color: MUTED }}>Sin temas</p>}
+                  {grupoKeys.map(gk => (
+                    <div key={gk}>
+                      {grupoKeys.length > 1 && (
+                        <div className="px-3 pt-3 pb-1 text-[9px] font-bold uppercase tracking-widest" style={{ color: MUTED }}>
+                          {gk.replace(/_/g, " ")}
+                        </div>
+                      )}
+                      {grupos[gk].map(({ t, i }) => {
+                        const kind   = reqKind(t as unknown as TemaConversacion);
+                        const active = isActive("tema_v2", i);
+                        return (
+                          <button key={t.clave + i} type="button" onClick={() => pickTemaV2(t, i)}
+                            className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left transition-colors"
+                            style={{ background: active ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "transparent", borderLeft: active ? "2px solid var(--primary)" : "2px solid transparent" }}>
+                            <div style={{ width: 7, height: 7, borderRadius: "50%", background: DOT_COLOR[kind], flexShrink: 0 }} />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-medium truncate" style={{ color: "var(--primary)" }}>
+                                {t.clave}
+                                {active && isDirty && <span style={{ marginLeft: 5, display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: C_WARN, verticalAlign: "middle" }} />}
+                              </p>
+                              {t.texto && <p className="text-[10px] truncate" style={{ color: MUTED }}>{t.texto}</p>}
+                            </div>
+                            {t.requiere_tema && (
+                              <span title={`Requiere: ${t.requiere_tema}`} style={{ flexShrink: 0, lineHeight: 0 }}>
+                                <Lock size={9} style={{ color: MUTED }} />
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ))}
+                  <button type="button" onClick={addTemaV2}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-left"
+                    style={{ color: MUTED, borderTop: BORDER, marginTop: 4 }}>
+                    <Plus size={11} /><span className="text-[11px]">Nuevo tema</span>
+                  </button>
+                </div>
+              );
+            }
+
+            // ── v1: Diálogos y Temas (retrocompatibilidad) ───────────────────
             if (grupoActivo === "dialogos") {
               const items = variantes.filter(
                 v => !q || v.clave.toLowerCase().includes(q.toLowerCase())
@@ -1771,16 +2159,20 @@ export function DialogosSection() {
                 />
               )}
               <span className="text-sm font-bold truncate" style={{ color: "var(--primary)" }}>
-                {selEntry.type === "variante"          ? vClave
-                 : selEntry.type === "tema"            ? tClave
-                 : selEntry.type === "respuesta_rutina"? rrClave
+                {selEntry.type === "variante"           ? vClave
+                 : selEntry.type === "tema"             ? tClave
+                 : selEntry.type === "dialogo_v2"       ? vClave
+                 : selEntry.type === "tema_v2"          ? tClave
+                 : selEntry.type === "respuesta_rutina" ? rrClave
                  : selEntry.type === "saludo_contextual"? scClave
                  : rcClave}
               </span>
               {(() => {
                 const cfg: Record<string, { bg: string; fg: string; label: string }> = {
-                  variante:          { bg: `color-mix(in srgb, ${C_SOCIAL} 15%, transparent)`,  fg: `color-mix(in srgb, ${C_SOCIAL} 85%, var(--primary))`,  label: "variante" },
+                  variante:          { bg: `color-mix(in srgb, ${C_SOCIAL} 15%, transparent)`,  fg: `color-mix(in srgb, ${C_SOCIAL} 85%, var(--primary))`,  label: "diálogo" },
+                  dialogo_v2:        { bg: `color-mix(in srgb, ${C_SOCIAL} 15%, transparent)`,  fg: `color-mix(in srgb, ${C_SOCIAL} 85%, var(--primary))`,  label: "diálogo" },
                   tema:              { bg: `color-mix(in srgb, ${C_MIXED} 15%, transparent)`,   fg: `color-mix(in srgb, ${C_MIXED} 85%, var(--primary))`,   label: "tema" },
+                  tema_v2:           { bg: `color-mix(in srgb, ${C_MIXED} 15%, transparent)`,   fg: `color-mix(in srgb, ${C_MIXED} 85%, var(--primary))`,   label: "tema" },
                   respuesta_rutina:  { bg: `color-mix(in srgb, ${C_SUCCESS} 15%, transparent)`, fg: `color-mix(in srgb, ${C_SUCCESS} 85%, var(--primary))`, label: "rutina" },
                   saludo_contextual: { bg: `color-mix(in srgb, ${C_SEASON} 15%, transparent)`,  fg: `color-mix(in srgb, ${C_SEASON} 85%, var(--primary))`,  label: "saludo" },
                   rutina_contextual: { bg: `color-mix(in srgb, ${C_MIXED} 15%, transparent)`,   fg: `color-mix(in srgb, ${C_MIXED} 85%, var(--primary))`,   label: "rutina ctx" },
@@ -1880,7 +2272,7 @@ export function DialogosSection() {
           >
 
             {/* ── PESTAÑA: CONTENIDO ── */}
-            {panelTab === "contenido" && selEntry.type === "variante" && (
+            {panelTab === "contenido" && (selEntry.type === "variante" || selEntry.type === "dialogo_v2") && (
               <VarianteContenido
                 clave={vClave}           onClave={v => { setVClave(v);         markDirty(); }}
                 prioridad={vPrio}        onPrioridad={v => { setVPrio(v);      markDirty(); }}
@@ -1891,7 +2283,7 @@ export function DialogosSection() {
               />
             )}
 
-            {panelTab === "contenido" && selEntry.type === "tema" && (
+            {panelTab === "contenido" && (selEntry.type === "tema" || selEntry.type === "tema_v2") && (
               <TemaContenido
                 clave={tClave}            onClave={v => { setTClave(v);            markDirty(); }}
                 texto={tTexto}            onTexto={v => { setTTexto(v);            markDirty(); }}
@@ -1900,7 +2292,11 @@ export function DialogosSection() {
                 respuesta={tRespuesta}    onRespuesta={v => { setTRespuesta(v);    markDirty(); }}
                 respRep={tRespRep}        onRespRep={v => { setTRespRep(v);        markDirty(); }}
                 requiereTema={tRequiereTema} onRequiereTema={v => { setTRequiereTema(v); markDirty(); }}
-                temasDisponibles={(dialogo?.temas_conversacion ?? []).map(t => t.clave).filter(c => c !== tClave)}
+                temasDisponibles={
+                  isV2
+                    ? temasV2.map(t => t.clave).filter(c => c !== tClave)
+                    : (dialogo?.temas_conversacion ?? []).map(t => t.clave).filter(c => c !== tClave)
+                }
               />
             )}
 
@@ -1937,19 +2333,19 @@ export function DialogosSection() {
             {/* ── PESTAÑA: SIMULADOR ── */}
             {panelTab === "simulador" && (
               <Simulador
-                variantes={variantes}
-                temas={temas}
+                variantes={isV2 ? (dialogosV2 as unknown as Variante[]) : variantes}
+                temas={isV2 ? (temasV2 as unknown as TemaConversacion[]) : temas}
               />
             )}
 
             {/* ── PESTAÑA: GRAFO ── */}
             {panelTab === "grafo" && (
               <GrafoDialogos
-                variantes={variantes}
-                temas={temas}
+                variantes={isV2 ? (dialogosV2 as unknown as Variante[]) : variantes}
+                temas={isV2 ? (temasV2 as unknown as TemaConversacion[]) : temas}
                 selEntry={selEntry}
-                onSelectVariante={pickVariante}
-                onSelectTema={pickTema}
+                onSelectVariante={isV2 ? (v, i) => pickDialogoV2(dialogosV2[i], i) : pickVariante}
+                onSelectTema={isV2 ? (t, i) => pickTemaV2(temasV2[i], i) : pickTema}
               />
             )}
           </div>
