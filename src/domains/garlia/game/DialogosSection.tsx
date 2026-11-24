@@ -1105,17 +1105,26 @@ export function DialogosSection() {
     setLoading(false);
   };
 
+  /** Garantiza que un valor de Supabase sea siempre un array.
+   *  Cubre: null, undefined, objeto suelto (lo envuelve), ya-array. */
+  const toArray = <T,>(val: unknown): T[] => {
+    if (Array.isArray(val)) return val as T[];
+    if (val != null && typeof val === "object") return [val as T];
+    return [];
+  };
+
   const applyRow = (row: any) => {
     setSelRowId(row.id);
     setSelEntry(null);
     const raw = row.dialogo;
-    const doc = Array.isArray(raw) ? raw[0] : raw;
+    // row.dialogo puede ser: array wrapper [ {...} ], objeto directo {...}, o null
+    const doc: any = Array.isArray(raw) ? (raw[0] ?? {}) : (raw ?? {});
     setDialogo({
-      variantes:            doc?.variantes            ?? [],
-      temas_conversacion:   doc?.temas_conversacion   ?? [],
-      respuestas_rutina:    doc?.respuestas_rutina    ?? [],
-      saludos_contextuales: doc?.saludos_contextuales ?? [],
-      rutina_contextual:    doc?.rutina_contextual    ?? [],
+      variantes:            toArray<Variante>(doc.variantes),
+      temas_conversacion:   toArray<TemaConversacion>(doc.temas_conversacion),
+      respuestas_rutina:    toArray<RespuestaRutina>(doc.respuestas_rutina),
+      saludos_contextuales: toArray<SaludoContextual>(doc.saludos_contextuales),
+      rutina_contextual:    toArray<RutinaContextual>(doc.rutina_contextual),
     });
     setSinDialogos(false);
   };
