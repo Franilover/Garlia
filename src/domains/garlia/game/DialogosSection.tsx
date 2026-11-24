@@ -65,8 +65,6 @@ interface Variante {
 }
 
 interface TemaConversacion {
-  /** Clasificación del tema para organizar el menú/editor */
-  tipo?: "pregunta" | "hablar";
   clave: string;
   texto: string;
   evento: string;
@@ -80,17 +78,66 @@ interface TemaConversacion {
   [key: string]: unknown;
 }
 
+// ── Nuevos tipos para las secciones añadidas en la migración ─────────────────
+
+/** Una entrada de respuestas_rutina: textos con marcadores {actividad} etc. */
+interface RespuestaRutina {
+  clave: string;
+  /** Variantes de texto; pueden contener {actividad}, {destino}, {ubicacion} */
+  textos: string[];
+  _condiciones?: Condicion[];
+  _operador_logico?: "AND" | "OR";
+  [key: string]: unknown;
+}
+
+/** Un saludo contextual: texto según hora del día o estación */
+interface SaludoContextual {
+  clave: string;
+  /** Texto del saludo; puede contener marcadores */
+  texto: string;
+  hora?: string;      // mañana | mediodía | tarde | noche
+  estacion?: string;  // Florial | Luviern | Ardent | Nievorn
+  _condiciones?: Condicion[];
+  _operador_logico?: "AND" | "OR";
+  [key: string]: unknown;
+}
+
+/** Una entrada de rutina_contextual: respuestas sobre lo que hace el NPC */
+interface RutinaContextual {
+  clave: string;
+  /** Texto con marcadores {actividad}, {destino}, {ubicacion} */
+  texto: string;
+  pregunta_jugador?: string;
+  _condiciones?: Condicion[];
+  _operador_logico?: "AND" | "OR";
+  [key: string]: unknown;
+}
+
 interface DialogoDoc {
   variantes: Variante[];
   temas_conversacion: TemaConversacion[];
+  /** Secciones añadidas en la migración — opcionales para retrocompatibilidad */
+  respuestas_rutina?: RespuestaRutina[];
+  saludos_contextuales?: SaludoContextual[];
+  rutina_contextual?: RutinaContextual[];
 }
 
 type EntryRef =
-  | { type: "variante"; index: number }
-  | { type: "tema"; index: number }
+  | { type: "variante";          index: number }
+  | { type: "tema";              index: number }
+  | { type: "respuesta_rutina";  index: number }
+  | { type: "saludo_contextual"; index: number }
+  | { type: "rutina_contextual"; index: number }
   | null;
 
 type PanelTab = "contenido" | "simulador" | "grafo";
+
+// Tipos de entry que solo muestran la pestaña "Contenido"
+const ENTRY_TYPES_SIMPLE = new Set<string>([
+  "respuesta_rutina",
+  "saludo_contextual",
+  "rutina_contextual",
+]);
 
 // ── Shared primitives ─────────────────────────────────────────────────────────
 
@@ -169,11 +216,47 @@ function reqKind(entry: Variante | TemaConversacion): "social" | "season" | "mix
   return "none";
 }
 
+/**
+ * Semantic color tokens — defined here as JS constants that mirror the CSS
+ * variables injected by <DialogosColorVars />.  Every hardcoded hex in the
+ * file is replaced by one of these constants so theming is centralised.
+ */
+const C_SOCIAL  = "var(--dial-social)";   // purple  #a855f7
+const C_SEASON  = "var(--dial-season)";   // orange  #f97316
+const C_MIXED   = "var(--dial-mixed)";    // blue    #3b82f6
+const C_SUCCESS = "var(--dial-success)";  // green   #22c55e
+const C_ERROR   = "var(--dial-error)";    // red     #ef4444
+const C_WARN    = "var(--dial-warn)";     // amber   #f59e0b
+
+/** Inject CSS custom properties once at the root of this feature. */
+function DialogosColorVars() {
+  return (
+    <style>{`
+      :root {
+        --dial-social:  #a855f7;
+        --dial-season:  #f97316;
+        --dial-mixed:   #3b82f6;
+        --dial-success: #22c55e;
+        --dial-error:   #ef4444;
+        --dial-warn:    #f59e0b;
+      }
+    `}</style>
+  );
+}
+
 const DOT_COLOR: Record<"social" | "season" | "mixed" | "none", string> = {
-  none:   "#22c55e",
-  social: "#a855f7",
-  season: "#f97316",
-  mixed:  "#3b82f6",
+  none:   "color-mix(in srgb, var(--primary) 30%, transparent)",
+  social: C_SOCIAL,
+  season: C_SEASON,
+  mixed:  C_MIXED,
+};
+
+/** Canvas-compatible colors (canvas fillStyle can't use CSS variables directly) */
+const DOT_COLOR_CANVAS: Record<"social" | "season" | "mixed" | "none", string> = {
+  none:   "rgba(128,128,128,0.35)",
+  social: "var(--dial-social, #a855f7)",
+  season: "var(--dial-season, #f97316)",
+  mixed:  "var(--dial-mixed,  #3b82f6)",
 };
 
 const MUTED  = "color-mix(in srgb, var(--primary) 35%, transparent)";
@@ -181,12 +264,6 @@ const BORDER = "1px solid color-mix(in srgb, var(--primary) 10%, transparent)";
 
 /** Genera un id corto y único para condiciones */
 const uid = () => Math.random().toString(36).slice(2, 8);
-
-/** Clasificación de respaldo para registros antiguos sin el campo tipo. */
-function tipoTema(t: TemaConversacion): "pregunta" | "hablar" {
-  if (t.tipo === "pregunta" || t.tipo === "hablar") return t.tipo;
-  return /^(hablar|conversar)\b/i.test((t.texto ?? "").trim()) ? "hablar" : "pregunta";
-}
 
 // ── CondicionBuilder ──────────────────────────────────────────────────────────
 
@@ -528,9 +605,9 @@ function Simulador({ variantes, temas }: { variantes: Variante[]; temas: TemaCon
           {resultado.ganadora ? (
             <div
               className="flex items-center gap-2 p-3 rounded-xl text-xs"
-              style={{ background: "color-mix(in srgb, #22c55e 10%, transparent)", border: "1px solid color-mix(in srgb, #22c55e 25%, transparent)" }}
+              style={{ background: `color-mix(in srgb, ${C_SUCCESS} 10%, transparent)`, border: `1px solid color-mix(in srgb, ${C_SUCCESS} 25%, transparent)` }}
             >
-              <Check size={13} style={{ color: "#22c55e", flexShrink: 0 }} />
+              <Check size={13} style={{ color: C_SUCCESS, flexShrink: 0 }} />
               <span style={{ color: "var(--primary)", fontWeight: 600 }}>
                 Variante seleccionada: <em style={{ fontStyle: "normal" }}>{resultado.ganadora.clave}</em>
               </span>
@@ -541,9 +618,9 @@ function Simulador({ variantes, temas }: { variantes: Variante[]; temas: TemaCon
           ) : (
             <div
               className="flex items-center gap-2 p-3 rounded-xl text-xs"
-              style={{ background: "color-mix(in srgb, #ef4444 8%, transparent)", border: "1px solid color-mix(in srgb, #ef4444 20%, transparent)" }}
+              style={{ background: `color-mix(in srgb, ${C_ERROR} 8%, transparent)`, border: `1px solid color-mix(in srgb, ${C_ERROR} 20%, transparent)` }}
             >
-              <AlertTriangle size={13} style={{ color: "#ef4444", flexShrink: 0 }} />
+              <AlertTriangle size={13} style={{ color: C_ERROR, flexShrink: 0 }} />
               <span style={{ color: "var(--primary)" }}>Ninguna variante cumple las condiciones.</span>
             </div>
           )}
@@ -558,7 +635,7 @@ function Simulador({ variantes, temas }: { variantes: Variante[]; temas: TemaCon
                 <div
                   style={{
                     width: 7, height: 7, borderRadius: "50%", flexShrink: 0,
-                    background: pasa ? "#22c55e" : MUTED,
+                    background: pasa ? C_SUCCESS : MUTED,
                   }}
                 />
                 <span style={{ fontWeight: 600, color: "var(--primary)" }}>{variante.clave}</span>
@@ -566,7 +643,7 @@ function Simulador({ variantes, temas }: { variantes: Variante[]; temas: TemaCon
                 {resultado.ganadora?.clave === variante.clave && (
                   <span
                     className="ml-auto px-2 py-0.5 rounded-full text-[9px] font-bold"
-                    style={{ background: "color-mix(in srgb, #22c55e 15%, transparent)", color: "#22c55e" }}
+                    style={{ background: `color-mix(in srgb, ${C_SUCCESS} 15%, transparent)`, color: C_SUCCESS }}
                   >
                     seleccionada
                   </span>
@@ -578,10 +655,10 @@ function Simulador({ variantes, temas }: { variantes: Variante[]; temas: TemaCon
               {detalles.map((d, i) => (
                 <div key={i} className="flex items-center gap-1.5" style={{ paddingLeft: 15 }}>
                   {d.pasa
-                    ? <Check size={10} style={{ color: "#22c55e", flexShrink: 0 }} />
-                    : <X     size={10} style={{ color: "#ef4444", flexShrink: 0 }} />
+                    ? <Check size={10} style={{ color: C_SUCCESS, flexShrink: 0 }} />
+                    : <X     size={10} style={{ color: C_ERROR, flexShrink: 0 }} />
                   }
-                  <span style={{ color: d.pasa ? MUTED : "#ef4444" }}>{d.label}</span>
+                  <span style={{ color: d.pasa ? MUTED : C_ERROR }}>{d.label}</span>
                 </div>
               ))}
             </div>
@@ -612,11 +689,11 @@ function Simulador({ variantes, temas }: { variantes: Variante[]; temas: TemaCon
                     className="text-[11px] px-2.5 py-1 rounded-lg"
                     style={{
                       background: disponible
-                        ? "color-mix(in srgb, #22c55e 10%, transparent)"
+                        ? `color-mix(in srgb, ${C_SUCCESS} 10%, transparent)`
                         : "color-mix(in srgb, var(--primary) 4%, transparent)",
-                      color: disponible ? "#22c55e" : MUTED,
+                      color: disponible ? C_SUCCESS : MUTED,
                       border: disponible
-                        ? "1px solid color-mix(in srgb, #22c55e 25%, transparent)"
+                        ? `1px solid color-mix(in srgb, ${C_SUCCESS} 25%, transparent)`
                         : BORDER,
                       textDecoration: disponible ? "none" : "line-through",
                     }}
@@ -673,13 +750,13 @@ function LineaEditor({
           key={i}
           style={{
             display: "inline-flex",
-            alignItems: "center",
+            alignItems: "center`,
             gap: 3,
-            background: "color-mix(in srgb, #a855f7 15%, transparent)",
-            color: "color-mix(in srgb, #a855f7 85%, var(--primary))",
-            border: "1px solid color-mix(in srgb, #a855f7 25%, transparent)",
+            background: `color-mix(in srgb, ${C_SOCIAL} 15%, transparent)`,
+            color: `color-mix(in srgb, ${C_SOCIAL} 85%, var(--primary))`,
+            border: `1px solid color-mix(in srgb, ${C_SOCIAL} 25%, transparent)`,
             borderRadius: 5,
-            padding: "1px 7px",
+            padding: `1px 7px",
             fontSize: 11,
             cursor: "pointer",
           }}
@@ -701,17 +778,17 @@ function LineaEditor({
     setShowRefMenu(false);
   };
 
-  const linBg = "color-mix(in srgb, var(--primary) 4%, var(--bg-main))";
+  const linBg = "color-mix(in srgb, var(--primary) 4%, var(--bg-main))`;
   const condBg = hasConds
-    ? "color-mix(in srgb, #f97316 8%, transparent)"
-    : "transparent";
+    ? `color-mix(in srgb, ${C_SEASON} 8%, transparent)`
+    : `transparent`;
   const condBorder = hasConds
-    ? "1px solid color-mix(in srgb, #f97316 25%, transparent)"
+    ? `1px solid color-mix(in srgb, ${C_SEASON} 25%, transparent)`
     : BORDER;
 
   return (
     <div
-      className="flex flex-col gap-2 p-3 rounded-xl"
+      className=`flex flex-col gap-2 p-3 rounded-xl"
       style={{ background: linBg, border: BORDER }}
     >
       {/* Texto / preview con píldoras */}
@@ -842,7 +919,7 @@ function LineaEditor({
           onClick={() => { setShowCondMenu(v => !v); setShowRefMenu(false); }}
           className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-lg"
           style={{
-            color: hasConds ? "#f97316" : MUTED,
+            color: hasConds ? C_SEASON : MUTED,
             border: condBorder,
             background: condBg,
           }}
@@ -866,14 +943,14 @@ function LineaEditor({
       {/* Panel de condiciones de la línea — inline, expandible */}
       {showCondMenu && (
         <div
-          className="flex flex-col gap-2 p-2 rounded-xl"
+          className="flex flex-col gap-2 p-2 rounded-xl`
           style={{
-            background: "color-mix(in srgb, #f97316 5%, var(--bg-main))",
-            border: "1px solid color-mix(in srgb, #f97316 20%, transparent)",
+            background: `color-mix(in srgb, ${C_SEASON} 5%, var(--bg-main))`,
+            border: `1px solid color-mix(in srgb, ${C_SEASON} 20%, transparent)`,
           }}
         >
-          <div className="flex items-center justify-between">
-            <span className="text-[9px] font-semibold uppercase tracking-wide" style={{ color: "#f97316" }}>
+          <div className=`flex items-center justify-between">
+            <span className="text-[9px] font-semibold uppercase tracking-wide" style={{ color: C_SEASON }}>
               Esta línea solo se muestra si…
             </span>
             {hasConds && (
@@ -918,7 +995,6 @@ export function DialogosSection() {
   const [loading,    setLoading]    = useState(false);
   const [creating,   setCreating]   = useState(false);   // Mejora 6
   const [q,          setQ]          = useState("");
-  const [filtroTipo, setFiltroTipo] = useState<"todos" | "pregunta" | "hablar">("todos");
 
   const [selEntry,   setSelEntry]   = useState<EntryRef>(null);
   const [panelTab,   setPanelTab]   = useState<PanelTab>("contenido");
@@ -926,8 +1002,17 @@ export function DialogosSection() {
 
   // Sidebar tree state (Diseño B)
   const [collapsedBranches, setCollapsedBranches] = useState<Set<string>>(new Set());
-  const [variantesOpen, setVariantesOpen] = useState(true);
-  const [temasOpen,     setTemasOpen]     = useState(true);
+  const [variantesOpen,       setVariantesOpen]       = useState(true);
+  const [temasOpen,           setTemasOpen]           = useState(true);
+  const [respuestaRutinaOpen, setRespuestaRutinaOpen] = useState(true);
+  const [saludosOpen,         setSaludosOpen]         = useState(true);
+  const [rutinaCtxOpen,       setRutinaCtxOpen]       = useState(true);
+
+  /** null = mostrar todo; "variantes" / "temas" = mostrar solo esa sección */
+  const [sidebarFilter, setSidebarFilter] = useState<"variantes" | "temas" | null>(null);
+
+  const toggleSidebarFilter = (f: "variantes" | "temas") =>
+    setSidebarFilter(prev => prev === f ? null : f);
 
   const toggleTemaBranch = (clave: string) =>
     setCollapsedBranches(prev => {
@@ -944,7 +1029,6 @@ export function DialogosSection() {
   const [vOpLogico,    setVOpLogico]    = useState<"AND" | "OR">("AND");
 
   // Tema form
-  const [tTipo,         setTTipo]         = useState<"pregunta" | "hablar">("pregunta");
   const [tClave,        setTClave]        = useState("");
   const [tTexto,        setTTexto]        = useState("");
   const [tEvento,       setTEvento]       = useState("");
@@ -954,6 +1038,27 @@ export function DialogosSection() {
   const [tRequiereTema, setTRequiereTema] = useState("");
   const [tCondiciones,  setTCondiciones]  = useState<Condicion[]>([]);
   const [tOpLogico,     setTOpLogico]     = useState<"AND" | "OR">("AND");
+
+  // RespuestaRutina form
+  const [rrClave,       setRrClave]       = useState("");
+  const [rrTextos,      setRrTextos]      = useState<string[]>([""]);
+  const [rrCondiciones, setRrCondiciones] = useState<Condicion[]>([]);
+  const [rrOpLogico,    setRrOpLogico]    = useState<"AND" | "OR">("AND");
+
+  // SaludoContextual form
+  const [scClave,       setScClave]       = useState("");
+  const [scTexto,       setScTexto]       = useState("");
+  const [scHora,        setScHora]        = useState("");
+  const [scEstacion,    setScEstacion]    = useState("");
+  const [scCondiciones, setScCondiciones] = useState<Condicion[]>([]);
+  const [scOpLogico,    setScOpLogico]    = useState<"AND" | "OR">("AND");
+
+  // RutinaContextual form
+  const [rcClave,       setRcClave]       = useState("");
+  const [rcTexto,       setRcTexto]       = useState("");
+  const [rcPregunta,    setRcPregunta]    = useState("");
+  const [rcCondiciones, setRcCondiciones] = useState<Condicion[]>([]);
+  const [rcOpLogico,    setRcOpLogico]    = useState<"AND" | "OR">("AND");
 
   const { saving, saved, error, run } = useSave();
 
@@ -1006,8 +1111,11 @@ export function DialogosSection() {
     const raw = row.dialogo;
     const doc = Array.isArray(raw) ? raw[0] : raw;
     setDialogo({
-      variantes:          doc?.variantes          ?? [],
-      temas_conversacion: doc?.temas_conversacion ?? [],
+      variantes:            doc?.variantes            ?? [],
+      temas_conversacion:   doc?.temas_conversacion   ?? [],
+      respuestas_rutina:    doc?.respuestas_rutina    ?? [],
+      saludos_contextuales: doc?.saludos_contextuales ?? [],
+      rutina_contextual:    doc?.rutina_contextual    ?? [],
     });
     setSinDialogos(false);
   };
@@ -1018,8 +1126,11 @@ export function DialogosSection() {
     if (!selPjId) return;
     setCreating(true);
     const docVacio: DialogoDoc = {
-      variantes: [{ clave: "principal", lineas: [{ texto: "", hablante: "" }], prioridad: 0 }],
-      temas_conversacion: [],
+      variantes:            [{ clave: "principal", lineas: [{ texto: "", hablante: "" }], prioridad: 0 }],
+      temas_conversacion:   [],
+      respuestas_rutina:    [],
+      saludos_contextuales: [],
+      rutina_contextual:    [],
     };
     const { data, error: err } = await supabase
       .from("dialogos_game")
@@ -1053,7 +1164,6 @@ export function DialogosSection() {
   const pickTema = (t: TemaConversacion, idx: number) => {
     setSelEntry({ type: "tema", index: idx });
     setPanelTab("contenido");
-    setTTipo(tipoTema(t));
     setTClave(t.clave);
     setTTexto(t.texto);
     setTEvento(t.evento);
@@ -1084,11 +1194,73 @@ export function DialogosSection() {
     if (!dialogo) return;
     const idx = dialogo.temas_conversacion.length;
     const t: TemaConversacion = {
-      tipo: "pregunta",
       clave: `tema_${Date.now()}`, texto: "", evento: "", jugador: "", respuesta: "",
     };
     setDialogo({ ...dialogo, temas_conversacion: [...dialogo.temas_conversacion, t] });
     pickTema(t, idx);
+  };
+
+  // ── RespuestaRutina pick/add ──────────────────────────────────────────────────
+
+  const pickRespuestaRutina = (rr: RespuestaRutina, idx: number) => {
+    setSelEntry({ type: "respuesta_rutina", index: idx });
+    setPanelTab("contenido");
+    setRrClave(rr.clave);
+    setRrTextos(JSON.parse(JSON.stringify(rr.textos ?? [""])));
+    setRrCondiciones(JSON.parse(JSON.stringify(rr._condiciones ?? [])));
+    setRrOpLogico(rr._operador_logico ?? "AND");
+    setIsDirty(false);
+  };
+
+  const addRespuestaRutina = () => {
+    if (!dialogo) return;
+    const idx = (dialogo.respuestas_rutina ?? []).length;
+    const rr: RespuestaRutina = { clave: `respuesta_${Date.now()}`, textos: [""] };
+    setDialogo({ ...dialogo, respuestas_rutina: [...(dialogo.respuestas_rutina ?? []), rr] });
+    pickRespuestaRutina(rr, idx);
+  };
+
+  // ── SaludoContextual pick/add ─────────────────────────────────────────────────
+
+  const pickSaludoContextual = (sc: SaludoContextual, idx: number) => {
+    setSelEntry({ type: "saludo_contextual", index: idx });
+    setPanelTab("contenido");
+    setScClave(sc.clave);
+    setScTexto(sc.texto ?? "");
+    setScHora(sc.hora ?? "");
+    setScEstacion(sc.estacion ?? "");
+    setScCondiciones(JSON.parse(JSON.stringify(sc._condiciones ?? [])));
+    setScOpLogico(sc._operador_logico ?? "AND");
+    setIsDirty(false);
+  };
+
+  const addSaludoContextual = () => {
+    if (!dialogo) return;
+    const idx = (dialogo.saludos_contextuales ?? []).length;
+    const sc: SaludoContextual = { clave: `saludo_${Date.now()}`, texto: "" };
+    setDialogo({ ...dialogo, saludos_contextuales: [...(dialogo.saludos_contextuales ?? []), sc] });
+    pickSaludoContextual(sc, idx);
+  };
+
+  // ── RutinaContextual pick/add ─────────────────────────────────────────────────
+
+  const pickRutinaContextual = (rc: RutinaContextual, idx: number) => {
+    setSelEntry({ type: "rutina_contextual", index: idx });
+    setPanelTab("contenido");
+    setRcClave(rc.clave);
+    setRcTexto(rc.texto ?? "");
+    setRcPregunta(rc.pregunta_jugador ?? "");
+    setRcCondiciones(JSON.parse(JSON.stringify(rc._condiciones ?? [])));
+    setRcOpLogico(rc._operador_logico ?? "AND");
+    setIsDirty(false);
+  };
+
+  const addRutinaContextual = () => {
+    if (!dialogo) return;
+    const idx = (dialogo.rutina_contextual ?? []).length;
+    const rc: RutinaContextual = { clave: `rutina_${Date.now()}`, texto: "" };
+    setDialogo({ ...dialogo, rutina_contextual: [...(dialogo.rutina_contextual ?? []), rc] });
+    pickRutinaContextual(rc, idx);
   };
 
   // ── Save ──────────────────────────────────────────────────────────────────────
@@ -1135,7 +1307,6 @@ export function DialogosSection() {
 
       updated.temas_conversacion[selEntry.index] = {
         ...original,
-        tipo:      tTipo,
         clave:     tClave,
         texto:     tTexto,
         evento:    tEvento,
@@ -1147,6 +1318,50 @@ export function DialogosSection() {
         ...(tRequiereTema ? { requiere_tema: tRequiereTema }   : { requiere_tema: undefined }),
         ...(Object.keys(reqSocial).length ? { requisito_social: reqSocial } : { requisito_social: undefined }),
       };
+    }
+
+    // ── Nuevas secciones ─────────────────────────────────────────────────────
+
+    if (selEntry.type === "respuesta_rutina") {
+      const original = (dialogo.respuestas_rutina ?? [])[selEntry.index] ?? {};
+      const list = [...(dialogo.respuestas_rutina ?? [])];
+      list[selEntry.index] = {
+        ...original,
+        clave:            rrClave,
+        textos:           rrTextos.filter(t => t.trim() !== ""),
+        _condiciones:     rrCondiciones,
+        _operador_logico: rrOpLogico,
+      };
+      updated.respuestas_rutina = list;
+    }
+
+    if (selEntry.type === "saludo_contextual") {
+      const original = (dialogo.saludos_contextuales ?? [])[selEntry.index] ?? {};
+      const list = [...(dialogo.saludos_contextuales ?? [])];
+      list[selEntry.index] = {
+        ...original,
+        clave:            scClave,
+        texto:            scTexto,
+        _condiciones:     scCondiciones,
+        _operador_logico: scOpLogico,
+        ...(scHora     ? { hora: scHora }         : { hora: undefined }),
+        ...(scEstacion ? { estacion: scEstacion }  : { estacion: undefined }),
+      };
+      updated.saludos_contextuales = list;
+    }
+
+    if (selEntry.type === "rutina_contextual") {
+      const original = (dialogo.rutina_contextual ?? [])[selEntry.index] ?? {};
+      const list = [...(dialogo.rutina_contextual ?? [])];
+      list[selEntry.index] = {
+        ...original,
+        clave:            rcClave,
+        texto:            rcTexto,
+        _condiciones:     rcCondiciones,
+        _operador_logico: rcOpLogico,
+        ...(rcPregunta ? { pregunta_jugador: rcPregunta } : { pregunta_jugador: undefined }),
+      };
+      updated.rutina_contextual = list;
     }
 
     setDialogo(updated);
@@ -1177,8 +1392,14 @@ export function DialogosSection() {
     if (!selEntry || !dialogo) return;
     if (selEntry.type === "variante") {
       pickVariante(dialogo.variantes[selEntry.index], selEntry.index);
-    } else {
+    } else if (selEntry.type === "tema") {
       pickTema(dialogo.temas_conversacion[selEntry.index], selEntry.index);
+    } else if (selEntry.type === "respuesta_rutina") {
+      pickRespuestaRutina((dialogo.respuestas_rutina ?? [])[selEntry.index], selEntry.index);
+    } else if (selEntry.type === "saludo_contextual") {
+      pickSaludoContextual((dialogo.saludos_contextuales ?? [])[selEntry.index], selEntry.index);
+    } else if (selEntry.type === "rutina_contextual") {
+      pickRutinaContextual((dialogo.rutina_contextual ?? [])[selEntry.index], selEntry.index);
     }
     setIsDirty(false);
   };
@@ -1191,8 +1412,14 @@ export function DialogosSection() {
     const updated: DialogoDoc = JSON.parse(JSON.stringify(dialogo));
     if (selEntry.type === "variante") {
       updated.variantes.splice(selEntry.index, 1);
-    } else {
+    } else if (selEntry.type === "tema") {
       updated.temas_conversacion.splice(selEntry.index, 1);
+    } else if (selEntry.type === "respuesta_rutina") {
+      (updated.respuestas_rutina ?? []).splice(selEntry.index, 1);
+    } else if (selEntry.type === "saludo_contextual") {
+      (updated.saludos_contextuales ?? []).splice(selEntry.index, 1);
+    } else if (selEntry.type === "rutina_contextual") {
+      (updated.rutina_contextual ?? []).splice(selEntry.index, 1);
     }
     setDialogo(updated);
     setSelEntry(null);
@@ -1205,18 +1432,23 @@ export function DialogosSection() {
 
   // ── Filtered lists ────────────────────────────────────────────────────────────
 
-  const variantes = dialogo?.variantes ?? [];
-  const temas     = dialogo?.temas_conversacion ?? [];
+  const variantes          = dialogo?.variantes ?? [];
+  const temas              = dialogo?.temas_conversacion ?? [];
+  const respuestasRutina   = dialogo?.respuestas_rutina ?? [];
+  const saludosCtx         = dialogo?.saludos_contextuales ?? [];
+  const rutinaCtx          = dialogo?.rutina_contextual ?? [];
+
   // Filtrar por clave conservando índice original
-  const filteredV = variantes
-    .map((v, i) => ({ v, i }))
+  const filteredV  = variantes.map((v, i) => ({ v, i }))
     .filter(({ v }) => !q || v.clave.includes(q));
-  const filteredT = temas
-    .map((t, i) => ({ t, i }))
-    .filter(({ t }) =>
-      (filtroTipo === "todos" || tipoTema(t) === filtroTipo) &&
-      (!q || t.clave.includes(q) || t.texto?.includes(q))
-    );
+  const filteredT  = temas.map((t, i) => ({ t, i }))
+    .filter(({ t }) => !q || t.clave.includes(q) || t.texto?.includes(q));
+  const filteredRR = respuestasRutina.map((rr, i) => ({ rr, i }))
+    .filter(({ rr }) => !q || rr.clave.includes(q));
+  const filteredSC = saludosCtx.map((sc, i) => ({ sc, i }))
+    .filter(({ sc }) => !q || sc.clave.includes(q) || sc.texto?.includes(q));
+  const filteredRC = rutinaCtx.map((rc, i) => ({ rc, i }))
+    .filter(({ rc }) => !q || rc.clave.includes(q) || rc.texto?.includes(q));
 
   const isActive = (type: "variante" | "tema", idx: number) =>
     selEntry?.type === type && selEntry.index === idx;
@@ -1233,6 +1465,7 @@ export function DialogosSection() {
 
   return (
     <div className="flex flex-1 min-h-0 h-full">
+      <DialogosColorVars />
 
       {/* ── LEFT SIDEBAR ──────────────────────────────────────────────────── */}
       <div
@@ -1294,28 +1527,29 @@ export function DialogosSection() {
               onChange={e => setQ(e.target.value)}
             />
           </div>
-          <div className="flex gap-1">
-            {([
-              ["todos", "Todos"],
-              ["pregunta", "Pregunta"],
-              ["hablar", "Hablar"],
-            ] as const).map(([tipo, label]) => (
-              <button
-                key={tipo}
-                type="button"
-                onClick={() => setFiltroTipo(tipo)}
-                className="flex-1 rounded-lg py-1 text-[10px] font-medium"
-                style={{
-                  color: filtroTipo === tipo ? "var(--primary)" : MUTED,
-                  background: filtroTipo === tipo
-                    ? "color-mix(in srgb, var(--primary) 12%, transparent)"
-                    : "transparent",
-                  border: filtroTipo === tipo ? BORDER : "1px solid transparent",
-                }}
-              >
-                {label}
-              </button>
-            ))}
+
+          {/* Filtro de sección */}
+          <div className="flex gap-1.5">
+            {(["variantes", "temas"] as const).map(f => {
+              const active = sidebarFilter === f;
+              return (
+                <button
+                  key={f}
+                  type="button"
+                  onClick={() => toggleSidebarFilter(f)}
+                  className="flex-1 text-[11px] font-medium py-1 rounded-lg transition-colors capitalize"
+                  style={{
+                    background: active
+                      ? "color-mix(in srgb, var(--primary) 14%, transparent)"
+                      : "color-mix(in srgb, var(--primary) 4%, transparent)",
+                    color: active ? "var(--primary)" : MUTED,
+                    border: active ? "1px solid color-mix(in srgb, var(--primary) 25%, transparent)" : BORDER,
+                  }}
+                >
+                  {f === "variantes" ? "Variantes" : "Temas"}
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -1352,7 +1586,7 @@ export function DialogosSection() {
           ) : (
             <>
               {/* ── VARIANTES (lista plana colapsable) ── */}
-              <button
+              {(sidebarFilter === null || sidebarFilter === "variantes") && <button
                 type="button"
                 className="w-full flex items-center justify-between px-3 py-1.5"
                 onClick={() => setVariantesOpen(v => !v)}
@@ -1376,9 +1610,9 @@ export function DialogosSection() {
                 >
                   <Plus size={11} />
                 </button>
-              </button>
+              </button>}
 
-              {variantesOpen && filteredV.map(({ v, i }) => {
+              {(sidebarFilter === null || sidebarFilter === "variantes") && variantesOpen && filteredV.map(({ v, i }) => {
                 const kind   = reqKind(v);
                 const active = isActive("variante", i);
                 return (
@@ -1397,7 +1631,7 @@ export function DialogosSection() {
                       <p className="text-xs font-medium truncate" style={{ color: "var(--primary)" }}>
                         {v.clave}
                         {active && isDirty && (
-                          <span style={{ marginLeft: 5, display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: "#f59e0b", verticalAlign: "middle" }} />
+                          <span style={{ marginLeft: 5, display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: C_WARN, verticalAlign: "middle" }} />
                         )}
                       </p>
                       <p className="text-[10px] truncate" style={{ color: MUTED }}>
@@ -1418,7 +1652,7 @@ export function DialogosSection() {
               })}
 
               {/* ── TEMAS (árbol de dependencias) ── */}
-              <button
+              {(sidebarFilter === null || sidebarFilter === "temas") && <button
                 type="button"
                 className="w-full flex items-center justify-between px-3 py-1.5 mt-2"
                 style={{ borderTop: BORDER }}
@@ -1443,9 +1677,9 @@ export function DialogosSection() {
                 >
                   <Plus size={11} />
                 </button>
-              </button>
+              </button>}
 
-              {temasOpen && (() => {
+              {(sidebarFilter === null || sidebarFilter === "temas") && temasOpen && (() => {
                 // Construir árbol: raíces → hijos directos
                 const allTemas = temas;
                 const allClaves = new Set(allTemas.map(t => t.clave));
@@ -1529,28 +1763,28 @@ export function DialogosSection() {
 
                         {/* Nombre */}
                         <div className="flex-1 min-w-0" onClick={() => pickTema(t, idx)}>
-                          <p className="text-xs font-medium truncate" style={{ color: "var(--primary)" }}>
-                            {t.clave}
-                            {active && isDirty && (
-                              <span style={{ marginLeft: 5, display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: "#f59e0b", verticalAlign: "middle" }} />
-                            )}
-                          </p>
                           <div className="flex items-center gap-1.5 min-w-0">
+                            <p className="text-xs font-medium truncate" style={{ color: "var(--primary)" }}>
+                              {t.clave}
+                              {active && isDirty && (
+                                <span style={{ marginLeft: 5, display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: C_WARN, verticalAlign: "middle" }} />
+                              )}
+                            </p>
                             <span
-                              className="text-[8px] uppercase tracking-wide px-1.5 py-0.5 rounded shrink-0"
+                              className="shrink-0 text-[8px] font-bold px-1 py-px rounded"
                               style={{
-                                color: tipoTema(t) === "hablar" ? "#16a34a" : "#3b82f6",
-                                background: tipoTema(t) === "hablar"
-                                  ? "color-mix(in srgb, #16a34a 12%, transparent)"
-                                  : "color-mix(in srgb, #3b82f6 12%, transparent)",
+                                background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+                                color: MUTED,
+                                letterSpacing: "0.02em",
                               }}
+                              title={(t as any).tipo === "hablar" ? "Hablar" : "Pregunta"}
                             >
-                              {tipoTema(t) === "hablar" ? "Hablar" : "Pregunta"}
+                              {(t as any).tipo === "hablar" ? "💬" : "❓"}
                             </span>
-                            {t.texto && !active && (
-                              <p className="text-[10px] truncate" style={{ color: MUTED }}>{t.texto}</p>
-                            )}
                           </div>
+                          {t.texto && !active && (
+                            <p className="text-[10px] truncate" style={{ color: MUTED }}>{t.texto}</p>
+                          )}
                         </div>
 
                         {/* Ícono de candado si tiene prerequisito */}
@@ -1583,7 +1817,140 @@ export function DialogosSection() {
                 );
               })()}
 
-              {!loading && dialogo && filteredV.length === 0 && filteredT.length === 0 && !variantesOpen && !temasOpen && (
+              {/* ── RESPUESTAS_RUTINA ── */}
+              {sidebarFilter === null && <button
+                type="button"
+                className="w-full flex items-center justify-between px-3 py-1.5 mt-2"
+                style={{ borderTop: BORDER }}
+                onClick={() => setRespuestaRutinaOpen(v => !v)}
+              >
+                <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest" style={{ color: MUTED }}>
+                  <ChevronRight size={10} style={{ color: MUTED, transition: "transform .15s", transform: respuestaRutinaOpen ? "rotate(90deg)" : "rotate(0deg)" }} />
+                  Resp. Rutina ({filteredRR.length})
+                </span>
+                <button type="button" onClick={e => { e.stopPropagation(); addRespuestaRutina(); }} style={{ color: MUTED }} title="Nueva respuesta de rutina">
+                  <Plus size={11} />
+                </button>
+              </button>}
+
+              {sidebarFilter === null && respuestaRutinaOpen && filteredRR.map(({ rr, i }) => {
+                const active = selEntry?.type === "respuesta_rutina" && selEntry.index === i;
+                return (
+                  <button
+                    key={rr.clave + i}
+                    type="button"
+                    onClick={() => pickRespuestaRutina(rr, i)}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 text-left transition-colors"
+                    style={{
+                      background:  active ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "transparent",
+                      borderLeft:  active ? "2px solid var(--primary)" : "2px solid transparent",
+                    }}
+                  >
+                    <div style={{ width: 7, height: 7, borderRadius: "50%", background: C_SUCCESS, flexShrink: 0 }} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium truncate" style={{ color: "var(--primary)" }}>
+                        {rr.clave}
+                        {active && isDirty && <span style={{ marginLeft: 5, display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: C_WARN, verticalAlign: "middle" }} />}
+                      </p>
+                      <p className="text-[10px] truncate" style={{ color: MUTED }}>
+                        {rr.textos?.length ?? 0} texto{(rr.textos?.length ?? 0) !== 1 ? "s" : ""}
+                      </p>
+                    </div>
+                  </button>
+                );
+              })}
+
+              {/* ── SALUDOS_CONTEXTUALES ── */}
+              {sidebarFilter === null && <button
+                type="button"
+                className="w-full flex items-center justify-between px-3 py-1.5 mt-2"
+                style={{ borderTop: BORDER }}
+                onClick={() => setSaludosOpen(v => !v)}
+              >
+                <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest" style={{ color: MUTED }}>
+                  <ChevronRight size={10} style={{ color: MUTED, transition: "transform .15s", transform: saludosOpen ? "rotate(90deg)" : "rotate(0deg)" }} />
+                  Saludos ({filteredSC.length})
+                </span>
+                <button type="button" onClick={e => { e.stopPropagation(); addSaludoContextual(); }} style={{ color: MUTED }} title="Nuevo saludo contextual">
+                  <Plus size={11} />
+                </button>
+              </button>}
+
+              {sidebarFilter === null && saludosOpen && filteredSC.map(({ sc, i }) => {
+                const active = selEntry?.type === "saludo_contextual" && selEntry.index === i;
+                return (
+                  <button
+                    key={sc.clave + i}
+                    type="button"
+                    onClick={() => pickSaludoContextual(sc, i)}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 text-left transition-colors"
+                    style={{
+                      background:  active ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "transparent",
+                      borderLeft:  active ? "2px solid var(--primary)" : "2px solid transparent",
+                    }}
+                  >
+                    <div style={{ width: 7, height: 7, borderRadius: "50%", background: C_SEASON, flexShrink: 0 }} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium truncate" style={{ color: "var(--primary)" }}>
+                        {sc.clave}
+                        {active && isDirty && <span style={{ marginLeft: 5, display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: C_WARN, verticalAlign: "middle" }} />}
+                      </p>
+                      <p className="text-[10px] truncate" style={{ color: MUTED }}>
+                        {[sc.hora, sc.estacion].filter(Boolean).join(" · ") || "sin contexto"}
+                      </p>
+                    </div>
+                  </button>
+                );
+              })}
+
+              {/* ── RUTINA_CONTEXTUAL ── */}
+              {sidebarFilter === null && <button
+                type="button"
+                className="w-full flex items-center justify-between px-3 py-1.5 mt-2"
+                style={{ borderTop: BORDER }}
+                onClick={() => setRutinaCtxOpen(v => !v)}
+              >
+                <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest" style={{ color: MUTED }}>
+                  <ChevronRight size={10} style={{ color: MUTED, transition: "transform .15s", transform: rutinaCtxOpen ? "rotate(90deg)" : "rotate(0deg)" }} />
+                  Rutina Ctx. ({filteredRC.length})
+                </span>
+                <button type="button" onClick={e => { e.stopPropagation(); addRutinaContextual(); }} style={{ color: MUTED }} title="Nueva rutina contextual">
+                  <Plus size={11} />
+                </button>
+              </button>}
+
+              {sidebarFilter === null && rutinaCtxOpen && filteredRC.map(({ rc, i }) => {
+                const active = selEntry?.type === "rutina_contextual" && selEntry.index === i;
+                return (
+                  <button
+                    key={rc.clave + i}
+                    type="button"
+                    onClick={() => pickRutinaContextual(rc, i)}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 text-left transition-colors"
+                    style={{
+                      background:  active ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "transparent",
+                      borderLeft:  active ? "2px solid var(--primary)" : "2px solid transparent",
+                    }}
+                  >
+                    <div style={{ width: 7, height: 7, borderRadius: "50%", background: C_MIXED, flexShrink: 0 }} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium truncate" style={{ color: "var(--primary)" }}>
+                        {rc.clave}
+                        {active && isDirty && <span style={{ marginLeft: 5, display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: C_WARN, verticalAlign: "middle" }} />}
+                      </p>
+                      {rc.texto && (
+                        <p className="text-[10px] truncate" style={{ color: MUTED }}>
+                          {rc.texto.length > 32 ? rc.texto.slice(0, 30) + "…" : rc.texto}
+                        </p>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+
+              {!loading && dialogo && filteredV.length === 0 && filteredT.length === 0 &&
+               filteredRR.length === 0 && filteredSC.length === 0 && filteredRC.length === 0 &&
+               !variantesOpen && !temasOpen && !respuestaRutinaOpen && !saludosOpen && !rutinaCtxOpen && (
                 <p className="text-xs text-center py-6" style={{ color: MUTED }}>
                   Sin entradas{q ? " que coincidan" : ""}
                 </p>
@@ -1598,7 +1965,7 @@ export function DialogosSection() {
             <div key={k} className="flex items-center gap-1">
               <div style={{ width: 6, height: 6, borderRadius: "50%", background: DOT_COLOR[k] }} />
               <span className="text-[9px]" style={{ color: MUTED }}>
-                {k === "none" ? "libre" : k === "social" ? "social" : k === "season" ? "estacional" : "mixto"}
+                {k === "none" ? "sin cond." : k === "social" ? "social" : k === "season" ? "estacional" : "mixto"}
               </span>
             </div>
           ))}
@@ -1613,7 +1980,7 @@ export function DialogosSection() {
       {!selEntry ? (
         <div className="flex-1 flex flex-col items-center justify-center gap-2" style={{ color: MUTED }}>
           <MessageCircle size={24} style={{ opacity: 0.3 }} />
-          <p className="text-xs">Selecciona una variante o tema</p>
+          <p className="text-xs">Selecciona una entrada del panel izquierdo</p>
         </div>
       ) : (
         <div className="flex-1 flex flex-col min-h-0 min-w-0">
@@ -1627,26 +1994,35 @@ export function DialogosSection() {
               {/* Punto ámbar si hay cambios */}
               {isDirty && (
                 <div
-                  style={{ width: 7, height: 7, borderRadius: "50%", background: "#f59e0b", flexShrink: 0 }}
+                  style={{ width: 7, height: 7, borderRadius: "50%", background: C_WARN, flexShrink: 0 }}
                   title="Cambios sin guardar"
                 />
               )}
               <span className="text-sm font-bold truncate" style={{ color: "var(--primary)" }}>
-                {selEntry.type === "variante" ? vClave : tClave}
+                {selEntry.type === "variante"          ? vClave
+                 : selEntry.type === "tema"            ? tClave
+                 : selEntry.type === "respuesta_rutina"? rrClave
+                 : selEntry.type === "saludo_contextual"? scClave
+                 : rcClave}
               </span>
-              <span
-                className="text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0"
-                style={{
-                  background: selEntry.type === "variante"
-                    ? "color-mix(in srgb, #a855f7 15%, transparent)"
-                    : "color-mix(in srgb, #3b82f6 15%, transparent)",
-                  color: selEntry.type === "variante"
-                    ? "color-mix(in srgb, #a855f7 85%, var(--primary))"
-                    : "color-mix(in srgb, #3b82f6 85%, var(--primary))",
-                }}
-              >
-                {selEntry.type}
-              </span>
+              {(() => {
+                const cfg: Record<string, { bg: string; fg: string; label: string }> = {
+                  variante:          { bg: `color-mix(in srgb, ${C_SOCIAL} 15%, transparent)`,  fg: `color-mix(in srgb, ${C_SOCIAL} 85%, var(--primary))`,  label: "variante" },
+                  tema:              { bg: `color-mix(in srgb, ${C_MIXED} 15%, transparent)`,   fg: `color-mix(in srgb, ${C_MIXED} 85%, var(--primary))`,   label: "tema" },
+                  respuesta_rutina:  { bg: `color-mix(in srgb, ${C_SUCCESS} 15%, transparent)`, fg: `color-mix(in srgb, ${C_SUCCESS} 85%, var(--primary))`, label: "rutina" },
+                  saludo_contextual: { bg: `color-mix(in srgb, ${C_SEASON} 15%, transparent)`,  fg: `color-mix(in srgb, ${C_SEASON} 85%, var(--primary))`,  label: "saludo" },
+                  rutina_contextual: { bg: `color-mix(in srgb, ${C_MIXED} 15%, transparent)`,   fg: `color-mix(in srgb, ${C_MIXED} 85%, var(--primary))`,   label: "rutina ctx" },
+                };
+                const c = cfg[selEntry.type] ?? cfg.variante;
+                return (
+                  <span
+                    className="text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0"
+                    style={{ background: c.bg, color: c.fg }}
+                  >
+                    {c.label}
+                  </span>
+                );
+              })()}
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
@@ -1692,31 +2068,33 @@ export function DialogosSection() {
           {error && (
             <div
               className="flex items-center gap-2 px-5 py-2 text-xs"
-              style={{ background: "color-mix(in srgb, #ef4444 8%, transparent)", color: "#ef4444", borderBottom: "1px solid color-mix(in srgb, #ef4444 20%, transparent)" }}
+              style={{ background: `color-mix(in srgb, ${C_ERROR} 8%, transparent)`, color: C_ERROR, borderBottom: `1px solid color-mix(in srgb, ${C_ERROR} 20%, transparent)` }}
             >
               <AlertTriangle size={12} />
               {error}
             </div>
           )}
 
-          {/* Pestañas */}
+          {/* Pestañas — las secciones nuevas solo muestran "Contenido" */}
           <div className="flex" style={{ borderBottom: BORDER }}>
-            {PANEL_TABS.map(tab => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setPanelTab(tab.id)}
-                className="px-4 py-2 text-xs font-medium transition-colors"
-                style={{
-                  color: panelTab === tab.id ? "var(--primary)" : MUTED,
-                  borderBottom: panelTab === tab.id ? "2px solid var(--primary)" : "2px solid transparent",
-                  background: "transparent",
-                  marginBottom: -1,
-                }}
-              >
-                {tab.label}
-              </button>
-            ))}
+            {PANEL_TABS
+              .filter(tab => !ENTRY_TYPES_SIMPLE.has(selEntry.type) || tab.id === "contenido")
+              .map(tab => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setPanelTab(tab.id)}
+                  className="px-4 py-2 text-xs font-medium transition-colors"
+                  style={{
+                    color: panelTab === tab.id ? "var(--primary)" : MUTED,
+                    borderBottom: panelTab === tab.id ? "2px solid var(--primary)" : "2px solid transparent",
+                    background: "transparent",
+                    marginBottom: -1,
+                  }}
+                >
+                  {tab.label}
+                </button>
+              ))}
           </div>
 
           {/* Panel body */}
@@ -1743,7 +2121,6 @@ export function DialogosSection() {
 
             {panelTab === "contenido" && selEntry.type === "tema" && (
               <TemaContenido
-                tipo={tTipo}              onTipo={v => { setTTipo(v);               markDirty(); }}
                 clave={tClave}            onClave={v => { setTClave(v);            markDirty(); }}
                 texto={tTexto}            onTexto={v => { setTTexto(v);            markDirty(); }}
                 evento={tEvento}          onEvento={v => { setTEvento(v);          markDirty(); }}
@@ -1752,6 +2129,36 @@ export function DialogosSection() {
                 respRep={tRespRep}        onRespRep={v => { setTRespRep(v);        markDirty(); }}
                 requiereTema={tRequiereTema} onRequiereTema={v => { setTRequiereTema(v); markDirty(); }}
                 temasDisponibles={(dialogo?.temas_conversacion ?? []).map(t => t.clave).filter(c => c !== tClave)}
+              />
+            )}
+
+            {panelTab === "contenido" && selEntry.type === "respuesta_rutina" && (
+              <RespuestaRutinaContenido
+                clave={rrClave}             onClave={v => { setRrClave(v);         markDirty(); }}
+                textos={rrTextos}           onTextos={v => { setRrTextos(v);       markDirty(); }}
+                condiciones={rrCondiciones} onCondiciones={c => { setRrCondiciones(c); markDirty(); }}
+                opLogico={rrOpLogico}       onOpLogico={op => { setRrOpLogico(op); markDirty(); }}
+              />
+            )}
+
+            {panelTab === "contenido" && selEntry.type === "saludo_contextual" && (
+              <SaludoContextualContenido
+                clave={scClave}             onClave={v => { setScClave(v);         markDirty(); }}
+                texto={scTexto}             onTexto={v => { setScTexto(v);         markDirty(); }}
+                hora={scHora}               onHora={v => { setScHora(v);           markDirty(); }}
+                estacion={scEstacion}       onEstacion={v => { setScEstacion(v);   markDirty(); }}
+                condiciones={scCondiciones} onCondiciones={c => { setScCondiciones(c); markDirty(); }}
+                opLogico={scOpLogico}       onOpLogico={op => { setScOpLogico(op); markDirty(); }}
+              />
+            )}
+
+            {panelTab === "contenido" && selEntry.type === "rutina_contextual" && (
+              <RutinaContextualContenido
+                clave={rcClave}             onClave={v => { setRcClave(v);         markDirty(); }}
+                texto={rcTexto}             onTexto={v => { setRcTexto(v);         markDirty(); }}
+                pregunta={rcPregunta}       onPregunta={v => { setRcPregunta(v);   markDirty(); }}
+                condiciones={rcCondiciones} onCondiciones={c => { setRcCondiciones(c); markDirty(); }}
+                opLogico={rcOpLogico}       onOpLogico={op => { setRcOpLogico(op); markDirty(); }}
               />
             )}
 
@@ -1826,7 +2233,7 @@ function buildGrafo(variantes: Variante[], temas: TemaConversacion[]): {
       if (hasSocial || condTypes.has("social")) return "social";
       return "none";
     })();
-    const color = DOT_COLOR[kind];
+    const color = DOT_COLOR_CANVAS[kind];
     nodes.push({
       id: `v:${v.clave}`,
       kind: "variante",
@@ -1871,7 +2278,7 @@ function buildGrafo(variantes: Variante[], temas: TemaConversacion[]): {
     const col = colOf[clave] ?? 1;
     const row = rowOf[clave] ?? i;
     const hasConds = (t._condiciones ?? []).length > 0 || (t.requisito_social && Object.keys(t.requisito_social).length > 0);
-    const color = hasConds ? DOT_COLOR.social : DOT_COLOR.none;
+    const color = hasConds ? DOT_COLOR_CANVAS.social : DOT_COLOR_CANVAS.none;
 
     nodes.push({
       id: `t:${clave}`,
@@ -1890,7 +2297,7 @@ function buildGrafo(variantes: Variante[], temas: TemaConversacion[]): {
         from: `t:${t.requiere_tema}`,
         to: `t:${clave}`,
         label: "requiere",
-        color: "#f97316",
+        color: C_SEASON,
       });
     }
   });
@@ -1904,7 +2311,7 @@ function buildGrafo(variantes: Variante[], temas: TemaConversacion[]): {
             from: `t:${c.campo}`,
             to: `v:${v.clave}`,
             label: "desbloquea línea",
-            color: "#a855f7",
+            color: C_SOCIAL,
           });
         }
       });
@@ -1916,7 +2323,7 @@ function buildGrafo(variantes: Variante[], temas: TemaConversacion[]): {
           from: `t:${c.campo}`,
           to: `v:${v.clave}`,
           label: "desbloquea",
-          color: "#3b82f6",
+          color: C_MIXED,
         });
       }
     });
@@ -2197,11 +2604,11 @@ function GrafoDialogos({
 
   // Legend items
   const legendItems = [
-    { color: DOT_COLOR.none,   label: "variante libre" },
+    { color: DOT_COLOR_CANVAS.none,   label: "sin condición" },
     { color: DOT_COLOR.social, label: "con condición" },
-    { color: "#f97316",        label: "requiere tema" },
-    { color: "#3b82f6",        label: "desbloquea variante" },
-    { color: "#a855f7",        label: "desbloquea línea" },
+    { color: C_SEASON,        label: "requiere tema" },
+    { color: C_MIXED,        label: "desbloquea variante" },
+    { color: C_SOCIAL,        label: "desbloquea línea" },
   ];
 
   return (
@@ -2358,11 +2765,10 @@ function VarianteContenido({
 // ── TemaContenido ─────────────────────────────────────────────────────────────
 
 function TemaContenido({
-  tipo, onTipo, clave, onClave, texto, onTexto, evento, onEvento,
+  clave, onClave, texto, onTexto, evento, onEvento,
   jugador, onJugador, respuesta, onRespuesta,
   respRep, onRespRep, requiereTema, onRequiereTema, temasDisponibles,
 }: {
-  tipo: "pregunta" | "hablar"; onTipo: (v: "pregunta" | "hablar") => void;
   clave: string;        onClave: (v: string) => void;
   texto: string;        onTexto: (v: string) => void;
   evento: string;       onEvento: (v: string) => void;
@@ -2374,18 +2780,6 @@ function TemaContenido({
 }) {
   return (
     <>
-      <label className="flex flex-col gap-1">
-        <FL label="Tipo de interacción" />
-        <select
-          value={tipo}
-          onChange={e => onTipo(e.target.value as "pregunta" | "hablar")}
-          style={{ ...inputStyle, padding: "6px 8px" }}
-        >
-          <option value="pregunta">Pregunta — el jugador consulta algo concreto</option>
-          <option value="hablar">Hablar — conversación general sobre un tema</option>
-        </select>
-      </label>
-
       <div className="flex gap-3">
         <label className="flex flex-col gap-1 flex-1">
           <FL label="Clave" />
@@ -2428,6 +2822,271 @@ function TemaContenido({
           {temasDisponibles.map(t => <option key={t} value={t}>{t}</option>)}
         </select>
       </label>
+    </>
+  );
+}
+
+// ── Ayuda visual: píldoras de marcadores ──────────────────────────────────────
+
+const MARCADORES = ["{actividad}", "{destino}", "{ubicacion}"] as const;
+
+function MarcadorHint() {
+  return (
+    <div className="flex flex-wrap gap-1.5 mt-1">
+      {MARCADORES.map(m => (
+        <span
+          key={m}
+          className="text-[10px] px-2 py-0.5 rounded-full font-mono"
+          style={{
+            background: `color-mix(in srgb, ${C_MIXED} 12%, transparent)`,
+            color: `color-mix(in srgb, ${C_MIXED} 85%, var(--primary))`,
+            border: `1px solid color-mix(in srgb, ${C_MIXED} 20%, transparent)`,
+          }}
+        >
+          {m}
+        </span>
+      ))}
+      <span className="text-[10px] self-center" style={{ color: MUTED }}>
+        — se sustituyen en Godot en tiempo de ejecución
+      </span>
+    </div>
+  );
+}
+
+// ── RespuestaRutinaContenido ──────────────────────────────────────────────────
+
+function RespuestaRutinaContenido({
+  clave, onClave,
+  textos, onTextos,
+  condiciones, onCondiciones,
+  opLogico, onOpLogico,
+}: {
+  clave: string;              onClave: (v: string) => void;
+  textos: string[];           onTextos: (v: string[]) => void;
+  condiciones: Condicion[];   onCondiciones: (c: Condicion[]) => void;
+  opLogico: "AND" | "OR";    onOpLogico: (op: "AND" | "OR") => void;
+}) {
+  const setTexto = (i: number, val: string) =>
+    onTextos(textos.map((t, idx) => idx === i ? val : t));
+  const addTexto = () => onTextos([...textos, ""]);
+  const delTexto = (i: number) => onTextos(textos.filter((_, idx) => idx !== i));
+
+  return (
+    <>
+      <label className="flex flex-col gap-1">
+        <FL label="Clave" />
+        <Inp value={clave} onChange={e => onClave(e.target.value)} placeholder="respuesta_trabajando" />
+      </label>
+
+      {/* Textos con marcadores */}
+      <div className="flex flex-col gap-2" style={{ borderTop: BORDER, paddingTop: 8 }}>
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: MUTED }}>
+            Variantes de texto
+          </span>
+        </div>
+        <MarcadorHint />
+        {textos.map((t, i) => (
+          <div key={i} className="flex items-start gap-2">
+            <TA
+              rows={2}
+              className="flex-1"
+              value={t}
+              onChange={e => setTexto(i, e.target.value)}
+              placeholder={`Estoy {actividad} en {destino}…`}
+            />
+            <button
+              type="button"
+              onClick={() => delTexto(i)}
+              style={{ color: MUTED, flexShrink: 0, marginTop: 4 }}
+            >
+              <X size={13} />
+            </button>
+          </div>
+        ))}
+        <button
+          type="button"
+          onClick={addTexto}
+          className="self-start flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg"
+          style={{ color: MUTED, border: BORDER, background: "color-mix(in srgb, var(--primary) 4%, transparent)" }}
+        >
+          <Plus size={10} /> Variante de texto
+        </button>
+      </div>
+
+      {/* Condiciones */}
+      <div className="flex flex-col gap-2" style={{ borderTop: BORDER, paddingTop: 8 }}>
+        <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: MUTED }}>
+          Condiciones
+        </span>
+        <CondicionBuilder
+          condiciones={condiciones}
+          operador={opLogico}
+          onChange={onCondiciones}
+          onOpChange={onOpLogico}
+        />
+      </div>
+    </>
+  );
+}
+
+// ── SaludoContextualContenido ─────────────────────────────────────────────────
+
+const HORAS_DIA    = ["", "mañana", "mediodía", "tarde", "noche"] as const;
+const ESTACIONES   = ["", "Florial", "Luviern", "Ardent", "Nievorn"] as const;
+
+function SaludoContextualContenido({
+  clave, onClave,
+  texto, onTexto,
+  hora, onHora,
+  estacion, onEstacion,
+  condiciones, onCondiciones,
+  opLogico, onOpLogico,
+}: {
+  clave: string;              onClave: (v: string) => void;
+  texto: string;              onTexto: (v: string) => void;
+  hora: string;               onHora: (v: string) => void;
+  estacion: string;           onEstacion: (v: string) => void;
+  condiciones: Condicion[];   onCondiciones: (c: Condicion[]) => void;
+  opLogico: "AND" | "OR";    onOpLogico: (op: "AND" | "OR") => void;
+}) {
+  return (
+    <>
+      <label className="flex flex-col gap-1">
+        <FL label="Clave" />
+        <Inp value={clave} onChange={e => onClave(e.target.value)} placeholder="saludo_mañana_florial" />
+      </label>
+
+      {/* Contexto rápido */}
+      <div className="flex gap-3">
+        <label className="flex flex-col gap-1 flex-1">
+          <FL label="Hora del día" />
+          <select
+            value={hora}
+            onChange={e => onHora(e.target.value)}
+            style={{ ...inputStyle, padding: "5px 8px" }}
+          >
+            {HORAS_DIA.map(h => (
+              <option key={h} value={h}>{h || "— cualquier hora —"}</option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1 flex-1">
+          <FL label="Estación" />
+          <select
+            value={estacion}
+            onChange={e => onEstacion(e.target.value)}
+            style={{ ...inputStyle, padding: "5px 8px" }}
+          >
+            {ESTACIONES.map(s => (
+              <option key={s} value={s}>{s || "— cualquier estación —"}</option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      <label className="flex flex-col gap-1">
+        <FL label="Texto del saludo" />
+        <MarcadorHint />
+        <TA
+          rows={3}
+          value={texto}
+          onChange={e => onTexto(e.target.value)}
+          placeholder="¡Buenos días! ¿Cómo estás hoy?"
+        />
+      </label>
+
+      {/* Condiciones adicionales */}
+      <div className="flex flex-col gap-2" style={{ borderTop: BORDER, paddingTop: 8 }}>
+        <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: MUTED }}>
+          Condiciones adicionales
+        </span>
+        <CondicionBuilder
+          condiciones={condiciones}
+          operador={opLogico}
+          onChange={onCondiciones}
+          onOpChange={onOpLogico}
+        />
+      </div>
+    </>
+  );
+}
+
+// ── RutinaContextualContenido ─────────────────────────────────────────────────
+
+function RutinaContextualContenido({
+  clave, onClave,
+  texto, onTexto,
+  pregunta, onPregunta,
+  condiciones, onCondiciones,
+  opLogico, onOpLogico,
+}: {
+  clave: string;              onClave: (v: string) => void;
+  texto: string;              onTexto: (v: string) => void;
+  pregunta: string;           onPregunta: (v: string) => void;
+  condiciones: Condicion[];   onCondiciones: (c: Condicion[]) => void;
+  opLogico: "AND" | "OR";    onOpLogico: (op: "AND" | "OR") => void;
+}) {
+  return (
+    <>
+      <label className="flex flex-col gap-1">
+        <FL label="Clave" />
+        <Inp value={clave} onChange={e => onClave(e.target.value)} placeholder="rutina_trabajo" />
+      </label>
+
+      <label className="flex flex-col gap-1">
+        <FL label="Pregunta del jugador (opcional)" />
+        <TA
+          rows={2}
+          value={pregunta}
+          onChange={e => onPregunta(e.target.value)}
+          placeholder="¿Qué estás haciendo?"
+        />
+      </label>
+
+      <label className="flex flex-col gap-1">
+        <FL label="Respuesta del NPC" />
+        <MarcadorHint />
+        <TA
+          rows={4}
+          value={texto}
+          onChange={e => onTexto(e.target.value)}
+          placeholder="Ahora mismo estoy {actividad}. Me dirijo a {destino}."
+        />
+      </label>
+
+      {/* Recordatorio de marcadores en bloque informativo */}
+      <div
+        className="flex flex-col gap-1 p-3 rounded-xl text-xs"
+        style={{
+          background: `color-mix(in srgb, ${C_MIXED} 6%, transparent)`,
+          border: `1px solid color-mix(in srgb, ${C_MIXED} 15%, transparent)`,
+          color: MUTED,
+        }}
+      >
+        <span className="font-semibold" style={{ color: `color-mix(in srgb, ${C_MIXED} 70%, var(--primary))` }}>
+          Marcadores disponibles
+        </span>
+        <span><code style={{ fontFamily: "monospace" }}>{"{actividad}"}</code> — qué hace el NPC en este momento</span>
+        <span><code style={{ fontFamily: "monospace" }}>{"{destino}"}</code> — a dónde se dirige</span>
+        <span><code style={{ fontFamily: "monospace" }}>{"{ubicacion}"}</code> — dónde está ahora</span>
+        <span className="mt-1" style={{ fontSize: 10 }}>
+          Godot sustituye estos valores en tiempo de ejecución. No los edites como texto fijo.
+        </span>
+      </div>
+
+      {/* Condiciones */}
+      <div className="flex flex-col gap-2" style={{ borderTop: BORDER, paddingTop: 8 }}>
+        <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: MUTED }}>
+          Condiciones
+        </span>
+        <CondicionBuilder
+          condiciones={condiciones}
+          operador={opLogico}
+          onChange={onCondiciones}
+          onOpChange={onOpLogico}
+        />
+      </div>
     </>
   );
 }
