@@ -1722,7 +1722,8 @@ export function DialogosSection() {
   const filteredT  = temas.map((t, i) => ({ t, i }))
     .filter(({ t }) => !q || t.clave.includes(q) || t.texto?.includes(q));
 
-  const isActive = (type: EntryRef extends null ? never : EntryRef["type"], idx: number) =>
+  type EntryType = "variante" | "tema" | "respuesta_rutina" | "saludo_contextual" | "rutina_contextual" | "dialogo_v2" | "tema_v2";
+  const isActive = (type: EntryType, idx: number) =>
     selEntry?.type === type && selEntry.index === idx;
 
   // ── Panel tabs para Variante ──────────────────────────────────────────────────
