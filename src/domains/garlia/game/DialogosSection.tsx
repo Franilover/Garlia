@@ -122,7 +122,7 @@ interface DialogoDoc {
   rutina_contextual?: RutinaContextual[];
 }
 
-// ── Tipos v2 (contenido_narrativo) ───────────────────────────────────────────
+// ── Tipos v2 (contenido_narrativo.dialogos / temas) ──────────────────────────
 
 /** Una entrada en cualquier grupo de diálogos v2: equivale a Variante */
 interface DialogoV2 {
@@ -162,11 +162,69 @@ interface ContenidoNarrativoV2 {
   temas:    Record<string, TemaV2[]>;
 }
 
+// ── Tipos v3 (contenido_narrativo.dialogos_v3) — estructura real en Supabase ──
+
+/**
+ * Variante real en v3: usa condiciones.reglas[] en lugar de _condiciones[].
+ * Se guarda en dialogo.contenido_narrativo.dialogos_v3.grupos.<grupo>.variantes[]
+ */
+interface VarianteV3 {
+  clave: string;
+  lineas: DialogoLinea[];
+  prioridad: number;
+  condiciones?: {
+    reglas: Array<{
+      tipo: string;
+      valor: string;
+      operador: string;
+      origen?: string;
+    }>;
+    operador: "AND" | "OR";
+  };
+  requisito_social?: RequisitoSocial;
+  requisito_contextual?: RequisitoContextual;
+  /** Condiciones del constructor visual (fuente del editor) */
+  _condiciones?: Condicion[];
+  _operador_logico?: "AND" | "OR";
+  [key: string]: unknown;
+}
+
+/** Un grupo dentro de dialogos_v3 */
+interface GrupoV3 {
+  nombre: string;
+  variantes: VarianteV3[];
+}
+
+/** Estructura dialogos_v3 que vive dentro de contenido_narrativo */
+interface DialogosV3 {
+  version: 3;
+  grupos: Record<string, GrupoV3>;
+  reglas_condiciones?: Record<string, unknown>;
+}
+
+/**
+ * El objeto completo contenido_narrativo tal como llega de Supabase.
+ * Preserva tanto v2 (temas) como v3 (dialogos_v3).
+ */
+interface ContenidoNarrativo {
+  version?: number;
+  version_dialogos?: number;
+  dialogos?: Record<string, DialogoV2[]>;   // v2 — obsoleto pero conservado
+  temas?: Record<string, TemaV2[]>;         // v2 — sigue en uso
+  dialogos_v3?: DialogosV3;                 // v3 — fuente de verdad para diálogos
+  estado_migracion?: string;
+  estado_migracion_dialogos_v3?: string;
+  configuracion_dialogos?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
 /**
  * Vista plana interna — lo que el editor maneja en memoria.
  * Cada entrada lleva el grupo al que pertenece para poder guardar de vuelta.
  */
-interface EntradaDialogo extends DialogoV2 { _grupo: string }
+// Para v3: EntradaDialogo usa el mismo shape que VarianteV3 + _grupo
+interface EntradaDialogo extends VarianteV3 { _grupo: string }
+// Para temas v2: EntradaTema usa TemaV2 + _grupo
 interface EntradaTema    extends TemaV2    { _grupo: string }
 
 type EntryRef =
@@ -1059,8 +1117,8 @@ export function DialogosSection() {
   const [isV2,          setIsV2]          = useState(false);
   const [dialogosV2,    setDialogosV2]    = useState<EntradaDialogo[]>([]);
   const [temasV2,       setTemasV2]       = useState<EntradaTema[]>([]);
-  /** Referencia cruda al contenido_narrativo v2 para guardar de vuelta */
-  const cnV2Ref = useRef<ContenidoNarrativoV2 | null>(null);
+  /** Referencia cruda al contenido_narrativo completo para guardar de vuelta (v2 y v3) */
+  const cnV2Ref = useRef<ContenidoNarrativo | null>(null);
 
 
 
@@ -1163,16 +1221,45 @@ export function DialogosSection() {
     // row.dialogo puede ser: array wrapper [ {...} ], objeto directo {...}, o null
     const doc: any = Array.isArray(raw) ? (raw[0] ?? {}) : (raw ?? {});
 
-    // ── Detectar v2 ──────────────────────────────────────────────────────────
-    const cn = doc.contenido_narrativo as ContenidoNarrativoV2 | undefined;
-    if (cn && cn.version === 2) {
+    const cn = doc.contenido_narrativo as ContenidoNarrativo | undefined;
+
+    // ── Detectar v3 (dialogos_v3.grupos) — fuente de verdad actual ───────────
+    const dv3 = cn?.dialogos_v3;
+    if (dv3 && typeof dv3.grupos === "object") {
+      setIsV2(true);  // isV2 = "modo agrupado" (v2 o v3)
+      cnV2Ref.current = cn!;
+
+      // Aplanar grupos: { principal: { variantes: [...] }, sin_clasificar: {...}, ... }
+      const dv2: EntradaDialogo[] = [];
+      for (const [grupo, grupoData] of Object.entries(dv3.grupos)) {
+        const variantes = toArray<VarianteV3>(grupoData.variantes);
+        for (const v of variantes) {
+          // Mapear condiciones.reglas[] → _condiciones[] para el editor visual
+          const condVisual: Condicion[] = (v._condiciones ?? []);
+          dv2.push({ ...v, _grupo: grupo, _condiciones: condVisual });
+        }
+      }
+
+      // Temas siguen en cn.temas (v2)
+      const tv2: EntradaTema[] = [];
+      for (const [grupo, entries] of Object.entries(cn?.temas ?? {})) {
+        for (const e of toArray<TemaV2>(entries)) {
+          tv2.push({ ...e, _grupo: grupo });
+        }
+      }
+
+      setDialogosV2(dv2);
+      setTemasV2(tv2);
+      setDialogo(null);
+
+    // ── Detectar v2 legacy (cn.dialogos plano, sin dialogos_v3) ─────────────
+    } else if (cn && cn.version === 2) {
       setIsV2(true);
       cnV2Ref.current = cn;
-      // Aplanar dialogos: cada entrada lleva _grupo para saber dónde guardar
       const dv2: EntradaDialogo[] = [];
       for (const [grupo, entries] of Object.entries(cn.dialogos ?? {})) {
         for (const e of toArray<DialogoV2>(entries)) {
-          dv2.push({ ...e, _grupo: grupo });
+          dv2.push({ ...e, _grupo: grupo } as EntradaDialogo);
         }
       }
       const tv2: EntradaTema[] = [];
@@ -1184,6 +1271,7 @@ export function DialogosSection() {
       setDialogosV2(dv2);
       setTemasV2(tv2);
       setDialogo(null);
+
     } else {
       // ── v1 (retrocompatibilidad) ─────────────────────────────────────────
       setIsV2(false);
@@ -1206,24 +1294,29 @@ export function DialogosSection() {
   const crearDialogos = async () => {
     if (!selPjId) return;
     setCreating(true);
-    // Crear con estructura v2
+    // Crear con estructura v3 (dialogos_v3.grupos) + temas v2
     const docVacio = {
       contenido_narrativo: {
         version: 2,
-        dialogos: {
-          principal:        [{ clave: "principal",  lineas: [{ texto: "", hablante: "" }], prioridad: 0 }],
-          amistad:          [],
-          saludo:           [],
-          despedida:        [],
-          viajando:         [],
-          invitaciones:     [],
-          cambio_estacion:  [],
-        },
+        version_dialogos: 3,
         temas: {
           preguntas: [],
           hablar:    [],
         },
-      } as ContenidoNarrativoV2,
+        dialogos_v3: {
+          version: 3,
+          grupos: {
+            principal:       { nombre: "Principal",         variantes: [{ clave: "principal", lineas: [{ texto: "", hablante: "" }], prioridad: 0, condiciones: { reglas: [], operador: "AND" } }] },
+            sin_clasificar:  { nombre: "Sin clasificar",    variantes: [] },
+            saludo:          { nombre: "Saludo",            variantes: [] },
+            despedida:       { nombre: "Despedida",         variantes: [] },
+            amistad:         { nombre: "Amistad",           variantes: [] },
+            invitaciones:    { nombre: "Invitaciones",      variantes: [] },
+            cambio_estacion: { nombre: "Cambio de estación",variantes: [] },
+          },
+          reglas_condiciones: { combinacion: "AND" },
+        } as DialogosV3,
+      } as ContenidoNarrativo,
     };
     const { data, error: err } = await supabase
       .from("dialogos_game")
@@ -1415,7 +1508,7 @@ export function DialogosSection() {
     // ── Guardar v2 ──────────────────────────────────────────────────────────
     if (selEntry.type === "dialogo_v2" || selEntry.type === "tema_v2") {
       if (!cnV2Ref.current) return;
-      const cn: ContenidoNarrativoV2 = JSON.parse(JSON.stringify(cnV2Ref.current));
+      const cn: ContenidoNarrativo = JSON.parse(JSON.stringify(cnV2Ref.current));
 
       if (selEntry.type === "dialogo_v2") {
         const original = dialogosV2[selEntry.index];
@@ -1430,10 +1523,10 @@ export function DialogosSection() {
         const estConds = vCondiciones.filter(c => c.tipo === "estacion").map(c => c.campo);
         const updated: EntradaDialogo = {
           ...original,
-          clave:    vClave,
-          lineas:   vLineas,
+          clave:     vClave,
+          lineas:    vLineas,
           prioridad: vPrio,
-          _condiciones:    vCondiciones,
+          _condiciones:     vCondiciones,
           _operador_logico: vOpLogico,
           ...(Object.keys(reqSocial).length ? { requisito_social: reqSocial } : { requisito_social: undefined }),
           ...(estConds.length ? { requisito_contextual: { estaciones: estConds } } : { requisito_contextual: undefined }),
@@ -1442,13 +1535,38 @@ export function DialogosSection() {
         const newList = [...dialogosV2];
         newList[selEntry.index] = updated;
         setDialogosV2(newList);
-        // Reconstruir cn.dialogos
-        const grupos: Record<string, DialogoV2[]> = {};
-        for (const e of newList) {
-          const { _grupo, ...rest } = e;
-          grupos[_grupo] = [...(grupos[_grupo] ?? []), rest as DialogoV2];
+
+        // ── Reconstruir: v3 (dialogos_v3.grupos) tiene prioridad ───────────
+        if (cn.dialogos_v3?.grupos) {
+          // Preservar metadatos del grupo (nombre, etc.) — solo reemplazamos variantes
+          const newGrupos: Record<string, GrupoV3> = {};
+          // Inicializar con grupos existentes (preserva grupos vacíos)
+          for (const [gk, gv] of Object.entries(cn.dialogos_v3.grupos)) {
+            newGrupos[gk] = { ...gv, variantes: [] };
+          }
+          for (const e of newList) {
+            const { _grupo, _condiciones, _operador_logico, ...rest } = e;
+            // Asegurar que el grupo existe
+            if (!newGrupos[_grupo]) {
+              newGrupos[_grupo] = { nombre: _grupo.replace(/_/g, " "), variantes: [] };
+            }
+            const variante: VarianteV3 = {
+              ...rest as VarianteV3,
+              _condiciones,
+              _operador_logico,
+            };
+            newGrupos[_grupo].variantes.push(variante);
+          }
+          cn.dialogos_v3 = { ...cn.dialogos_v3, grupos: newGrupos };
+        } else {
+          // Fallback: escribir a cn.dialogos (v2 legacy)
+          const grupos: Record<string, DialogoV2[]> = {};
+          for (const e of newList) {
+            const { _grupo, ...rest } = e;
+            grupos[_grupo] = [...(grupos[_grupo] ?? []), rest as DialogoV2];
+          }
+          cn.dialogos = grupos;
         }
-        cn.dialogos = grupos;
       }
 
       if (selEntry.type === "tema_v2") {
@@ -1486,10 +1604,11 @@ export function DialogosSection() {
       }
 
       cnV2Ref.current = cn;
-      const payload = { contenido_narrativo: cn };
+      // Preservar el wrapper del doc original (que contiene variantes v1, etc.)
+      // El payload es el doc completo con contenido_narrativo actualizado
       const { error: err } = await supabase
         .from("dialogos_game")
-        .update({ dialogo: payload })
+        .update({ dialogo: { contenido_narrativo: cn } })
         .eq("id", selRowId!);
       if (err) throw new Error(err.message);
       setIsDirty(false);
@@ -1649,19 +1768,33 @@ export function DialogosSection() {
     if (!selEntry || !selRowId) return;
     if (!confirm("¿Eliminar esta entrada?")) return;
 
-    // ── v2 delete ────────────────────────────────────────────────────────────
+    // ── v2/v3 delete ─────────────────────────────────────────────────────────
     if (selEntry.type === "dialogo_v2") {
       const newList = dialogosV2.filter((_, i) => i !== selEntry.index);
       setDialogosV2(newList);
       setSelEntry(null);
       if (cnV2Ref.current) {
-        const cn: ContenidoNarrativoV2 = JSON.parse(JSON.stringify(cnV2Ref.current));
-        const grupos: Record<string, DialogoV2[]> = {};
-        for (const e of newList) {
-          const { _grupo, ...rest } = e;
-          grupos[_grupo] = [...(grupos[_grupo] ?? []), rest as DialogoV2];
+        const cn: ContenidoNarrativo = JSON.parse(JSON.stringify(cnV2Ref.current));
+        if (cn.dialogos_v3?.grupos) {
+          // v3: reconstruir grupos preservando metadatos
+          const newGrupos: Record<string, GrupoV3> = {};
+          for (const [gk, gv] of Object.entries(cn.dialogos_v3.grupos)) {
+            newGrupos[gk] = { ...gv, variantes: [] };
+          }
+          for (const e of newList) {
+            const { _grupo, _condiciones, _operador_logico, ...rest } = e;
+            if (!newGrupos[_grupo]) newGrupos[_grupo] = { nombre: _grupo.replace(/_/g, " "), variantes: [] };
+            newGrupos[_grupo].variantes.push({ ...rest as VarianteV3, _condiciones, _operador_logico });
+          }
+          cn.dialogos_v3 = { ...cn.dialogos_v3, grupos: newGrupos };
+        } else {
+          const grupos: Record<string, DialogoV2[]> = {};
+          for (const e of newList) {
+            const { _grupo, ...rest } = e;
+            grupos[_grupo] = [...(grupos[_grupo] ?? []), rest as DialogoV2];
+          }
+          cn.dialogos = grupos;
         }
-        cn.dialogos = grupos;
         cnV2Ref.current = cn;
         await supabase.from("dialogos_game").update({ dialogo: { contenido_narrativo: cn } }).eq("id", selRowId);
       }
@@ -1672,7 +1805,7 @@ export function DialogosSection() {
       setTemasV2(newList);
       setSelEntry(null);
       if (cnV2Ref.current) {
-        const cn: ContenidoNarrativoV2 = JSON.parse(JSON.stringify(cnV2Ref.current));
+        const cn: ContenidoNarrativo = JSON.parse(JSON.stringify(cnV2Ref.current));
         const grupos: Record<string, TemaV2[]> = {};
         for (const e of newList) {
           const { _grupo, ...rest } = e;
