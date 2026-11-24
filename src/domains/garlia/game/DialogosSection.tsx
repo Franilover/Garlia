@@ -750,13 +750,13 @@ function LineaEditor({
           key={i}
           style={{
             display: "inline-flex",
-            alignItems: "center`,
+            alignItems: "center",
             gap: 3,
             background: `color-mix(in srgb, ${C_SOCIAL} 15%, transparent)`,
             color: `color-mix(in srgb, ${C_SOCIAL} 85%, var(--primary))`,
             border: `1px solid color-mix(in srgb, ${C_SOCIAL} 25%, transparent)`,
             borderRadius: 5,
-            padding: `1px 7px",
+            padding: "1px 7px",
             fontSize: 11,
             cursor: "pointer",
           }}
