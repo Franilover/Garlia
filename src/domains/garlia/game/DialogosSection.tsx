@@ -1713,7 +1713,9 @@ export function DialogosSection() {
                         )}
                       </div>
                       {t.requiere_tema && (
-                        <Lock size={9} style={{ color: MUTED, flexShrink: 0 }} title={`Requiere: ${t.requiere_tema}`} />
+                        <span title={`Requiere: ${t.requiere_tema}`} style={{ flexShrink: 0, lineHeight: 0 }}>
+                          <Lock size={9} style={{ color: MUTED }} />
+                        </span>
                       )}
                     </button>
                   );
